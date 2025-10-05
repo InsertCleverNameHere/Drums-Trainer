@@ -23,12 +23,17 @@
   <p class="small">Randomize BPM (multiples of 5) + groove name and practice landing grooves instantly. Built-in metronome uses WebAudio for accuracy.</p>
 
   <label>BPM range (min / max) — multiples of 5 enforced</label>
+  <div>
+  <label for="tempoSlider">Tempo:</label>
+ <input type="range" id="tempoSlider" min="5" max="300" value="30" step="5">
+  <span id="tempoDisplay">30 BPM</span>
+  </div>
   <div class="row">
     <div class="col">
-      <input id="bpmMin" type="number" inputmode="numeric" min="20" max="500" value="30" step="5">
+      <input id="bpmMin" type="number" inputmode="numeric" min="5" max="500" value="30" step="5">
     </div>
     <div class="col">
-      <input id="bpmMax" type="number" inputmode="numeric" min="20" max="500" value="60" step="5">
+      <input id="bpmMax" type="number" inputmode="numeric" min="5" max="500" value="60" step="5">
     </div>
   </div>
 
