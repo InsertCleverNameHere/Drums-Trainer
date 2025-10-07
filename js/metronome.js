@@ -8,7 +8,7 @@ let isRunning = false;
 let schedulerTimer = null;
 
 let bpm = 120;
-let beatsPerBar = 4;
+let beatsPerBar = 4; // configurable beats-per-bar (time signature top number)
 
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
@@ -75,4 +75,14 @@ export function stopMetronome() {
   if (schedulerTimer) clearTimeout(schedulerTimer);
   schedulerTimer = null;
   console.log("Metronome stopped");
+}
+
+// --- beats-per-bar configuration ---
+export function setBeatsPerBar(n) {
+  beatsPerBar = Math.max(1, Math.round(n));
+  console.log(`Beats per bar set to ${beatsPerBar}`);
+}
+
+export function getBeatsPerBar() {
+  return beatsPerBar;
 }
