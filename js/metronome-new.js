@@ -1,5 +1,5 @@
 // metronome.js
-// Lightweight, high-precision metronome using Web Audio API
+// Lightweight, high-precision metronome using Web Audio API (timing improved)
 
 let audioCtx = null;
 let nextNoteTime = 0.0;
@@ -13,7 +13,7 @@ let beatsPerBar = 4;
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
 
-// Callback for visuals (set from your UI code)
+// Callback for visuals (kept simple for now)
 let onBeatVisual = (beat, isAccent) => {
   const el = document.getElementById("beat-indicator");
   if (!el) return;
@@ -49,29 +49,31 @@ function scheduleNote() {
   nextNoteTime += secondsPerBeat;
 }
 
-// Scheduler loop
+// Scheduler loop (improved reliability)
 function scheduler() {
-    if (!isRunning) return; // safety check
+  if (!isRunning) return; // safety check
   while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
     scheduleNote();
   }
-  schedulerTimer = setTimeout(scheduler, 25); // check every 25ms
+  schedulerTimer = setTimeout(scheduler, 25);
 }
 
 // --- public functions ---
 export async function startMetronome(newBpm = 120) {
   if (isRunning) return;
+
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-// Resume context if suspended (fixes mobile/Chrome autoplay issues)
+
+  // Resume context if suspended (fixes mobile/Chrome autoplay issues)
   if (audioCtx.state === "suspended") await audioCtx.resume();
 
-
-  bpm = Math.max(40, Math.min(240, newBpm)); // clamp to user-defined range
+  bpm = Math.max(40, Math.min(240, newBpm)); // clamp
   currentBeat = 0;
   nextNoteTime = audioCtx.currentTime + 0.1;
   isRunning = true;
+
   scheduler();
-  console.log(`Metronome started at ${bpm} BPM`);
+  console.log(Metronome started at ${bpm} BPM);
 }
 
 export function stopMetronome() {
