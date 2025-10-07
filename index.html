@@ -1,33 +1,98 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Random Groove Trainer</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:18px;max-width:900px}
-  h1{margin-bottom:4px}
-  label{display:block;margin-top:10px;font-weight:600}
-  input,textarea,select{font-size:1rem;padding:6px;margin-top:6px;width:100%;box-sizing:border-box}
-  .row{display:flex;gap:12px}
-  .col{flex:1}
-  button{padding:10px 14px;margin-top:10px;font-size:1rem}
-  .big{font-size:1.4rem;font-weight:700;margin-top:12px}
-  .status{margin-top:12px;padding:12px;background:#f3f3f3;border-radius:8px}
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  .small{font-size:0.92rem}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Random Groove Trainer</title>
+ <style>
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    margin: 18px;
+    max-width: 900px;
+  }
 
-  /* Metronome Circles */
-  .metronome-beats { display: flex; justify-content: center; margin-top: 20px; }
-  .beat { width: 30px; height: 30px; border-radius: 50%; margin: 0 5px; background-color: #ddd; transition: background-color 0.2s ease-in-out; }
-  .active { background-color: #4CAF50; } /* Green when active */
+  h1 { margin-bottom: 4px; }
+
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 600;
+  }
+
+  input, textarea, select {
+    font-size: 1rem;
+    padding: 6px;
+    margin-top: 6px;
+    box-sizing: border-box;
+  }
+
+  /* Compact sizing for numeric and dropdown inputs */
+  input[type="number"] {
+    width: 90px;
+  }
+
+  select {
+    width: 110px;
+  }
+
+  #sessionMode {
+    width: 100%;
+    max-width: 260px;
+    }
+
+  textarea {
+    width: 100%;
+  }
+
+  .row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .col {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  button {
+    padding: 10px 14px;
+    margin-top: 10px;
+    font-size: 1rem;
+  }
+
+  .big {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: 12px;
+  }
+
+  .status {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f3f3f3;
+    border-radius: 8px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .small {
+    font-size: 0.92rem;
+  }
 </style>
 </head>
 <body>
   <h1>Random Groove Trainer</h1>
-  <p class="small">Randomize BPM (multiples of 5) + groove name and practice landing grooves instantly. Built-in metronome uses WebAudio for accuracy.</p>
+  <p class="small">
+    Randomize BPM (multiples of 5) + groove name and practice landing grooves instantly. Built-in metronome uses lightweight bundled javascript for accuracy.
+  </p>
 
-  <label>BPM range (min / max) </label>
+  <label>BPM range (min / max)</label>
   <div class="row">
     <div class="col">
       <input id="bpmMin" type="number" inputmode="numeric" min="5" max="500" value="30" step="5">
@@ -38,24 +103,33 @@
   </div>
 
   <label>Groove names (one per line)</label>
-  <textarea id="grooves" rows="20" placeholder="e.g. Rock \n Funk \n ملفوف \n مقسوم \n واحدة ونص \n وحدة كبيرة" >Rock
+  <textarea id="grooves" rows="10" placeholder="e.g. Rock \n Funk \n واحدة ونص \n مقسوم \n وحدة كبيرة \n ملفوف"
+  >Rock
 Funk
 واحدة ونص
 مقسوم
 وحدة كبيرة
-ملفوف</textarea>
+ملفوف
+  </textarea>
 
   <div class="row">
     <div class="col">
-      <label>Time per cycle (seconds)</label>
-      <input id="secondsPerCycle" type="number" inputmode="numeric" min="5" max="600" value="60" step="1">
+      <label>Time per cycle</label>
+      <div class="row" style="gap:6px;">
+        <input id="cycleDuration" type="number" inputmode="numeric" min="1" value="60" step="1">
+        <select id="cycleUnit">
+          <option value="seconds" selected>Seconds</option>
+          <option value="minutes">Minutes</option>
+        </select>
+      </div>
     </div>
+
     <div class="col">
       <label>Session limit (choose one)</label>
       <select id="sessionMode">
         <option value="infinite">Run until Stop</option>
         <option value="cycles">Total cycles (set below)</option>
-        <option value="time">Total session time (seconds)</option>
+        <option value="time">Total session time</option>
       </select>
     </div>
   </div>
@@ -65,9 +139,17 @@ Funk
       <label id="cyclesLabel">Total cycles</label>
       <input id="totalCycles" type="number" inputmode="numeric" min="1" value="5" step="1">
     </div>
+
     <div class="col">
-      <label id="totalTimeLabel">Total session time (seconds)</label>
-      <input id="totalTime" type="number" inputmode="numeric" min="10" value="300" step="5">
+      <label id="totalTimeLabel">Total session time</label>
+      <div class="row" style="gap:6px;">
+        <input id="totalTime" type="number" inputmode="numeric" min="1" value="300" step="1">
+        <select id="totalTimeUnit">
+          <option value="seconds" selected>Seconds</option>
+          <option value="minutes">Minutes</option>
+          <option value="hours">Hours</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -85,230 +167,114 @@ Funk
     <div style="margin-top:6px">Cycles done: <span id="cyclesDone">0</span></div>
   </div>
 
-  <!-- Visual Elements for Metronome -->
-  <div class="metronome-beats">
-    <div id="beat1" class="beat"></div>
-    <div id="beat2" class="beat"></div>
-    <div id="beat3" class="beat"></div>
-    <div id="beat4" class="beat"></div>
-  </div>
+  <!-- JS -->
+  <script type="module">
+    import { startMetronome, stopMetronome } from './js/metronome.js';
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const bpmMinEl = document.getElementById('bpmMin');
+    const bpmMaxEl = document.getElementById('bpmMax');
+    const groovesEl = document.getElementById('grooves');
+    const displayBpm = document.getElementById('displayBpm');
+    const displayGroove = document.getElementById('displayGroove');
+    const countdownEl = document.getElementById('countdown');
+    const cyclesDoneEl = document.getElementById('cyclesDone');
+    const sessionModeEl = document.getElementById('sessionMode');
+    const totalCyclesEl = document.getElementById('totalCycles');
+    const totalTimeEl = document.getElementById('totalTime');
+    const totalTimeUnitEl = document.getElementById('totalTimeUnit');
+    const cycleDurationEl = document.getElementById('cycleDuration');
+    const cycleUnitEl = document.getElementById('cycleUnit');
 
-<script>
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let isRunning=false, isPaused=false;
-let currentBpm=0, currentGroove='';
-let secondsPerCycleEl=document.getElementById('secondsPerCycle');
-const startBtn=document.getElementById('startBtn');
-const pauseBtn=document.getElementById('pauseBtn');
-const nextBtn=document.getElementById('nextBtn');
-const stopBtn=document.getElementById('stopBtn');
-const displayBpm=document.getElementById('displayBpm');
-const displayGroove=document.getElementById('displayGroove');
-const countdownEl=document.getElementById('countdown');
-const cyclesDoneEl=document.getElementById('cyclesDone');
-const bpmMinEl=document.getElementById('bpmMin');
-const bpmMaxEl=document.getElementById('bpmMax');
-const groovesEl=document.getElementById('grooves');
-const sessionModeEl=document.getElementById('sessionMode');
-const totalCyclesEl=document.getElementById('totalCycles');
-const totalTimeEl=document.getElementById('totalTime');
+    let activeTimer = null;
+    let sessionTimer = null;
+    let cyclesDone = 0;
+    let isRunning = false;
 
-// Function to reset all beats
-function resetBeats() {
-  const beats = document.querySelectorAll('.beat');
-  beats.forEach(beat => beat.classList.remove('active'));
-}
-
-// Function to light up a specific beat
-function lightUpBeat(beatNumber) {
-  const beat = document.getElementById(`beat${beatNumber}`);
-  beat.classList.add('active');
-}
-
-function clampTo5(n){
-  n = Math.round(n);
-  return Math.max(20, Math.min(300, Math.round(n/5)*5));
-}
-[bpmMinEl,bpmMaxEl].forEach(el=>{
-  el.addEventListener('change', ()=>{
-    el.value = clampTo5(Number(el.value));
-  });
-});
-
-function getGrooves(){
-  return groovesEl.value.split('\n').map(s=>s.trim()).filter(Boolean);
-}
-function pickRandomBpm(){
-  let min = clampTo5(Number(bpmMinEl.value));
-  let max = clampTo5(Number(bpmMaxEl.value));
-  if(max < min) [min,max]=[max,min];
-  let steps = Math.floor((max - min)/5) + 1;
-  const idx = Math.floor(Math.random()*steps);
-  return min + idx*5;
-}
-function pickRandomGroove(){
-  const arr = getGrooves();
-  if(arr.length===0) return '—';
-  return arr[Math.floor(Math.random()*arr.length)];
-}
-
-function scheduleClick(time){
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = 'square';
-  o.frequency.value = 1000;
-  g.gain.value = 0;
-  o.connect(g);
-  g.connect(audioCtx.destination);
-  o.start(time);
-  g.gain.setValueAtTime(0.0001, time);
-  g.gain.exponentialRampToValueAtTime(0.9, time + 0.001);
-  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
-  o.stop(time + 0.07);
-}
-
-let lookahead=25.0;
-let scheduleInterval=25;
-let nextNoteTime=0;
-let secondsPerBeat=0;
-let beatCounter=0;
-let schedulerTimerID=null;
-let cycleEndTimestamp=0;
-let cycleRemainingSeconds=0;
-let cyclesDone=0;
-let sessionStartTimestamp=0;
-let sessionEndTimestamp=null;
-let totalCyclesTarget=null;
-let totalTimeTarget=null;
-
-function startSession(){
-  if(isRunning) return;
-  isRunning=true;
-  isPaused=false;
-  startBtn.disabled=true;
-  pauseBtn.disabled=false;
-  stopBtn.disabled=false;
-  cyclesDone=0;
-  cyclesDoneEl.textContent = cyclesDone;
-  const mode = sessionModeEl.value;
-  if(mode==='cycles') totalCyclesTarget = Math.max(1, Number(totalCyclesEl.value));
-  else totalCyclesTarget = null;
-  if(mode==='time') {
-    totalTimeTarget = Math.max(5, Number(totalTimeEl.value));
-    sessionEndTimestamp = audioCtx.currentTime + totalTimeTarget;
-  } else {
-    totalTimeTarget = null;
-    sessionEndTimestamp = null;
-  }
-  nextCycle();
-  schedulerTimerID = setInterval(scheduler, scheduleInterval);
-}
-
-function stopSession(){
-  isRunning=false;
-  isPaused=false;
-  clearInterval(schedulerTimerID);
-  schedulerTimerID=null;
-  startBtn.disabled=false;
-  pauseBtn.disabled=true;
-  nextBtn.disabled=true;
-  stopBtn.disabled=true;
-  displayBpm.textContent = 'BPM: —';
-  displayGroove.textContent = 'Groove: —';
-  countdownEl.textContent = '—';
-}
-
-function pauseSession(){
-  if(!isRunning) return;
-  isPaused = !isPaused;
-  if(isPaused){
-    pauseBtn.textContent = 'Resume';
-  } else {
-    nextNoteTime = audioCtx.currentTime + 0.02;
-    pauseBtn.textContent = 'Pause';
-  }
-}
-
-function nextCycle(){
-  currentBpm = pickRandomBpm();
-  currentGroove = pickRandomGroove();
-  displayBpm.textContent = 'BPM: ' + currentBpm;
-  displayGroove.textContent = 'Groove: ' + currentGroove;
-  secondsPerBeat = 60 / currentBpm;
-  beatCounter = 0;
-  const s = Math.max(1, Number(secondsPerCycleEl.value));
-  cycleEndTimestamp = audioCtx.currentTime + s;
-  cycleRemainingSeconds = s;
-  nextNoteTime = audioCtx.currentTime + 0.02;
-  cyclesDone += 1;
-  cyclesDoneEl.textContent = cyclesDone;
-}
-
-function scheduler(){
-  if(!isRunning || isPaused) return;
-  const now = audioCtx.currentTime;
-  if(sessionEndTimestamp && now >= sessionEndTimestamp){
-    stopSession();
-    return;
-  }
-  if(totalCyclesTarget && cyclesDone > totalCyclesTarget){
-    stopSession();
-    return;
-  }
-  while(nextNoteTime < now + lookahead/1000){
-    scheduleClick(nextNoteTime);
-    nextNoteTime += secondsPerBeat;
-    beatCounter++;
-
-    const beatNumber = (beatCounter % 4) + 1;
-    resetBeats();
-    lightUpBeat(beatNumber);
-
-    if (beatCounter % 4 === 0) {
-      beatCounter = 0;
+    function randomizeGroove() {
+      const grooves = groovesEl.value.split('\n').map(g => g.trim()).filter(Boolean);
+      const bpmMin = parseInt(bpmMinEl.value);
+      const bpmMax = parseInt(bpmMaxEl.value);
+      const randomBpm = Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
+      const randomGroove = grooves[Math.floor(Math.random() * grooves.length)];
+      return { bpm: randomBpm, groove: randomGroove };
     }
-  }
 
-  cycleRemainingSeconds = Math.max(0, cycleEndTimestamp - now);
-  countdownEl.textContent = Math.ceil(cycleRemainingSeconds);
+    function runCycle() {
+      const { bpm, groove } = randomizeGroove();
+      displayBpm.textContent = `BPM: ${bpm}`;
+      displayGroove.textContent = `Groove: ${groove}`;
+      cyclesDoneEl.textContent = ++cyclesDone;
+      startMetronome(bpm);
 
-  if(now >= cycleEndTimestamp - 0.0001){
-    if(totalCyclesTarget && cyclesDone >= totalCyclesTarget){
-      stopSession();
-      return;
+      const durationValue = parseInt(cycleDurationEl.value);
+      const durationUnit = cycleUnitEl.value;
+      let remaining = durationUnit === 'minutes' ? durationValue * 60 : durationValue;
+
+      countdownEl.textContent = remaining;
+      clearInterval(activeTimer);
+
+      activeTimer = setInterval(() => {
+        remaining--;
+        countdownEl.textContent = remaining;
+        if (remaining <= 0) {
+          clearInterval(activeTimer);
+          stopMetronome();
+
+          const mode = sessionModeEl.value;
+          if (mode === 'cycles' && cyclesDone >= parseInt(totalCyclesEl.value)) {
+            stopSession('✅ Session complete (cycles limit reached)');
+          } else {
+            runCycle();
+          }
+        }
+      }, 1000);
     }
-    if(sessionEndTimestamp && (now + 0.01) >= sessionEndTimestamp){
-      stopSession();
-      return;
+
+    function stopSession(message) {
+      isRunning = false;
+      stopMetronome();
+      clearInterval(activeTimer);
+      clearTimeout(sessionTimer);
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      nextBtn.disabled = true;
+      console.log(message || 'Session stopped');
     }
-    nextCycle();
-  }
-}
 
-startBtn.onclick = ()=>{
-  bpmMinEl.value = clampTo5(Number(bpmMinEl.value));
-  bpmMaxEl.value = clampTo5(Number(bpmMaxEl.value));
-  secondsPerCycleEl.value = Math.max(1, Number(secondsPerCycleEl.value));
-  startSession();
-};
-pauseBtn.onclick = pauseSession;
-stopBtn.onclick = stopSession;
-nextBtn.onclick = ()=>{
-  if(!isRunning) return;
-  nextCycle();
-};
+    startBtn.onclick = () => {
+      if (isRunning) return;
+      isRunning = true;
+      cyclesDone = 0;
+      runCycle();
 
-function updateSessionModeUI(){
-  const m = sessionModeEl.value;
-  totalCyclesEl.disabled = (m !== 'cycles');
-  totalTimeEl.disabled = (m !== 'time');
-  document.getElementById('cyclesLabel').style.opacity = (m==='cycles' ? 1 : 0.6);
-  document.getElementById('totalTimeLabel').style.opacity = (m==='time' ? 1 : 0.6);
-}
-sessionModeEl.addEventListener('change', updateSessionModeUI);
-updateSessionModeUI();
-countdownEl.textContent = '—';
-cyclesDoneEl.textContent = '0';
-</script>
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      nextBtn.disabled = false;
+
+      const mode = sessionModeEl.value;
+      if (mode === 'time') {
+        const totalValue = parseInt(totalTimeEl.value);
+        const totalUnit = totalTimeUnitEl.value;
+        let totalSeconds = totalValue;
+        if (totalUnit === 'minutes') totalSeconds *= 60;
+        else if (totalUnit === 'hours') totalSeconds *= 3600;
+
+        sessionTimer = setTimeout(() => {
+          stopSession('✅ Session complete (time limit reached)');
+        }, totalSeconds * 1000);
+      }
+    };
+
+    stopBtn.onclick = () => stopSession('🛑 Stopped by user');
+
+    nextBtn.onclick = () => {
+      if (!isRunning) return;
+      stopMetronome();
+      clearInterval(activeTimer);
+      runCycle();
+    };
+  </script>
 </body>
 </html>
