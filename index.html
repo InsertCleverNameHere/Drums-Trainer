@@ -69,16 +69,24 @@
     font-size: 0.92rem;
   }
 
-    /* ✅ Added visual metronome indicator */
-  #beat-indicator {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: #ddd;
-    margin-top: 12px;
-    transition: background-color 0.15s, transform 0.1s ease;
-    box-shadow: 0 0 10px rgba(0,0,0,0.15);
-  }
+   /* Multiple-circle metronome display */
+#beat-indicator-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.beat-dot {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #bfbfbf;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+}
 </style>
 </head>
 <body>
@@ -163,7 +171,7 @@ Funk
     <div style="margin-top:6px">Cycles done: <span id="cyclesDone">0</span></div>
 
     <!-- ✅ Added beat indicator here -->
-    <div id="beat-indicator" title="Metronome beat indicator"></div>
+    <div id="beat-indicator-container" title="Metronome beat indicator"></div>
   </div>
 
   <!-- JS -->
