@@ -81,6 +81,7 @@ function scheduleNote() {
 
 // Scheduler loop
 function scheduler() {
+    if (!isRunning) return; // safety check
   while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
     scheduleNote();
   }
@@ -88,9 +89,12 @@ function scheduler() {
 }
 
 // --- public functions ---
-export function startMetronome(newBpm = 120) {
+export async function startMetronome(newBpm = 120) {
   if (isRunning) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Resume context if suspended (fixes mobile/Chrome autoplay issues)
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+
 
   bpm = Math.max(40, Math.min(240, newBpm)); // clamp to user-defined range
   currentBeat = 0;
