@@ -106,6 +106,10 @@ Funk
 وحدة كبيرة
 ملفوف
   </textarea>
+  
+  <!-- NEW: Beats per bar input -->
+  <label>Beats per bar</label>
+  <input id="beatsPerBar" type="number" inputmode="numeric" min="1" max="12" value="4">
 
   <div class="row">
     <div class="col">
@@ -164,7 +168,7 @@ Funk
 
   <!-- JS -->
   <script type="module">
-    import { startMetronome, stopMetronome } from './js/metronome.js';
+    import { startMetronome, stopMetronome, setBeatsPerBar } from './js/metronome.js';
 
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -182,11 +186,21 @@ Funk
     const totalTimeUnitEl = document.getElementById('totalTimeUnit');
     const cycleDurationEl = document.getElementById('cycleDuration');
     const cycleUnitEl = document.getElementById('cycleUnit');
+    const beatsPerBarEl = document.getElementById('beatsPerBar');
 
     let activeTimer = null;
     let sessionTimer = null;
     let cyclesDone = 0;
     let isRunning = false;
+    
+    // Initialize beats per bar value
+    setBeatsPerBar(parseInt(beatsPerBarEl.value));
+
+    // Update metronome when user changes beats per bar
+    beatsPerBarEl.addEventListener('input', () => {
+      const val = parseInt(beatsPerBarEl.value);
+      if (!isNaN(val)) setBeatsPerBar(val);
+    });
 
     function randomizeGroove() {
       const grooves = groovesEl.value.split('\n').map(g => g.trim()).filter(Boolean);
@@ -245,7 +259,6 @@ Funk
       startBtn.disabled = true;
       stopBtn.disabled = false;
       nextBtn.disabled = false;
-
       const mode = sessionModeEl.value;
       if (mode === 'time') {
         const totalValue = parseInt(totalTimeEl.value);
