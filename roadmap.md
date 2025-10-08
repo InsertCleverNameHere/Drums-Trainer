@@ -78,3 +78,29 @@
 ---
 
 > Notes: Optional features like visual-only mode, presets, and “about” modals are intentionally deferred to keep the app simple and lightweight. All future additions should respect the offline-first, lightweight philosophy.
+
+
+
+Proposed project tree/directory:
+
+
+project-root/
+│
+├─ index.html                 # Main page
+├─ manifest.json              # PWA manifest
+├─ service-worker.js          # Offline caching
+├─ README.md
+├─ ROADMAP.md                
+│
+├─ css/
+│   └─ styles.css             # Global styles and responsive rules
+│
+├─ js/
+│   ├─ metronomeCore.js       # Audio scheduling & Web Audio API logic
+│   ├─ visuals.js             # Beat circle creation, animation, color logic
+│   ├─ uiController.js        # Button events, input sync, countdown, summary
+│   ├─ utils.js               # Helper functions (BPM calculations, timing, random selection)
+│   └─ main.js                # Imports modules, initializes app (optional)
+│
+└─ assets/
+    └─ icons/                 # PWA icons for different resolutions
