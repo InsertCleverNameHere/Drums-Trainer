@@ -15,15 +15,39 @@ const scheduleAheadTime = 0.1;
 
 // --- Visual Callback ---
 let onBeatVisual = (beat, isAccent) => {
-  const el = document.getElementById("beat-indicator");
-  if (!el) return;
+  const container = document.getElementById("beat-indicator-container");
+  if (!container) return;
+  // Lazy initialize circles if not already created
+  if (container.childElementCount !== beatsPerBar) {
+    container.innerHTML = "";
+    for (let i = 0; i < beatsPerBar; i++) {
+      const dot = document.createElement("div");
+      dot.className = "beat-dot";
+      container.appendChild(dot);
+    }
+  }
 
-  // Accent beats flash red; others flash green
-  el.style.backgroundColor = isAccent ? "#ff4040" : "#40ff40";
-  el.style.transform = "scale(1.2)";
+  // Normalize beat index (e.g., 0 → 0–3 loop)
+  const beatIndex = beat % beatsPerBar;
+  const dots = container.children;
+
+  // Reset all dots
+  for (let i = 0; i < dots.length; i++) {
+    dots[i].style.backgroundColor = "";
+    dots[i].style.transform = "scale(1)";
+    dots[i].style.opacity = "0.4";
+  }
+
+  // Highlight current dot
+  const activeDot = dots[beatIndex];
+  activeDot.style.backgroundColor = isAccent ? "#b22222" : "#006400";
+  activeDot.style.transform = "scale(1.4)";
+  activeDot.style.opacity = "1";
+
+  // Reset it slightly after
   setTimeout(() => {
-    el.style.backgroundColor = "";
-    el.style.transform = "scale(1)";
+    activeDot.style.transform = "scale(1)";
+    activeDot.style.opacity = "0.7";
   }, 100);
 };
 
