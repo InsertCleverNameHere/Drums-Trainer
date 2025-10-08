@@ -18,8 +18,8 @@ let onBeatVisual = (beat, isAccent) => {
   const el = document.getElementById("beat-indicator");
   if (!el) return;
 
-  // Accent beats flash red; others flash green
-  el.style.backgroundColor = isAccent ? "#ff4040" : "#40ff40";
+  // Accent beats flash red; others flash gray
+  el.style.backgroundColor = isAccent ? "#ff4040" : "#eee";
   el.style.transform = "scale(1.2)";
   setTimeout(() => {
     el.style.backgroundColor = "";
