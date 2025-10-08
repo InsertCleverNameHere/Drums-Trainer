@@ -8,7 +8,7 @@ let isRunning = false;
 let schedulerTimer = null;
 
 let bpm = 120;
-let beatsPerBar = 4; // configurable beats-per-bar (time signature top number)
+let beatsPerBar = 4;
 
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
@@ -18,8 +18,8 @@ let onBeatVisual = (beat, isAccent) => {
   const el = document.getElementById("beat-indicator");
   if (!el) return;
 
-  // Accent beats flash red; others flash green
-  el.style.backgroundColor = isAccent ? "#ff4040" : "#40ff40";
+  // Accent beats flash red; others flash gray
+  el.style.backgroundColor = isAccent ? "#ff4040" : "#eee";
   el.style.transform = "scale(1.2)";
   setTimeout(() => {
     el.style.backgroundColor = "";
@@ -83,12 +83,5 @@ export function stopMetronome() {
   console.log("Metronome stopped");
 }
 
-// --- beats-per-bar configuration ---
-export function setBeatsPerBar(n) {
-  beatsPerBar = Math.max(1, Math.round(n));
-  console.log(`Beats per bar set to ${beatsPerBar}`);
-}
-
-export function getBeatsPerBar() {
-  return beatsPerBar;
-}
+// ✅ export the visual element
+export { onBeatVisual };
