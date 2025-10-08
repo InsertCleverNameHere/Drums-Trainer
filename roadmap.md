@@ -14,7 +14,7 @@ Musician-centered: Clear visuals, accurate timing, minimal distractions.
 
 ---
 
-Project Structure
+Project Structure (Text-Based Representation)
 
 index.html — Main page
 
@@ -54,15 +54,15 @@ Notes:
 
 Each JS module is small and cached individually.
 
-metronomeCore.js handles all audio timing and sound logic.
+metronomeCore.js handles audio timing and sound logic.
 
-visuals.js manages DOM elements for beat circles and animations.
+visuals.js manages beat circles and animations.
 
 uiController.js handles buttons, keyboard shortcuts, countdown, and summary.
 
 utils.js contains helper functions like BPM calculations and groove selection.
 
-main.js optionally wires all modules together for initialization.
+main.js optionally wires all modules together.
 
 
 
@@ -82,7 +82,9 @@ Keeps code maintainable, prepares for future features.
 
 Make the currently disabled button functional.
 
-Pause stops scheduling and freezes countdown; Resume continues from same beat and timing.
+Pause stops scheduling and freezes countdown; Resume continues from the same beat and timing.
+
+Ensure current measure plays to the end even if cycle timer runs out, then apply 1-second pause before next cycle.
 
 
 
@@ -106,12 +108,25 @@ Optional 1-bar visual/audio count-in before session begins.
 
 5. Footer & Cache Version Log
 
-Display version in footer.
+Display app version in footer.
 
 Console log cache version for debugging:
 
-
 console.info("Random Groove Trainer v1.0.4 — Cached Offline");
+
+Plan for two footer messages for PWA updates:
+
+1. Update Available — shows when a new version is detected.
+
+
+2. Updated / Cached — shows when new version is successfully cached; appears only the first few times after update, then disappears.
+
+
+
+Optionally color-code version numbers in the footer for visibility.
+
+Track displayed messages with localStorage to avoid repeated notifications.
+
 
 
 
@@ -202,7 +217,7 @@ Save user preferences (BPM range, grooves, beats/bar, etc.) to localStorage.
 
 ---
 
-> Notes: Optional features like visual-only mode, presets, and “about” modals are intentionally deferred to keep the app simple and lightweight. All future additions should respect the offline-first, lightweight philosophy.
+> Notes: Optional features like visual-only mode, presets, and “about” modals are deferred to keep the app lightweight. All future additions should respect the offline-first, lightweight philosophy.
 
 
 
