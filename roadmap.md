@@ -95,33 +95,27 @@
 
 ---
 
-## Phase 2 — Functional Enhancements
+### Phase 2 — Functional Enhancements
 
-### 1. Procedural Sound Customization
-- Accent / normal beats generated via Web Audio API (no WAV/MP3 files).
+1. **Procedural Sound Customization**  
+   Accent / normal beats generated via Web Audio API (no WAV/MP3 files).
 
-### 2. Tap Tempo
-- Minimal implementation: user taps button 3–4 times, BPM calculated from average interval.
+2. **Tap Tempo**  
+   Minimal implementation: user taps button 3–4 times, BPM calculated from average interval.
 
-### 3. Input Validation
-- Enforce `minBPM < maxBPM`, revert or correct gracefully.
+3. **Input Validation**  
+   Enforce `minBPM < maxBPM`, revert or correct gracefully.
 
-### 4. Dual-Point BPM Slider
-- Sync with numeric min/max BPM inputs.
+4. **Dual-Point BPM Slider**  
+   Sync with numeric min/max BPM inputs.
 
----
-
-## Phase 3 — Visual & UX Improvements
-
-### 1. Dark Mode Toggle
-- Mobile-friendly, persisted via localStorage.
-
-### 2. Cycle Summary Popup
-- Show session stats: total cycles, total time, average BPM.
-
-### 3. Light Design Polish
-- Subtle background gradients, hover effects, rounded buttons.  
-- Keep lightweight and performant.
+5. **Note Type & Time Signature Customization** ✅ *(new section)*  
+   - Add support for selecting subdivision types: quarter notes, eighths, sixteenths (and optionally triplets).  
+   - Allow compound and irregular time signatures (e.g., 6/8, 12/16).  
+   - Display smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth).  
+   - Keep timing accurate using an internal subdivision multiplier (e.g., 16ths = 4 sub-ticks per beat).  
+   - **Optional:** Display phonation text under circles (e.g., “1 &” for eighths, “1 e & a” for sixteenths, etc.) to aid rhythmic counting.  
+   - Maintain lightweight logic and visuals using only procedural generation (no audio or image assets).
 
 ---
 
