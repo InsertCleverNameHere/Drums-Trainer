@@ -134,50 +134,93 @@
 - Save user preferences (BPM range, grooves, beats/bar, countdown mode, etc.) to localStorage.
 
 ---
+### Phase 5 — Advanced Mode & Groove Editing
 
-### Phase 5 — Mode System & Groove Customization
+1. **Simple vs Advanced Mode Toggle**
+   - Simple Mode:  
+     - Dual tempo slider (values clamped to multiples of 5).  
+     - Time-based sessions only (no cycles option).  
+     - Minimal interface: BPM range, total time, start/stop.
+   - Advanced Mode:  
+     - Manual BPM input (any integer value).  
+     - Full time-signature and groove-definition options.  
+     - Optional enforcement toggle for grooves that differ from selected signature.  
+     - Four visual rows representing drum parts:
+       - Hi-Hat / Cymbal  
+       - Kick  
+       - Snare  
+       - Hi-Hat Control (open/closed)  
+     - Each row displayed as a sequence of unlit circles the user can **tap or click** to activate beats.  
+     - Active circles light up and play in sync with the metronome.  
+     - Grooves are **not tied to a fixed BPM**, allowing them to be reused across tempo changes.
 
-1. **Simple / Advanced Mode Toggle**
-   - Add a clear toggle or switch in the UI to alternate between **Simple Mode** and **Advanced Mode**.
-   - Mode preference is saved in `localStorage` and persists between sessions.
-   - Transition between modes should not require a page reload.
+2. **Groove Pattern Editor**
+   - Visual editor for defining patterns:  
+     - Click / tap to toggle hits on or off per instrument row.  
+     - Optional preview playback for quick testing.  
+     - Supports grooves that span **multiple measures** (e.g. Bossa Nova = 2 bars).  
+   - Add a small note reminding users that some grooves naturally require more than one measure.
 
-2. **Simple Mode**
-   - Streamlined interface for focused practice sessions.
-   - **Features:**
-     - Dual BPM slider (min/max) **clamped to multiples of 5**.
-     - Time-based session setup (e.g., "Play for 10 minutes" only; no cycle count).
-     - Clean single-row beat visual (quarter notes only).
-     - Countdown before start (reuses global countdown logic).
-     - Basic Start / Pause / Stop controls only.
-   - Lightweight mode optimized for mobile and quick play.
+3. **User Groove Persistence**
+   - Users can **save, edit, rename, and delete** grooves.  
+   - Saved to `localStorage` as JSON (lightweight, offline-ready).  
+   - Example stored structure:
+     ```json
+     {
+       "userGrooves": {
+         "My Funk Groove": {
+           "timeSignature": "4/4",
+           "patterns": {
+             "hihat": [1,0,1,0,1,0,1,0],
+             "snare": [0,0,1,0,0,0,1,0],
+             "kick":  [1,0,0,0,1,0,0,1]
+           },
+           "measures": 1
+         }
+       }
+     }
+     ```
+   - Automatically reload last-used groove at startup.  
+   - Optional *“Reset to Defaults”* button.
 
-3. **Advanced Mode**
-   - Exposes full timing and visualization control for experienced users.
-   - **Features:**
-     - Manual BPM input (no rounding or clamping).
-     - Fully customizable **time signatures** and **note subdivisions** (quarters, 8ths, 16ths, triplets, etc.).
-     - Optional toggle to enforce the selected time signature or allow “mixed groove” patterns that break signature rules.
-     - **Multi-row visualization:**
-       - **Row 1:** Hi-Hat  
-       - **Row 2:** Kick  
-       - **Row 3:** Snare  
-       - **Row 4:** Hi-Hat Control (open/close articulation)
-     - Each groove pattern defines which hits trigger each instrument row.
-     - Circles light up by row and are color-coded for instrument type.
-     - Optional toggle to show/hide rows for performance optimization.
+4. **Default Groove Library (Optional Reference)**
+   - Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA.  
+   - Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove).  
+   - Users can enable or import these as reference templates.
 
-4. **Technical & Implementation Notes**
-   - Maintain modular separation:  
-     `simpleModeUI.js` and `advancedModeUI.js`, each building on shared logic from `uiController.js` and `metronomeCore.js`.
-   - All visuals rendered procedurally (no static assets).
-   - Must preserve the **lightweight-first** philosophy — ensure minimal impact on bundle size and load time.
-   - Advanced mode visuals should degrade gracefully on mobile (e.g., simplified layout or fewer visible rows).
+5. **Accessibility Layer (Lightweight)**
+   - Keyboard-navigable controls (`Tab`, `Enter`).  
+   - `aria-label` attributes for all buttons and sliders.  
+   - Visuals (beat circles) include accessible text descriptions for screen readers.  
+   - Accent vs. normal beat colors chosen for **high contrast** and **color-blind safety**.
 
-5. **Optional Future Enhancements**
-   - “Custom Mode” combining elements of both simple and advanced configurations.
-   - Per-groove visual layouts saved automatically to `localStorage`.
-   - Shared groove library export/import for different users.
+---
+
+### Phase 6 — Groove Sharing, Import / Export, and Collaboration (Future)
+
+1. **Export User Grooves**
+   - Allow export of selected or all user-defined grooves as a single downloadable `.json` file.  
+   - Keeps structure consistent with `userGrooves` object used internally.
+
+2. **Import Groove Files**
+   - Enable drag-and-drop or file-picker import of JSON groove files.  
+   - Merge imported grooves with existing ones (prompt user on name conflicts).
+
+3. **Share Groove Links (Optional)**
+   - Generate a shareable JSON or encoded link (local only; no server).  
+   - Example: `groovetrainer.app#share=<encodedJSON>`
+
+4. **Preset Management Tools**
+   - Option to **backup / restore** grooves across browsers via manual file handling.  
+   - May later extend to QR-based sharing for mobile convenience.
+
+5. **Privacy & Lightweight Principles**
+   - No online accounts or cloud storage — all data remains client-side.  
+   - Import/export handled purely within the PWA sandbox.
+
+---
+
+> These phases maintain the lightweight, offline-first nature of Random Groove Trainer while opening the door to creative sharing and advanced rhythm editing.
 
 ---
 
