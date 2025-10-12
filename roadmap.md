@@ -135,5 +135,51 @@
 
 ---
 
+### Phase 5 — Mode System & Groove Customization
+
+1. **Simple / Advanced Mode Toggle**
+   - Add a clear toggle or switch in the UI to alternate between **Simple Mode** and **Advanced Mode**.
+   - Mode preference is saved in `localStorage` and persists between sessions.
+   - Transition between modes should not require a page reload.
+
+2. **Simple Mode**
+   - Streamlined interface for focused practice sessions.
+   - **Features:**
+     - Dual BPM slider (min/max) **clamped to multiples of 5**.
+     - Time-based session setup (e.g., "Play for 10 minutes" only; no cycle count).
+     - Clean single-row beat visual (quarter notes only).
+     - Countdown before start (reuses global countdown logic).
+     - Basic Start / Pause / Stop controls only.
+   - Lightweight mode optimized for mobile and quick play.
+
+3. **Advanced Mode**
+   - Exposes full timing and visualization control for experienced users.
+   - **Features:**
+     - Manual BPM input (no rounding or clamping).
+     - Fully customizable **time signatures** and **note subdivisions** (quarters, 8ths, 16ths, triplets, etc.).
+     - Optional toggle to enforce the selected time signature or allow “mixed groove” patterns that break signature rules.
+     - **Multi-row visualization:**
+       - **Row 1:** Hi-Hat  
+       - **Row 2:** Kick  
+       - **Row 3:** Snare  
+       - **Row 4:** Hi-Hat Control (open/close articulation)
+     - Each groove pattern defines which hits trigger each instrument row.
+     - Circles light up by row and are color-coded for instrument type.
+     - Optional toggle to show/hide rows for performance optimization.
+
+4. **Technical & Implementation Notes**
+   - Maintain modular separation:  
+     `simpleModeUI.js` and `advancedModeUI.js`, each building on shared logic from `uiController.js` and `metronomeCore.js`.
+   - All visuals rendered procedurally (no static assets).
+   - Must preserve the **lightweight-first** philosophy — ensure minimal impact on bundle size and load time.
+   - Advanced mode visuals should degrade gracefully on mobile (e.g., simplified layout or fewer visible rows).
+
+5. **Optional Future Enhancements**
+   - “Custom Mode” combining elements of both simple and advanced configurations.
+   - Per-groove visual layouts saved automatically to `localStorage`.
+   - Shared groove library export/import for different users.
+
+---
+
 > **Notes:** Optional features like visual-only mode, presets, and “about” modals are deferred to keep the app lightweight.  
 > All future additions should respect the offline-first, lightweight philosophy.
