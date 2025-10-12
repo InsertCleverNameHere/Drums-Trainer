@@ -6,6 +6,9 @@ let nextNoteTime = 0.0;
 let currentBeat = 0;
 let isRunning = false;
 let schedulerTimer = null;
+let endOfCycleRequested = false;
+let targetBarEnd = null;
+let onCycleComplete = null;
 
 let bpm = 120;
 let beatsPerBar = 4; // configurable beats-per-bar
@@ -15,6 +18,10 @@ const scheduleAheadTime = 0.1;
 
 // visual callback that can be registered by visuals.js
 let onBeatVisual = () => {};
+
+// === Pause/Resume state tracking ===
+let isPaused = false;
+let pauseTime = 0;
 
 // allow visuals to register their callback
 export function registerVisualCallback(cb) {
@@ -43,23 +50,44 @@ function scheduleNote() {
   const isAccent = currentBeat % beatsPerBar === 0;
   playTick(isAccent);
 
-  // call visual callback
+  // call visual callback safely
   try {
     onBeatVisual(currentBeat, isAccent);
   } catch (e) {
-    // swallow visual errors so audio keeps running
     console.error("Visual callback error:", e);
   }
 
-  // Increment beat & time
+  // Increment beat and time
   currentBeat++;
   const secondsPerBeat = 60.0 / bpm;
   nextNoteTime += secondsPerBeat;
+
+  // === NEW LOGIC: stop at end of bar if requested ===
+  if (endOfCycleRequested && currentBeat % beatsPerBar === 0) {
+    endOfCycleRequested = false;
+    isRunning = false;
+
+    if (schedulerTimer) {
+      clearTimeout(schedulerTimer);
+      schedulerTimer = null;
+    }
+
+    console.log("🟢 Cycle finished cleanly at bar boundary.");
+
+    // notify UI
+    if (typeof onCycleComplete === "function") {
+      try {
+        onCycleComplete();
+      } catch (err) {
+        console.error("onCycleComplete callback error:", err);
+      }
+    }
+  }
 }
 
 // Scheduler loop
 function scheduler() {
-  if (!isRunning) return; // safety
+  if (!isRunning || isPaused) return;
   while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
     scheduleNote();
   }
@@ -75,6 +103,7 @@ export function startMetronome(newBpm = 120) {
   currentBeat = 0;
   nextNoteTime = audioCtx.currentTime + 0.1;
   isRunning = true;
+  isPaused = false;
   scheduler();
   console.log(`Metronome started at ${bpm} BPM`);
 }
@@ -91,14 +120,54 @@ export function setBeatsPerBar(n) {
   beatsPerBar = Math.max(1, Math.round(n));
   console.log(`Beats per bar set to ${beatsPerBar}`);
 }
+export function getBeatsPerBar() { return beatsPerBar; }
+// expose current bpm
+export function getBpm() { return bpm; }
 
-export function getBeatsPerBar() {
-  return beatsPerBar;
+// --- Pause/Resume control ---
+export function pauseMetronome() {
+  if (!isRunning || isPaused) return;
+  isPaused = true;
+
+  // Stop scheduling new beats but let current one finish
+  if (schedulerTimer) {
+    clearTimeout(schedulerTimer);
+    schedulerTimer = null;
+  }
+  pauseTime = audioCtx.currentTime;
+  console.info(`⏸️ Metronome paused at ${pauseTime.toFixed(3)}s`);
+}
+
+export function resumeMetronome() {
+  if (!isPaused || !audioCtx) return;
+  isPaused = false;
+
+  const resumeTime = audioCtx.currentTime;
+  const offset = resumeTime - pauseTime;
+
+  // Adjust timing so it stays in sync
+  nextNoteTime += offset;
+  scheduler(); // restart scheduler loop
+  console.info("▶️ Metronome resumed after pause");
 }
 
 // optionally expose current bpm
 export function getBpm() {
   return bpm;
+// --- Cycle completion handling ---
+export function requestEndOfCycle(callback) {
+  if (!isRunning || endOfCycleRequested) return;
+
+  // Calculate the target bar to stop after finishing this one
+  const currentBar = Math.floor(currentBeat / beatsPerBar);
+  targetBarEnd = currentBar + 1;
+  endOfCycleRequested = true;
+
+  if (typeof callback === "function") {
+    onCycleComplete = callback;
+  }
+
+  console.log(`⏳ Will stop at end of bar #${targetBarEnd}`);
 }
 
 // keep the module lightweight; other features (pause/resume, offsets, 1s cycle pause)

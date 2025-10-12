@@ -2,11 +2,16 @@
 // Moved UI & session logic. Depends on metronomeCore functions passed in at init.
 
 let startMetronomeFn, stopMetronomeFn, setBeatsPerBarFn, getBeatsPerBarFn, getBpmFn;
+let pauseMetronomeFn, resumeMetronomeFn, getPauseStateFn, requestEndOfCycleFn;
 
 export function initUI(deps) {
-  // deps: { startMetronome, stopMetronome, setBeatsPerBar, getBeatsPerBar, getBpm }
+  // deps: { startMetronome, stopMetronome, setBeatsPerBar, pauseMetronome, resumeMetronome, getPauseState, getBeatsPerBar, getBpm }
   startMetronomeFn = deps.startMetronome;
   stopMetronomeFn = deps.stopMetronome;
+  pauseMetronomeFn = deps.pauseMetronome;
+  resumeMetronomeFn = deps.resumeMetronome;
+  getPauseStateFn = deps.getPauseState;
+  requestEndOfCycleFn = deps.requestEndOfCycle;
   setBeatsPerBarFn = deps.setBeatsPerBar;
   getBeatsPerBarFn = deps.getBeatsPerBar;
   getBpmFn = deps.getBpm;
@@ -15,7 +20,8 @@ export function initUI(deps) {
   const startBtn = document.getElementById('startBtn');
   const stopBtn = document.getElementById('stopBtn');
   const nextBtn = document.getElementById('nextBtn');
-  const pauseBtn = document.getElementById('pauseBtn'); // left disabled for now (Phase 1 later)
+  const pauseBtn = document.getElementById('pauseBtn');
+  pauseBtn.disabled = false; // enabled
   const bpmMinEl = document.getElementById('bpmMin');
   const bpmMaxEl = document.getElementById('bpmMax');
   const groovesEl = document.getElementById('grooves');
@@ -34,6 +40,11 @@ export function initUI(deps) {
   let sessionTimer = null;
   let cyclesDone = 0;
   let isRunning = false;
+  let isFinishingBar = false; // True only while letting bar finish
+  let isPaused = false;
+  let pausedRemaining = 0;
+  let remaining = 0;
+
 
   function randomizeGroove() {
     const grooves = groovesEl.value.split('\n').map(g => g.trim()).filter(Boolean);
@@ -61,23 +72,41 @@ export function initUI(deps) {
 
     const durationValue = parseInt(cycleDurationEl.value);
     const durationUnit = cycleUnitEl.value;
-    let remaining = durationUnit === 'minutes' ? durationValue * 60 : durationValue;
+    remaining = durationUnit === 'minutes' ? durationValue * 60 : durationValue;
 
     countdownEl.textContent = remaining;
     clearInterval(activeTimer);
+
     activeTimer = setInterval(() => {
+      if (isPaused) return; // Skip ticking while paused
       remaining--;
       countdownEl.textContent = remaining;
+
       if (remaining <= 0) {
         clearInterval(activeTimer);
-        stopMetronomeFn();
-        const mode = sessionModeEl.value;
-        if (mode === 'cycles' && cyclesDone >= parseInt(totalCyclesEl.value)) {
-          stopSession('✅ Session complete (cycles limit reached)');
+      isFinishingBar = true; //Disable pause during the finishing bar
+
+        if (typeof requestEndOfCycleFn === "function") {
+          console.log("🟡 Requesting end of current cycle...");
+
+          requestEndOfCycleFn(() => {
+            console.log("✅ Cycle finished cleanly — moving to next.");
+            isFinishingBar = false; //Allow pausing again
+
+            const mode = sessionModeEl.value;
+            const cyclesLimit = parseInt(totalCyclesEl.value);
+
+            if (mode === "cycles" && cyclesDone >= cyclesLimit) {
+              stopSession("✅ Session complete (cycles limit reached)");
+            } else {
+              setTimeout(runCycle, 1000);
+            }
+          });
+
         } else {
-          // per your later note: current measure should play to end and then pause 1s before next cycle
-          // For now (modular refactor only) we keep previous behavior: immediate next cycle
-          runCycle();
+          stopMetronomeFn();
+          isFinishingBar = false //Allow pausing again
+          setTimeout(runCycle, 1000);
         }
       }
     }, 1000);
@@ -102,13 +131,16 @@ export function initUI(deps) {
     startBtn.disabled = true;
     stopBtn.disabled = false;
     nextBtn.disabled = false;
+
     const mode = sessionModeEl.value;
     if (mode === 'time') {
       const totalValue = parseInt(totalTimeEl.value);
       const totalUnit = totalTimeUnitEl.value;
       let totalSeconds = totalValue;
+
       if (totalUnit === 'minutes') totalSeconds *= 60;
       else if (totalUnit === 'hours') totalSeconds *= 3600;
+
       sessionTimer = setTimeout(() => {
         stopSession('✅ Session complete (time limit reached)');
       }, totalSeconds * 1000);
@@ -116,6 +148,56 @@ export function initUI(deps) {
   };
 
   stopBtn.onclick = () => stopSession('🛑 Stopped by user');
+
+  pauseBtn.onclick = () => {
+  if (isFinishingBar) {
+    console.warn("⏳ Cannot pause during finishing bar");
+    return;
+  }
+
+  if (isPaused) {
+    // ▶️ Resume
+    isPaused = false;
+    resumeMetronomeFn();
+
+    // Resume countdown
+    activeTimer = setInterval(() => {
+      if (isPaused) return;
+      remaining--;
+      countdownEl.textContent = remaining;
+      if (remaining <= 0) {
+        clearInterval(activeTimer);
+        isFinishingBar = true;
+        if (typeof requestEndOfCycleFn === "function") {
+          requestEndOfCycleFn(() => {
+            console.log("✅ Cycle finished cleanly — moving to next.");
+            isFinishingBar = false;
+            runCycle();
+          });
+        } else {
+          stopMetronomeFn();
+          isFinishingBar = false;
+          setTimeout(runCycle, 1000);
+        }
+      }
+    }, 1000);
+
+    pauseBtn.textContent = "Pause";
+    console.log("▶️ Resumed metronome");
+
+  } else {
+    // ⏸️ Pause
+    isPaused = true;
+    pauseMetronomeFn();
+
+    // Stop the countdown timer
+    clearInterval(activeTimer);
+    pausedRemaining = remaining; // remember where we left off
+
+    pauseBtn.textContent = "Resume";
+    console.log("⏸️ Paused metronome at " + pausedRemaining + "s remaining");
+  }
+};
 
   nextBtn.onclick = () => {
     if (!isRunning) return;
