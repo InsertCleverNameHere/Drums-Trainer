@@ -11,10 +11,14 @@ metronome.registerVisualCallback(createVisualCallback(metronome.getBeatsPerBar))
 initUI({
   startMetronome: metronome.startMetronome,
   stopMetronome: metronome.stopMetronome,
+  pauseMetronome: metronome.pauseMetronome,
+  resumeMetronome: metronome.resumeMetronome,
+  getPauseState: metronome.getPauseState,
   setBeatsPerBar: metronome.setBeatsPerBar,
   getBeatsPerBar: metronome.getBeatsPerBar,
-  getBpm: metronome.getBpm // <-- fixed key name
+  getBpm: metronome.getBpm,
+  requestEndOfCycle: metronome.requestEndOfCycle,
 });
 
 // optional console version log (update as you bump the version)
-console.info("Random Groove Trainer v1.0.4 — Cached Offline");
+console.info("Random Groove Trainer v1.0.5 — Cached Offline");
