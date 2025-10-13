@@ -151,39 +151,3 @@ button {
   transition: opacity 180ms ease;
   opacity: 1;
 }
-
-/* Centered count-in overlay fallback styles */
-#countin-overlay {
-  z-index: 9999;
-  text-align: center;
-}
-
-/* Count-in overlay visual — animation handled in CSS for reliable timing */
-.countin-overlay {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(1);
-  pointer-events: none;
-  font-size: 5rem;
-  font-weight: 900;
-  color: #222;
-  opacity: 0;
-  transition: opacity 160ms ease, transform 220ms cubic-bezier(.2,.9,.2,1);
-  text-shadow: 0 2px 6px rgba(0,0,0,0.15);
-}
-.countin-overlay.show {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1.08);
-  transition: opacity 120ms ease, transform 220ms cubic-bezier(.2,.9,.2,1);
-}
-
-/* small pulsing fade after the .show state — uses animation so JS doesn't need to hide */
-.countin-overlay.show {
-  animation: countin-fade 700ms forwards;
-}
-@keyframes countin-fade {
-  0% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-  60% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-}
