@@ -1,0 +1,28 @@
+{
+  "name": "drums-trainer-test",
+  "version": "1.0.0",
+  "description": "Inspired by gamefying my practice sessions:\r  a simple, lightweight html groove randomizer with a built in metronome to help you train using your grooves on different tempo",
+  "main": "service-worker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/InsertCleverNameHere/Drums-Trainer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/InsertCleverNameHere/Drums-Trainer/issues"
+  },
+  "homepage": "https://github.com/InsertCleverNameHere/Drums-Trainer#readme",
+  "devDependencies": {
+    "@eslint/css": "^0.13.0",
+    "@eslint/js": "^9.37.0",
+    "@eslint/json": "^0.13.2",
+    "@eslint/markdown": "^7.4.0",
+    "eslint": "^9.37.0",
+    "globals": "^16.4.0"
+  }
+}
