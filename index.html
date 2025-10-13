@@ -97,6 +97,34 @@
         transition: all 0.15s ease;
         box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
       }
+
+      /* Finishing bar badge */
+      .finishing-badge {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #fff4e5, #fff9f0);
+        color: #8a4b00;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transform-origin: center;
+        animation: finishing-pulse 1s ease-in-out infinite;
+      }
+
+      @keyframes finishing-pulse {
+        0% {
+          transform: scale(1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        50% {
+          transform: scale(1.03);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        }
+        100% {
+          transform: scale(1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+      }
     </style>
   </head>
   <body>
@@ -228,11 +256,26 @@ Funk
     <div class="status" aria-live="polite">
       <div class="big" id="displayBpm">BPM: —</div>
       <div class="big" id="displayGroove">Groove: —</div>
-      <div style="margin-top: 8px">
-        Cycle remaining time: <span id="countdown">—</span> s
-      </div>
       <div style="margin-top: 6px">
-        Cycles done: <span id="cyclesDone">0</span>
+        <div style="margin-top: 8px">
+          Cycle remaining time: <span id="countdown">—</span> s
+        </div>
+        <div style="margin-top: 6px">
+          Cycles done: <span id="cyclesDone">0</span>
+        </div>
+
+        <div style="margin-top: 6px">
+          Session remaining time: <span id="sessionCountdown">—</span> s
+        </div>
+
+        <div style="margin-top: 6px">
+          <span
+            id="finishingBadge"
+            class="finishing-badge"
+            style="display: none"
+            >Finishing bar…</span
+          >
+        </div>
       </div>
 
       <!-- ✅ Added beat indicator here -->
