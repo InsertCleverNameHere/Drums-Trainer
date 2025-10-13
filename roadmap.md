@@ -66,8 +66,8 @@
 - **Cycle End Flow:**
   1. ✅ Current measure completes fully even if the `cycleTimer` reaches zero.
   2. ✅ A short 1.7-second adjustment pause follows.
-  3. A **3-2-1 count-in** plays, using the _next_ cycle’s BPM to determine timing (unless fixed mode selected).
-  4. The next cycle begins automatically.
+  3. ✅ A **3-2-1 count-in** plays, using the _next_ cycle’s BPM to determine timing (unless fixed mode selected).
+  4. ✅ The next cycle begins automatically.
 - **Initial Start:** When the user presses **Start**, the same 3-2-1 count-in runs before the first groove begins (if enabled).
 
 **UI Flag / Toggle (Tempo vs Fixed count-in)**
@@ -120,7 +120,7 @@
 4. **Dual-Point BPM Slider**  
    Sync with numeric min/max BPM inputs.
 
-5. **Note Type & Time Signature Customization** ✅ _(new section)_
+5. **Note Type & Time Signature Customization**
    - Add support for selecting subdivision types: quarter notes, eighths, sixteenths (and optionally triplets).
    - Allow compound and irregular time signatures (e.g., 6/8, 12/16).
    - Display smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth).

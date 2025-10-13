@@ -87,6 +87,7 @@ export function initUI(deps) {
   let isPaused = false;
   let pausedRemaining = 0;
   let remaining = 0;
+  let pendingCycleStart = false; // guard to prevent duplicate runCycle starts
 
   function randomizeGroove() {
     const grooves = groovesEl.value
@@ -159,8 +160,17 @@ export function initUI(deps) {
 
         if (typeof requestEndOfCycleFn === "function") {
           console.log("🟡 Requesting end of current cycle...");
+          // mark that we're expecting a single cycle-start callback
+          pendingCycleStart = true;
           requestEndOfCycleFn(() => {
             console.log("✅ Cycle finished cleanly — moving to next.");
+            // ensure we only run the next cycle once
+            if (!pendingCycleStart) {
+              console.warn("Duplicate cycle-start callback ignored");
+              return;
+            }
+            pendingCycleStart = false;
+
             setFinishingBar(false); //Allow pausing again
 
             const mode = sessionModeEl.value;
@@ -245,10 +255,13 @@ export function initUI(deps) {
             console.log(
               "🟡 Session time reached — requesting end of current bar..."
             );
+            pendingCycleStart = true;
             requestEndOfCycleFn(() => {
               console.log(
                 "✅ Final cycle finished cleanly — stopping session (time limit reached)."
               );
+              if (!pendingCycleStart) return;
+              pendingCycleStart = false;
               setFinishingBar(false);
               sessionEnding = false;
               stopSession("✅ Session complete (time limit reached)");
@@ -288,12 +301,15 @@ export function initUI(deps) {
           clearInterval(activeTimer);
           setFinishingBar(true);
           if (typeof requestEndOfCycleFn === "function") {
-            requestEndOfCycleFn(() => {
-              console.log("✅ Cycle finished cleanly — moving to next.");
-              setFinishingBar(false);
-              // metronomeCore has already waited 1s; proceed to next cycle
-              runCycle();
-            });
+              pendingCycleStart = true;
+              requestEndOfCycleFn(() => {
+                console.log("✅ Cycle finished cleanly — moving to next.");
+                if (!pendingCycleStart) return;
+                pendingCycleStart = false;
+                setFinishingBar(false);
+                // metronomeCore has already waited 1s; proceed to next cycle
+                runCycle();
+              });
           } else {
             stopMetronomeFn();
             setFinishingBar(false);

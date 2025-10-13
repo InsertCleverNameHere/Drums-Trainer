@@ -2,7 +2,6 @@
 // Responsible for creating beat dots and producing a callback to be registered with metronomeCore
 
 // config
-const BASE_DOT_SIZE = 64; // current size used in your UI (adjust if you change CSS)
 
 function ensureContainer(
   containerId = "beat-indicator-container",
@@ -24,9 +23,37 @@ function ensureContainer(
   return container;
 }
 
+function ensureCenteredOverlay() {
+  let overlay = document.getElementById("countin-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "countin-overlay";
+    overlay.setAttribute("aria-hidden", "true");
+    // visual presentation moved to CSS for more reliable timing
+    overlay.className = "countin-overlay";
+    document.body.appendChild(overlay);
+  }
+  return overlay;
+}
+
 // create and return the callback to register with metronomeCore
 export function createVisualCallback(getBeatsPerBar) {
   // getBeatsPerBar is a function we call to check current beatsPerBar
+  const overlay = ensureCenteredOverlay();
+  document.addEventListener("countin:tick", (e) => {
+    try {
+      const step = e.detail && e.detail.step ? e.detail.step : null;
+      if (!step) return;
+      // Use CSS-only animation: set content and toggle .show class briefly
+      overlay.textContent = String(step);
+      overlay.classList.remove("show");
+  // force reflow to restart animation
+  void overlay.offsetWidth;
+      overlay.classList.add("show");
+    } catch (err) {
+      console.debug("countin visual handler error:", err);
+    }
+  });
   return (beat, isAccent) => {
     const beats = typeof getBeatsPerBar === "function" ? getBeatsPerBar() : 4;
     const container = ensureContainer("beat-indicator-container", beats);
