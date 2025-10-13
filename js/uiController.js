@@ -20,6 +20,16 @@ export function initUI(deps) {
   getBeatsPerBarFn = deps.getBeatsPerBar;
   getBpmFn = deps.getBpm;
 
+  // avoid unused variable warnings in environments that run static checks
+  // these helpers simply reference assigned functions so static analyzers won't flag them
+  function _referencedDeps() {
+    // intentionally no-op: these references are to satisfy linters
+    void setBeatsPerBarFn;
+    void getBeatsPerBarFn;
+    void getPauseStateFn;
+  }
+  _referencedDeps();
+
   // DOM elements
   const startBtn = document.getElementById("startBtn");
   const stopBtn = document.getElementById("stopBtn");
@@ -39,9 +49,14 @@ export function initUI(deps) {
   const totalTimeUnitEl = document.getElementById("totalTimeUnit");
   const cycleDurationEl = document.getElementById("cycleDuration");
   const cycleUnitEl = document.getElementById("cycleUnit");
+  const sessionCountdownEl = document.getElementById("sessionCountdown");
+  const finishingBadgeEl = document.getElementById("finishingBadge");
 
   let activeTimer = null;
-  let sessionTimer = null;
+  let sessionTimer = null; // legacy / reserved
+  let sessionInterval = null; // per-second session countdown interval
+  let sessionRemaining = 0; // seconds remaining for total session time
+  let sessionEnding = false; // true when total-session time expired and we're waiting for finishing bar
   let cyclesDone = 0;
   let isRunning = false;
   let isFinishingBar = false; // True only while letting bar finish
@@ -61,6 +76,15 @@ export function initUI(deps) {
       Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
     const randomGroove = grooves[Math.floor(Math.random() * grooves.length)];
     return { bpm: randomBpm, groove: randomGroove };
+  }
+
+  function setFinishingBar(flag) {
+    isFinishingBar = Boolean(flag);
+    // show/hide badge
+    if (finishingBadgeEl)
+      finishingBadgeEl.classList.toggle("visible", isFinishingBar);
+    // disable pause while finishing
+    pauseBtn.disabled = isFinishingBar;
   }
 
   function runCycle() {
@@ -91,27 +115,29 @@ export function initUI(deps) {
 
       if (remaining <= 0) {
         clearInterval(activeTimer);
-        isFinishingBar = true; //Disable pause during the finishing bar
+        setFinishingBar(true); //Disable pause during the finishing bar
 
         if (typeof requestEndOfCycleFn === "function") {
           console.log("🟡 Requesting end of current cycle...");
-
           requestEndOfCycleFn(() => {
             console.log("✅ Cycle finished cleanly — moving to next.");
-            isFinishingBar = false; //Allow pausing again
+            setFinishingBar(false); //Allow pausing again
 
             const mode = sessionModeEl.value;
             const cyclesLimit = parseInt(totalCyclesEl.value);
 
             if (mode === "cycles" && cyclesDone >= cyclesLimit) {
               stopSession("✅ Session complete (cycles limit reached)");
+            } else if (mode === "time" && sessionEnding) {
+              // If the total session timer triggered this finishing bar, stop the session instead of starting a new cycle
+              stopSession("✅ Session complete (time limit reached)");
             } else {
               setTimeout(runCycle, 1000);
             }
           });
         } else {
           stopMetronomeFn();
-          isFinishingBar = false; //Allow pausing again
+          setFinishingBar(false); //Allow pausing again
           setTimeout(runCycle, 1000);
         }
       }
@@ -133,6 +159,8 @@ export function initUI(deps) {
     if (isRunning) return;
     isRunning = true;
     cyclesDone = 0;
+    // ensure sessionEnding flag reset when starting
+    sessionEnding = false;
     runCycle();
     startBtn.disabled = true;
     stopBtn.disabled = false;
@@ -146,10 +174,52 @@ export function initUI(deps) {
 
       if (totalUnit === "minutes") totalSeconds *= 60;
       else if (totalUnit === "hours") totalSeconds *= 3600;
+      // use a visible per-second countdown for the total session time and pause it when user pauses
+      sessionRemaining = totalSeconds;
+      if (sessionCountdownEl)
+        sessionCountdownEl.textContent = String(sessionRemaining);
 
-      sessionTimer = setTimeout(() => {
-        stopSession("✅ Session complete (time limit reached)");
-      }, totalSeconds * 1000);
+      // clear any existing interval
+      if (sessionInterval) clearInterval(sessionInterval);
+
+      sessionInterval = setInterval(() => {
+        if (isPaused) return; // do not decrement while paused
+        sessionRemaining--;
+        if (sessionCountdownEl)
+          sessionCountdownEl.textContent = String(sessionRemaining);
+
+        if (sessionRemaining <= 0) {
+          // stop the interval to avoid repeats
+          clearInterval(sessionInterval);
+          sessionInterval = null;
+
+          // mark that we're finishing the bar so Pause is disabled
+          setFinishingBar(true);
+          // indicate that the session ended and we're waiting for the finishing bar
+          sessionEnding = true;
+
+          if (typeof requestEndOfCycleFn === "function") {
+            console.log(
+              "🟡 Session time reached — requesting end of current bar..."
+            );
+            requestEndOfCycleFn(() => {
+              console.log(
+                "✅ Final cycle finished cleanly — stopping session (time limit reached)."
+              );
+              setFinishingBar(false);
+              sessionEnding = false;
+              stopSession("✅ Session complete (time limit reached)");
+            });
+          } else {
+            console.log(
+              "🔴 requestEndOfCycle not available — stopping immediately."
+            );
+            setFinishingBar(false);
+            sessionEnding = false;
+            stopSession("✅ Session complete (time limit reached)");
+          }
+        }
+      }, 1000);
     }
   };
 
@@ -173,16 +243,16 @@ export function initUI(deps) {
         countdownEl.textContent = remaining;
         if (remaining <= 0) {
           clearInterval(activeTimer);
-          isFinishingBar = true;
+          setFinishingBar(true);
           if (typeof requestEndOfCycleFn === "function") {
             requestEndOfCycleFn(() => {
               console.log("✅ Cycle finished cleanly — moving to next.");
-              isFinishingBar = false;
+              setFinishingBar(false);
               runCycle();
             });
           } else {
             stopMetronomeFn();
-            isFinishingBar = false;
+            setFinishingBar(false);
             setTimeout(runCycle, 1000);
           }
         }

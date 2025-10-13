@@ -97,6 +97,18 @@
         transition: all 0.15s ease;
         box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
       }
+      /* finishing badge (plain text) */
+      .finishing-badge {
+        display: none;
+        color: #8a6d00;
+        font-weight: 600;
+      }
+      .finishing-badge.visible {
+        display: inline;
+        font-style: italic;
+        transition: opacity 180ms ease;
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
@@ -231,8 +243,17 @@ Funk
       <div style="margin-top: 8px">
         Cycle remaining time: <span id="countdown">—</span> s
       </div>
+
       <div style="margin-top: 6px">
         Cycles done: <span id="cyclesDone">0</span>
+      </div>
+
+      <div style="margin-top: 6px">
+        Session remaining time: <span id="sessionCountdown">—</span> s
+      </div>
+
+      <div style="margin-top: 8px">
+        <span id="finishingBadge" class="finishing-badge">Finishing bar…</span>
       </div>
 
       <!-- ✅ Added beat indicator here -->
