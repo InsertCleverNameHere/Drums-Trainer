@@ -73,6 +73,50 @@ button {
   gap: 8px;
   flex-wrap: wrap;
 }
+.controls .toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+}
+
+/* Toggle switch appearance */
+.toggle input[type="checkbox"] {
+  /* visually hide the native checkbox but keep it accessible */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 42px;
+  height: 24px;
+  background: #dcdcdc;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: background 160ms ease;
+}
+.toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform 160ms ease;
+}
+.toggle input[type="checkbox"]:checked {
+  background: #4caf50;
+}
+.toggle input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+}
+.toggle #tempoSyncedLabel {
+  margin-left: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
 .small {
   font-size: 0.92rem;
 }

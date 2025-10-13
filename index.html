@@ -131,6 +131,11 @@ Funk
       <button id="pauseBtn" disabled>Pause</button>
       <button id="nextBtn" disabled>Next</button>
       <button id="stopBtn" disabled>Stop</button>
+      <!-- Tempo-synced count-in toggle: unchecked = Fixed (1s steps); checked = Tempo-synced -->
+      <label class="toggle" style="margin-left: 12px">
+        <input id="tempoSyncedToggle" type="checkbox" />
+        <span id="tempoSyncedLabel">Tempo-synced Count-in</span>
+      </label>
     </div>
     <div class="status" aria-live="polite">
       <div class="big" id="displayBpm">BPM: —</div>

@@ -124,6 +124,56 @@ export function startMetronome(newBpm = 120) {
   console.log(`Metronome started at ${bpm} BPM`);
 }
 
+// --- Count-in helper ---
+// Plays a 3-2-1 count-in using the provided BPM to determine interval when
+// tempoSynced is true. Returns a Promise that resolves when the count-in
+// completes.
+export function performCountIn(nextBpm = 120, tempoSynced = true) {
+  const steps = 3;
+  const intervalMs = tempoSynced ? 60000 / Math.max(1, nextBpm) : 1000;
+
+  return new Promise((resolve) => {
+    if (!audioCtx)
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const now = audioCtx.currentTime + 0.02; // slight headroom
+    for (let i = 0; i < steps; i++) {
+      const t = now + (i * intervalMs) / 1000;
+      const osc = audioCtx.createOscillator();
+      const envelope = audioCtx.createGain();
+
+      // Make 3 & 2 distinct from the regular metronome ticks.
+      // Step indices: 0 -> '3', 1 -> '2', 2 -> '1'
+      if (i === 0) {
+        // '3' — lower, short click
+        osc.frequency.value = 700;
+        envelope.gain.value = 0.22;
+        osc.type = "sine";
+      } else if (i === 1) {
+        // '2' — mid, slightly longer
+        osc.frequency.value = 1400;
+        envelope.gain.value = 0.25;
+        osc.type = "sine";
+      } else {
+        // '1' — final accent; restore previous, slightly lower pitch so it's
+        // distinct but not too high (matches earlier behavior)
+        osc.frequency.value = 1600;
+        envelope.gain.value = 0.3;
+        // leave osc.type as default for a familiar timbre
+      }
+
+      osc.connect(envelope);
+      envelope.connect(audioCtx.destination);
+      osc.start(t);
+      // stop shortly after; give a touch more for middle tick
+      osc.stop(t + (i === 1 ? 0.09 : 0.06));
+    }
+
+    // resolve slightly after the last scheduled tick
+    setTimeout(() => resolve(), Math.ceil(intervalMs * steps) + 30);
+  });
+}
+
 export function stopMetronome() {
   isRunning = false;
   if (schedulerTimer) clearTimeout(schedulerTimer);

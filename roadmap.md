@@ -65,7 +65,7 @@
 - **Resume:** Continues playback from the same beat and timing (does not restart the current measure).
 - **Cycle End Flow:**
   1. ✅ Current measure completes fully even if the `cycleTimer` reaches zero.
-  2. A short 1-second adjustment pause follows.
+  2. ✅ A short 1.7-second adjustment pause follows.
   3. A **3-2-1 count-in** plays, using the _next_ cycle’s BPM to determine timing (unless fixed mode selected).
   4. The next cycle begins automatically.
 - **Initial Start:** When the user presses **Start**, the same 3-2-1 count-in runs before the first groove begins (if enabled).
@@ -152,7 +152,6 @@
 ### Phase 5 — Advanced Mode & Groove Editing
 
 1. **Simple vs Advanced Mode Toggle**
-
    - Simple Mode:
      - Dual tempo slider (values clamped to multiples of 5).
      - Time-based sessions only (no cycles option).
@@ -171,7 +170,6 @@
      - Grooves are **not tied to a fixed BPM**, allowing them to be reused across tempo changes.
 
 2. **Groove Pattern Editor**
-
    - Visual editor for defining patterns:
      - Click / tap to toggle hits on or off per instrument row.
      - Optional preview playback for quick testing.
@@ -179,7 +177,6 @@
    - Add a small note reminding users that some grooves naturally require more than one measure.
 
 3. **User Groove Persistence**
-
    - Users can **save, edit, rename, and delete** grooves.
    - Saved to `localStorage` as JSON (lightweight, offline-ready).
    - Example stored structure:
@@ -202,7 +199,6 @@
    - Optional _“Reset to Defaults”_ button.
 
 4. **Default Groove Library (Optional Reference)**
-
    - Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA.
    - Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove).
    - Users can enable or import these as reference templates.
@@ -218,22 +214,18 @@
 ### Phase 6 — Groove Sharing, Import / Export, and Collaboration (Future)
 
 1. **Export User Grooves**
-
    - Allow export of selected or all user-defined grooves as a single downloadable `.json` file.
    - Keeps structure consistent with `userGrooves` object used internally.
 
 2. **Import Groove Files**
-
    - Enable drag-and-drop or file-picker import of JSON groove files.
    - Merge imported grooves with existing ones (prompt user on name conflicts).
 
 3. **Share Groove Links (Optional)**
-
    - Generate a shareable JSON or encoded link (local only; no server).
    - Example: `groovetrainer.app#share=<encodedJSON>`
 
 4. **Preset Management Tools**
-
    - Option to **backup / restore** grooves across browsers via manual file handling.
    - May later extend to QR-based sharing for mobile convenience.
 

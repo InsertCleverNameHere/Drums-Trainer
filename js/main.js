@@ -20,6 +20,7 @@ initUI({
   getBeatsPerBar: metronome.getBeatsPerBar,
   getBpm: metronome.getBpm,
   requestEndOfCycle: metronome.requestEndOfCycle,
+  performCountIn: metronome.performCountIn,
 });
 
 // optional console version log (update as you bump the version)

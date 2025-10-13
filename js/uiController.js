@@ -7,6 +7,7 @@ let startMetronomeFn,
   getBeatsPerBarFn,
   getBpmFn;
 let pauseMetronomeFn, resumeMetronomeFn, getPauseStateFn, requestEndOfCycleFn;
+let performCountInFn;
 
 export function initUI(deps) {
   // deps: { startMetronome, stopMetronome, setBeatsPerBar, pauseMetronome, resumeMetronome, getPauseState, getBeatsPerBar, getBpm }
@@ -16,6 +17,7 @@ export function initUI(deps) {
   resumeMetronomeFn = deps.resumeMetronome;
   getPauseStateFn = deps.getPauseState;
   requestEndOfCycleFn = deps.requestEndOfCycle;
+  performCountInFn = deps.performCountIn;
   setBeatsPerBarFn = deps.setBeatsPerBar;
   getBeatsPerBarFn = deps.getBeatsPerBar;
   getBpmFn = deps.getBpm;
@@ -51,6 +53,28 @@ export function initUI(deps) {
   const cycleUnitEl = document.getElementById("cycleUnit");
   const sessionCountdownEl = document.getElementById("sessionCountdown");
   const finishingBadgeEl = document.getElementById("finishingBadge");
+  // read persisted preference; default to false (fixed count-in)
+  const stored = localStorage.getItem("tempoSyncedCountIn");
+  let tempoSynced = stored === null ? false : stored === "true";
+
+  // Use the checkbox placed in `index.html` if present, otherwise skip UI wiring
+  const tempoCheckbox = document.getElementById("tempoSyncedToggle");
+  if (tempoCheckbox) {
+    // initialize UI state
+    tempoCheckbox.checked = tempoSynced;
+    tempoCheckbox.onchange = () => {
+      tempoSynced = !!tempoCheckbox.checked;
+      localStorage.setItem(
+        "tempoSyncedCountIn",
+        tempoSynced ? "true" : "false"
+      );
+      console.info("tempoSyncedCountIn set to", tempoSynced);
+    };
+  } else {
+    console.warn(
+      "tempoSyncedToggle not found in DOM — count-in preference will still work but no UI toggle is available."
+    );
+  }
 
   let activeTimer = null;
   let sessionTimer = null; // legacy / reserved
@@ -94,12 +118,28 @@ export function initUI(deps) {
     displayGroove.textContent = `Groove: ${groove}`;
     cyclesDoneEl.textContent = ++cyclesDone;
 
-    // start the metronome (this may clamp bpm internally)
-    startMetronomeFn(bpm);
+    // If a performCountIn function is available, run it first using the next
+    // cycle's BPM and the tempoSynced preference. Otherwise start immediately.
+    const startAfterCountIn = () => {
+      startMetronomeFn(bpm);
 
-    // read effective BPM that metronomeCore is actually using (post-clamp)
-    const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
-    displayBpm.textContent = `BPM: ${effectiveBpm}`;
+      // read effective BPM that metronomeCore is actually using (post-clamp)
+      const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
+      displayBpm.textContent = `BPM: ${effectiveBpm}`;
+    };
+
+    if (typeof performCountInFn === "function") {
+      performCountInFn(bpm, tempoSynced)
+        .then(() => {
+          startAfterCountIn();
+        })
+        .catch((err) => {
+          console.error("Count-in failed:", err);
+          startAfterCountIn();
+        });
+    } else {
+      startAfterCountIn();
+    }
 
     const durationValue = parseInt(cycleDurationEl.value);
     const durationUnit = cycleUnitEl.value;
