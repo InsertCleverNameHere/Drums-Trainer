@@ -11,7 +11,9 @@ export function randomBpm(minBpm, maxBpm) {
   maxBpm = Math.round(Number(maxBpm) || 60);
   if (minBpm > maxBpm) {
     // swap to be defensive
-    const t = minBpm; minBpm = maxBpm; maxBpm = t;
+    const t = minBpm;
+    minBpm = maxBpm;
+    maxBpm = t;
   }
   return randomInt(minBpm, maxBpm);
 }

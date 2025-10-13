@@ -4,7 +4,10 @@
 // config
 const BASE_DOT_SIZE = 64; // current size used in your UI (adjust if you change CSS)
 
-function ensureContainer(containerId = "beat-indicator-container", beatsPerBar = 4) {
+function ensureContainer(
+  containerId = "beat-indicator-container",
+  beatsPerBar = 4
+) {
   const container = document.getElementById(containerId);
   if (!container) return null;
 

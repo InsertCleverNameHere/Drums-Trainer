@@ -1,7 +1,11 @@
 // uiController.js
 // Moved UI & session logic. Depends on metronomeCore functions passed in at init.
 
-let startMetronomeFn, stopMetronomeFn, setBeatsPerBarFn, getBeatsPerBarFn, getBpmFn;
+let startMetronomeFn,
+  stopMetronomeFn,
+  setBeatsPerBarFn,
+  getBeatsPerBarFn,
+  getBpmFn;
 let pauseMetronomeFn, resumeMetronomeFn, getPauseStateFn, requestEndOfCycleFn;
 
 export function initUI(deps) {
@@ -17,24 +21,24 @@ export function initUI(deps) {
   getBpmFn = deps.getBpm;
 
   // DOM elements
-  const startBtn = document.getElementById('startBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const pauseBtn = document.getElementById('pauseBtn');
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const pauseBtn = document.getElementById("pauseBtn");
   pauseBtn.disabled = false; // enabled
-  const bpmMinEl = document.getElementById('bpmMin');
-  const bpmMaxEl = document.getElementById('bpmMax');
-  const groovesEl = document.getElementById('grooves');
-  const displayBpm = document.getElementById('displayBpm');
-  const displayGroove = document.getElementById('displayGroove');
-  const countdownEl = document.getElementById('countdown');
-  const cyclesDoneEl = document.getElementById('cyclesDone');
-  const sessionModeEl = document.getElementById('sessionMode');
-  const totalCyclesEl = document.getElementById('totalCycles');
-  const totalTimeEl = document.getElementById('totalTime');
-  const totalTimeUnitEl = document.getElementById('totalTimeUnit');
-  const cycleDurationEl = document.getElementById('cycleDuration');
-  const cycleUnitEl = document.getElementById('cycleUnit');
+  const bpmMinEl = document.getElementById("bpmMin");
+  const bpmMaxEl = document.getElementById("bpmMax");
+  const groovesEl = document.getElementById("grooves");
+  const displayBpm = document.getElementById("displayBpm");
+  const displayGroove = document.getElementById("displayGroove");
+  const countdownEl = document.getElementById("countdown");
+  const cyclesDoneEl = document.getElementById("cyclesDone");
+  const sessionModeEl = document.getElementById("sessionMode");
+  const totalCyclesEl = document.getElementById("totalCycles");
+  const totalTimeEl = document.getElementById("totalTime");
+  const totalTimeUnitEl = document.getElementById("totalTimeUnit");
+  const cycleDurationEl = document.getElementById("cycleDuration");
+  const cycleUnitEl = document.getElementById("cycleUnit");
 
   let activeTimer = null;
   let sessionTimer = null;
@@ -45,13 +49,16 @@ export function initUI(deps) {
   let pausedRemaining = 0;
   let remaining = 0;
 
-
   function randomizeGroove() {
-    const grooves = groovesEl.value.split('\n').map(g => g.trim()).filter(Boolean);
+    const grooves = groovesEl.value
+      .split("\n")
+      .map((g) => g.trim())
+      .filter(Boolean);
     const bpmMin = parseInt(bpmMinEl.value);
     const bpmMax = parseInt(bpmMaxEl.value);
     // use simple random BPM logic (keeps multiples-of-5 behavior from earlier)
-    const randomBpm = Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
+    const randomBpm =
+      Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
     const randomGroove = grooves[Math.floor(Math.random() * grooves.length)];
     return { bpm: randomBpm, groove: randomGroove };
   }
@@ -67,12 +74,12 @@ export function initUI(deps) {
     startMetronomeFn(bpm);
 
     // read effective BPM that metronomeCore is actually using (post-clamp)
-    const effectiveBpm = typeof getBpmFn === 'function' ? getBpmFn() : bpm;
+    const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
     displayBpm.textContent = `BPM: ${effectiveBpm}`;
 
     const durationValue = parseInt(cycleDurationEl.value);
     const durationUnit = cycleUnitEl.value;
-    remaining = durationUnit === 'minutes' ? durationValue * 60 : durationValue;
+    remaining = durationUnit === "minutes" ? durationValue * 60 : durationValue;
 
     countdownEl.textContent = remaining;
     clearInterval(activeTimer);
@@ -84,7 +91,7 @@ export function initUI(deps) {
 
       if (remaining <= 0) {
         clearInterval(activeTimer);
-      isFinishingBar = true; //Disable pause during the finishing bar
+        isFinishingBar = true; //Disable pause during the finishing bar
 
         if (typeof requestEndOfCycleFn === "function") {
           console.log("🟡 Requesting end of current cycle...");
@@ -102,10 +109,9 @@ export function initUI(deps) {
               setTimeout(runCycle, 1000);
             }
           });
-
         } else {
           stopMetronomeFn();
-          isFinishingBar = false //Allow pausing again
+          isFinishingBar = false; //Allow pausing again
           setTimeout(runCycle, 1000);
         }
       }
@@ -120,7 +126,7 @@ export function initUI(deps) {
     startBtn.disabled = false;
     stopBtn.disabled = true;
     nextBtn.disabled = true;
-    console.log(message || 'Session stopped');
+    console.log(message || "Session stopped");
   }
 
   startBtn.onclick = () => {
@@ -133,71 +139,70 @@ export function initUI(deps) {
     nextBtn.disabled = false;
 
     const mode = sessionModeEl.value;
-    if (mode === 'time') {
+    if (mode === "time") {
       const totalValue = parseInt(totalTimeEl.value);
       const totalUnit = totalTimeUnitEl.value;
       let totalSeconds = totalValue;
 
-      if (totalUnit === 'minutes') totalSeconds *= 60;
-      else if (totalUnit === 'hours') totalSeconds *= 3600;
+      if (totalUnit === "minutes") totalSeconds *= 60;
+      else if (totalUnit === "hours") totalSeconds *= 3600;
 
       sessionTimer = setTimeout(() => {
-        stopSession('✅ Session complete (time limit reached)');
+        stopSession("✅ Session complete (time limit reached)");
       }, totalSeconds * 1000);
     }
   };
 
-  stopBtn.onclick = () => stopSession('🛑 Stopped by user');
+  stopBtn.onclick = () => stopSession("🛑 Stopped by user");
 
   pauseBtn.onclick = () => {
-  if (isFinishingBar) {
-    console.warn("⏳ Cannot pause during finishing bar");
-    return;
-  }
+    if (isFinishingBar) {
+      console.warn("⏳ Cannot pause during finishing bar");
+      return;
+    }
 
-  if (isPaused) {
-    // ▶️ Resume
-    isPaused = false;
-    resumeMetronomeFn();
+    if (isPaused) {
+      // ▶️ Resume
+      isPaused = false;
+      resumeMetronomeFn();
 
-    // Resume countdown
-    activeTimer = setInterval(() => {
-      if (isPaused) return;
-      remaining--;
-      countdownEl.textContent = remaining;
-      if (remaining <= 0) {
-        clearInterval(activeTimer);
-        isFinishingBar = true;
-        if (typeof requestEndOfCycleFn === "function") {
-          requestEndOfCycleFn(() => {
-            console.log("✅ Cycle finished cleanly — moving to next.");
+      // Resume countdown
+      activeTimer = setInterval(() => {
+        if (isPaused) return;
+        remaining--;
+        countdownEl.textContent = remaining;
+        if (remaining <= 0) {
+          clearInterval(activeTimer);
+          isFinishingBar = true;
+          if (typeof requestEndOfCycleFn === "function") {
+            requestEndOfCycleFn(() => {
+              console.log("✅ Cycle finished cleanly — moving to next.");
+              isFinishingBar = false;
+              runCycle();
+            });
+          } else {
+            stopMetronomeFn();
             isFinishingBar = false;
-            runCycle();
-          });
-        } else {
-          stopMetronomeFn();
-          isFinishingBar = false;
-          setTimeout(runCycle, 1000);
+            setTimeout(runCycle, 1000);
+          }
         }
-      }
-    }, 1000);
+      }, 1000);
 
-    pauseBtn.textContent = "Pause";
-    console.log("▶️ Resumed metronome");
+      pauseBtn.textContent = "Pause";
+      console.log("▶️ Resumed metronome");
+    } else {
+      // ⏸️ Pause
+      isPaused = true;
+      pauseMetronomeFn();
 
-  } else {
-    // ⏸️ Pause
-    isPaused = true;
-    pauseMetronomeFn();
+      // Stop the countdown timer
+      clearInterval(activeTimer);
+      pausedRemaining = remaining; // remember where we left off
 
-    // Stop the countdown timer
-    clearInterval(activeTimer);
-    pausedRemaining = remaining; // remember where we left off
-
-    pauseBtn.textContent = "Resume";
-    console.log("⏸️ Paused metronome at " + pausedRemaining + "s remaining");
-  }
-};
+      pauseBtn.textContent = "Resume";
+      console.log("⏸️ Paused metronome at " + pausedRemaining + "s remaining");
+    }
+  };
 
   nextBtn.onclick = () => {
     if (!isRunning) return;
@@ -208,6 +213,6 @@ export function initUI(deps) {
 
   // expose a small API to check running state if needed later
   return {
-    isRunning: () => isRunning
+    isRunning: () => isRunning,
   };
 }
