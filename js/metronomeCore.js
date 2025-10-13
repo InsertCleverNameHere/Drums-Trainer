@@ -16,6 +16,10 @@ let beatsPerBar = 4; // configurable beats-per-bar
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
 
+// short adjustment pause (ms) to wait after a cycle ends before notifying UI
+// increased to 1700ms per request
+const adjustmentPauseMs = 1700;
+
 // visual callback that can be registered by visuals.js
 let onBeatVisual = () => {};
 
@@ -75,11 +79,22 @@ function scheduleNote() {
     console.log("🟢 Cycle finished cleanly at bar boundary.");
 
     // notify UI
+    // invoke the UI callback after a short adjustment pause so visuals and
+    // user can take a breath before any count-in / next-cycle logic runs.
     if (typeof onCycleComplete === "function") {
       try {
-        onCycleComplete();
+        console.info(
+          `⏸️ Scheduling ${adjustmentPauseMs}ms adjustment pause before cycle-complete callback.`
+        );
+        setTimeout(() => {
+          try {
+            onCycleComplete();
+          } catch (err) {
+            console.error("onCycleComplete callback error:", err);
+          }
+        }, adjustmentPauseMs);
       } catch (err) {
-        console.error("onCycleComplete callback error:", err);
+        console.error("Failed to schedule onCycleComplete:", err);
       }
     }
   }

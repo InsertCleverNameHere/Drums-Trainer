@@ -132,13 +132,16 @@ export function initUI(deps) {
               // If the total session timer triggered this finishing bar, stop the session instead of starting a new cycle
               stopSession("✅ Session complete (time limit reached)");
             } else {
-              setTimeout(runCycle, 1000);
+              // metronomeCore provides a short adjustment pause before invoking this callback,
+              // so start the next cycle immediately here.
+              runCycle();
             }
           });
         } else {
           stopMetronomeFn();
           setFinishingBar(false); //Allow pausing again
-          setTimeout(runCycle, 1000);
+          // metronomeCore schedules a short adjustment pause; continue immediately.
+          runCycle();
         }
       }
     }, 1000);
@@ -248,12 +251,14 @@ export function initUI(deps) {
             requestEndOfCycleFn(() => {
               console.log("✅ Cycle finished cleanly — moving to next.");
               setFinishingBar(false);
+              // metronomeCore has already waited 1s; proceed to next cycle
               runCycle();
             });
           } else {
             stopMetronomeFn();
             setFinishingBar(false);
-            setTimeout(runCycle, 1000);
+            // metronomeCore will include the adjustment pause; start next cycle now
+            runCycle();
           }
         }
       }, 1000);
