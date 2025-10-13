@@ -1,6 +1,7 @@
 # Random Groove Trainer — Roadmap
 
 ## Core Philosophy
+
 - **Lightweight-first:** No large assets, minimal dependencies.
 - **Offline-ready:** Full caching via service worker.
 - **Modular & maintainable:** Small JS modules for easy extension.
@@ -14,83 +15,93 @@
 **manifest.json** — PWA manifest  
 **service-worker.js** — Offline caching  
 **README.md**  
-**ROADMAP.md** — This roadmap file  
+**ROADMAP.md** — This roadmap file
 
 **css/**
-- styles.css — Global styles and responsive rules  
+
+- styles.css — Global styles and responsive rules
 
 **js/**
-- metronomeCore.js — Audio scheduling & Web Audio API logic  
-- visuals.js — Beat circle creation, animation, color logic  
-- uiController.js — Button events, input sync, countdown, summary  
-- utils.js — Helper functions (BPM calculations, timing, random selection)  
-- main.js — Imports modules, initializes app (optional)  
+
+- metronomeCore.js — Audio scheduling & Web Audio API logic
+- visuals.js — Beat circle creation, animation, color logic
+- uiController.js — Button events, input sync, countdown, summary
+- utils.js — Helper functions (BPM calculations, timing, random selection)
+- main.js — Imports modules, initializes app (optional)
 
 **assets/**
-- icons/ — PWA icons for different resolutions  
+
+- icons/ — PWA icons for different resolutions
 
 > Notes:
-> - Each JS module is small and cached individually.  
-> - `metronomeCore.js` handles audio timing and sound logic.  
-> - `visuals.js` manages beat circles and animations.  
-> - `uiController.js` handles buttons, keyboard shortcuts, countdown, and summary.  
-> - `utils.js` contains helper functions like BPM calculations and groove selection.  
-> - `main.js`  wires all modules together.
+>
+> - Each JS module is small and cached individually.
+> - `metronomeCore.js` handles audio timing and sound logic.
+> - `visuals.js` manages beat circles and animations.
+> - `uiController.js` handles buttons, keyboard shortcuts, countdown, and summary.
+> - `utils.js` contains helper functions like BPM calculations and groove selection.
+> - `main.js` wires all modules together.
 
 ---
 
 ## Phase 1 — Immediate / High Priority
 
 ### ✅ 1. Modular Refactor
-- Split JS into the structure above.  
+
+- Split JS into the structure above.
 - Keeps code maintainable, prepares for future features.
 
 ### 2. Pause / Resume Functionality + Tempo-Synced Countdown Integration
 
 **Goals:**
-- Make the currently disabled Pause button functional.  
-- Ensure the current measure plays to the end before pausing or switching cycles.  
+
+- Make the currently disabled Pause button functional.
+- Ensure the current measure plays to the end before pausing or switching cycles.
 - Integrate the 3-2-1 tempo-synced countdown into both start and cycle transitions.
 
 **Behavior Details:**
-- **Pause:** Stops all scheduling (audio + visual) and freezes the `cycleTimer` (remaining time is preserved).  
-- **Resume:** Continues playback from the same beat and timing (does not restart the current measure).  
+
+- **Pause:** Stops all scheduling (audio + visual) and freezes the `cycleTimer` (remaining time is preserved).
+- **Resume:** Continues playback from the same beat and timing (does not restart the current measure).
 - **Cycle End Flow:**
-  1. Current measure completes fully even if the `cycleTimer` reaches zero.  
-  2. A short 1-second adjustment pause follows.  
-  3. A **3-2-1 count-in** plays, using the *next* cycle’s BPM to determine timing (unless fixed mode selected).  
-  4. The next cycle begins automatically.  
+  1. ✅ Current measure completes fully even if the `cycleTimer` reaches zero.
+  2. A short 1-second adjustment pause follows.
+  3. A **3-2-1 count-in** plays, using the _next_ cycle’s BPM to determine timing (unless fixed mode selected).
+  4. The next cycle begins automatically.
 - **Initial Start:** When the user presses **Start**, the same 3-2-1 count-in runs before the first groove begins (if enabled).
 
 **UI Flag / Toggle (Tempo vs Fixed count-in)**
+
 - Add a user-facing toggle near the playback controls with label:  
-  **“Tempo-synced Count-in”** (tooltip: *“When on, count-in ticks follow the selected BPM; when off, each step is 1 second.”*).
+  **“Tempo-synced Count-in”** (tooltip: _“When on, count-in ticks follow the selected BPM; when off, each step is 1 second.”_).
 - **Modes:**
   - **Tempo-synced (default):** Count-in interval = `60_000 / BPM` ms (i.e., one beat long, so ticks align musically).
   - **Fixed:** Count-in interval = `1000` ms per step (3 → 2 → 1 each 1 second).
 - Persist the flag in `localStorage`, e.g.:
-  - Key: `tempoSyncedCountIn`  
+  - Key: `tempoSyncedCountIn`
   - Values: `'true'` or `'false'` (string) or `'tempo'` / `'fixed'` if you prefer.
 - Behavior when toggled:
   - Updates the stored preference immediately.
-  - Applies to every subsequent count-in (including Start, Resume, and between cycles). If toggled *during* an active count-in, the change applies on the next count-in.
+  - Applies to every subsequent count-in (including Start, Resume, and between cycles). If toggled _during_ an active count-in, the change applies on the next count-in.
 
 ### 3. Keyboard Shortcuts
-- Space → Start/Stop  
-- P → Pause/Resume  
-- Arrow keys → Adjust BPM  
-- N → Next groove  
+
+- Space → Start/Stop
+- P → Pause/Resume
+- Arrow keys → Adjust BPM
+- N → Next groove
 
 ### 4. Footer & Cache Version Log
-- Display app version in footer.  
-- Console log cache version for debugging:  
+
+- Display app version in footer.
+- Console log cache version for debugging:
   ```js
   console.info("Random Groove Trainer v1.0.4 — Cached Offline");
   ```
-- Plan for two footer messages for PWA updates:  
-  1. **Update Available** — shows when a new version is detected.  
-  2. **Updated / Cached** — shows when a new version has been cached successfully (appears for a few launches, then disappears).  
-- Color-code version numbers in the footer for visibility.  
+- Plan for two footer messages for PWA updates:
+  1. **Update Available** — shows when a new version is detected.
+  2. **Updated / Cached** — shows when a new version has been cached successfully (appears for a few launches, then disappears).
+- Color-code version numbers in the footer for visibility.
 - Track shown messages via localStorage to prevent repeated display.
 
 ---
@@ -109,12 +120,12 @@
 4. **Dual-Point BPM Slider**  
    Sync with numeric min/max BPM inputs.
 
-5. **Note Type & Time Signature Customization** ✅ *(new section)*  
-   - Add support for selecting subdivision types: quarter notes, eighths, sixteenths (and optionally triplets).  
-   - Allow compound and irregular time signatures (e.g., 6/8, 12/16).  
-   - Display smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth).  
-   - Keep timing accurate using an internal subdivision multiplier (e.g., 16ths = 4 sub-ticks per beat).  
-   - **Optional:** Display phonation text under circles (e.g., “1 &” for eighths, “1 e & a” for sixteenths, etc.) to aid rhythmic counting.  
+5. **Note Type & Time Signature Customization** ✅ _(new section)_
+   - Add support for selecting subdivision types: quarter notes, eighths, sixteenths (and optionally triplets).
+   - Allow compound and irregular time signatures (e.g., 6/8, 12/16).
+   - Display smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth).
+   - Keep timing accurate using an internal subdivision multiplier (e.g., 16ths = 4 sub-ticks per beat).
+   - **Optional:** Display phonation text under circles (e.g., “1 &” for eighths, “1 e & a” for sixteenths, etc.) to aid rhythmic counting.
    - Maintain lightweight logic and visuals using only procedural generation (no audio or image assets).
 
 ---
@@ -122,48 +133,55 @@
 ## Phase 4 — Technical Enhancements
 
 ### 1. Performance Profiling & Max-BPM Clamping
+
 - Detect timing drift; enforce safe maximum BPM.
 
 ### 2. Enhanced PWA Features
-- Fullscreen launch on mobile.  
-- Auto-update service worker.  
-- Optional banner suppression.  
+
+- Fullscreen launch on mobile.
+- Auto-update service worker.
+- Optional banner suppression.
 - Add “update available” and “updated” footer messages with version color-coding.
 
 ### 3. Settings Persistence
+
 - Save user preferences (BPM range, grooves, beats/bar, countdown mode, etc.) to localStorage.
 
 ---
+
 ### Phase 5 — Advanced Mode & Groove Editing
 
 1. **Simple vs Advanced Mode Toggle**
-   - Simple Mode:  
-     - Dual tempo slider (values clamped to multiples of 5).  
-     - Time-based sessions only (no cycles option).  
+
+   - Simple Mode:
+     - Dual tempo slider (values clamped to multiples of 5).
+     - Time-based sessions only (no cycles option).
      - Minimal interface: BPM range, total time, start/stop.
-   - Advanced Mode:  
-     - Manual BPM input (any integer value).  
-     - Full time-signature and groove-definition options.  
-     - Optional enforcement toggle for grooves that differ from selected signature.  
+   - Advanced Mode:
+     - Manual BPM input (any integer value).
+     - Full time-signature and groove-definition options.
+     - Optional enforcement toggle for grooves that differ from selected signature.
      - Four visual rows representing drum parts:
-       - Hi-Hat / Cymbal  
-       - Kick  
-       - Snare  
-       - Hi-Hat Control (open/closed)  
-     - Each row displayed as a sequence of unlit circles the user can **tap or click** to activate beats.  
-     - Active circles light up and play in sync with the metronome.  
+       - Hi-Hat / Cymbal
+       - Kick
+       - Snare
+       - Hi-Hat Control (open/closed)
+     - Each row displayed as a sequence of unlit circles the user can **tap or click** to activate beats.
+     - Active circles light up and play in sync with the metronome.
      - Grooves are **not tied to a fixed BPM**, allowing them to be reused across tempo changes.
 
 2. **Groove Pattern Editor**
-   - Visual editor for defining patterns:  
-     - Click / tap to toggle hits on or off per instrument row.  
-     - Optional preview playback for quick testing.  
-     - Supports grooves that span **multiple measures** (e.g. Bossa Nova = 2 bars).  
+
+   - Visual editor for defining patterns:
+     - Click / tap to toggle hits on or off per instrument row.
+     - Optional preview playback for quick testing.
+     - Supports grooves that span **multiple measures** (e.g. Bossa Nova = 2 bars).
    - Add a small note reminding users that some grooves naturally require more than one measure.
 
 3. **User Groove Persistence**
-   - Users can **save, edit, rename, and delete** grooves.  
-   - Saved to `localStorage` as JSON (lightweight, offline-ready).  
+
+   - Users can **save, edit, rename, and delete** grooves.
+   - Saved to `localStorage` as JSON (lightweight, offline-ready).
    - Example stored structure:
      ```json
      {
@@ -171,27 +189,28 @@
          "My Funk Groove": {
            "timeSignature": "4/4",
            "patterns": {
-             "hihat": [1,0,1,0,1,0,1,0],
-             "snare": [0,0,1,0,0,0,1,0],
-             "kick":  [1,0,0,0,1,0,0,1]
+             "hihat": [1, 0, 1, 0, 1, 0, 1, 0],
+             "snare": [0, 0, 1, 0, 0, 0, 1, 0],
+             "kick": [1, 0, 0, 0, 1, 0, 0, 1]
            },
            "measures": 1
          }
        }
      }
      ```
-   - Automatically reload last-used groove at startup.  
-   - Optional *“Reset to Defaults”* button.
+   - Automatically reload last-used groove at startup.
+   - Optional _“Reset to Defaults”_ button.
 
 4. **Default Groove Library (Optional Reference)**
-   - Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA.  
-   - Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove).  
+
+   - Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA.
+   - Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove).
    - Users can enable or import these as reference templates.
 
 5. **Accessibility Layer (Lightweight)**
-   - Keyboard-navigable controls (`Tab`, `Enter`).  
-   - `aria-label` attributes for all buttons and sliders.  
-   - Visuals (beat circles) include accessible text descriptions for screen readers.  
+   - Keyboard-navigable controls (`Tab`, `Enter`).
+   - `aria-label` attributes for all buttons and sliders.
+   - Visuals (beat circles) include accessible text descriptions for screen readers.
    - Accent vs. normal beat colors chosen for **high contrast** and **color-blind safety**.
 
 ---
@@ -199,23 +218,27 @@
 ### Phase 6 — Groove Sharing, Import / Export, and Collaboration (Future)
 
 1. **Export User Grooves**
-   - Allow export of selected or all user-defined grooves as a single downloadable `.json` file.  
+
+   - Allow export of selected or all user-defined grooves as a single downloadable `.json` file.
    - Keeps structure consistent with `userGrooves` object used internally.
 
 2. **Import Groove Files**
-   - Enable drag-and-drop or file-picker import of JSON groove files.  
+
+   - Enable drag-and-drop or file-picker import of JSON groove files.
    - Merge imported grooves with existing ones (prompt user on name conflicts).
 
 3. **Share Groove Links (Optional)**
-   - Generate a shareable JSON or encoded link (local only; no server).  
+
+   - Generate a shareable JSON or encoded link (local only; no server).
    - Example: `groovetrainer.app#share=<encodedJSON>`
 
 4. **Preset Management Tools**
-   - Option to **backup / restore** grooves across browsers via manual file handling.  
+
+   - Option to **backup / restore** grooves across browsers via manual file handling.
    - May later extend to QR-based sharing for mobile convenience.
 
 5. **Privacy & Lightweight Principles**
-   - No online accounts or cloud storage — all data remains client-side.  
+   - No online accounts or cloud storage — all data remains client-side.
    - Import/export handled purely within the PWA sandbox.
 
 ---
