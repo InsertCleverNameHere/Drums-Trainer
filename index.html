@@ -1,180 +1,245 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Random Groove Trainer</title>
- <style>
-  body {
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    margin: 18px;
-    max-width: 900px;
-  }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Random Groove Trainer</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        margin: 18px;
+        max-width: 900px;
+      }
 
-  h1 { margin-bottom: 4px; }
+      h1 {
+        margin-bottom: 4px;
+      }
 
-  label {
-    display: block;
-    margin-top: 10px;
-    font-weight: 600;
-  }
+      label {
+        display: block;
+        margin-top: 10px;
+        font-weight: 600;
+      }
 
-  input, textarea, select {
-    font-size: 1rem;
-    padding: 6px;
-    margin-top: 6px;
-    box-sizing: border-box;
-  }
+      input,
+      textarea,
+      select {
+        font-size: 1rem;
+        padding: 6px;
+        margin-top: 6px;
+        box-sizing: border-box;
+      }
 
-  /* Compact sizing for numeric and dropdown inputs */
-  input[type="number"] { width: 90px; }
-  select { width: 110px; }
-  #sessionMode {
-    width: 100%;
-    max-width: 260px;
-    }
-  textarea { width: 100%; }
-  .row {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .col {
-    flex: 1;
-    min-width: 200px;
-  }
-  button {
-    padding: 10px 14px;
-    margin-top: 10px;
-    font-size: 1rem;
-  }
-  .big {
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin-top: 12px;
-  }
-  .status {
-    margin-top: 12px;
-    padding: 12px;
-    background: #f3f3f3;
-    border-radius: 8px;
-  }
-  .controls {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .small {
-    font-size: 0.92rem;
-  }
+      /* Compact sizing for numeric and dropdown inputs */
+      input[type="number"] {
+        width: 90px;
+      }
+      select {
+        width: 110px;
+      }
+      #sessionMode {
+        width: 100%;
+        max-width: 260px;
+      }
+      textarea {
+        width: 100%;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .col {
+        flex: 1;
+        min-width: 200px;
+      }
+      button {
+        padding: 10px 14px;
+        margin-top: 10px;
+        font-size: 1rem;
+      }
+      .big {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-top: 12px;
+      }
+      .status {
+        margin-top: 12px;
+        padding: 12px;
+        background: #f3f3f3;
+        border-radius: 8px;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .small {
+        font-size: 0.92rem;
+      }
 
-   /* Multiple-circle metronome display */
-#beat-indicator-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
-}
+      /* Multiple-circle metronome display */
+      #beat-indicator-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 14px;
+        margin-top: 14px;
+      }
 
-.beat-dot {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background-color: #bfbfbf;
-  opacity: 0.6;
-  transition: all 0.15s ease;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
-}
-</style>
-</head>
-<body>
-  <h1>Random Groove Trainer</h1>
-  <p class="small">
-    Randomize BPM (multiples of 5) + groove name and practice landing grooves instantly. Built-in metronome uses lightweight bundled javascript for accuracy.
-  </p>
+      .beat-dot {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: #bfbfbf;
+        opacity: 0.6;
+        transition: all 0.15s ease;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Random Groove Trainer</h1>
+    <p class="small">
+      Randomize BPM (multiples of 5) + groove name and practice landing grooves
+      instantly. Built-in metronome uses lightweight bundled javascript for
+      accuracy.
+    </p>
 
-  <label>BPM range (min / max)</label>
-  <div class="row">
-    <div class="col">
-      <input id="bpmMin" type="number" inputmode="numeric" min="5" max="500" value="30" step="5">
+    <label>BPM range (min / max)</label>
+    <div class="row">
+      <div class="col">
+        <input
+          id="bpmMin"
+          type="number"
+          inputmode="numeric"
+          min="5"
+          max="500"
+          value="30"
+          step="5"
+        />
+      </div>
+      <div class="col">
+        <input
+          id="bpmMax"
+          type="number"
+          inputmode="numeric"
+          min="5"
+          max="500"
+          value="60"
+          step="5"
+        />
+      </div>
     </div>
-    <div class="col">
-      <input id="bpmMax" type="number" inputmode="numeric" min="5" max="500" value="60" step="5">
-    </div>
-  </div>
 
-  <label>Groove names (one per line)</label>
-  <textarea id="grooves" rows="10" placeholder="e.g. Rock \n Funk \n واحدة ونص \n مقسوم \n وحدة كبيرة \n ملفوف">
+    <label>Groove names (one per line)</label>
+    <textarea
+      id="grooves"
+      rows="10"
+      placeholder="e.g. Rock \n Funk \n واحدة ونص \n مقسوم \n وحدة كبيرة \n ملفوف"
+    >
 Rock
 Funk
 واحدة ونص
 مقسوم
 وحدة كبيرة
 ملفوف
-  </textarea>
-  
-  <!-- NEW: Beats per bar input -->
-  <label>Beats per bar</label>
-  <input id="beatsPerBar" type="number" inputmode="numeric" min="1" max="12" value="4">
+  </textarea
+    >
 
-  <div class="row">
-    <div class="col">
-      <label>Time per cycle</label>
-      <div class="row" style="gap:6px;">
-        <input id="cycleDuration" type="number" inputmode="numeric" min="1" value="60" step="1">
-        <select id="cycleUnit">
-          <option value="seconds" selected>Seconds</option>
-          <option value="minutes">Minutes</option>
+    <!-- NEW: Beats per bar input -->
+    <label>Beats per bar</label>
+    <input
+      id="beatsPerBar"
+      type="number"
+      inputmode="numeric"
+      min="1"
+      max="12"
+      value="4"
+    />
+
+    <div class="row">
+      <div class="col">
+        <label>Time per cycle</label>
+        <div class="row" style="gap: 6px">
+          <input
+            id="cycleDuration"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            value="60"
+            step="1"
+          />
+          <select id="cycleUnit">
+            <option value="seconds" selected>Seconds</option>
+            <option value="minutes">Minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="col">
+        <label>Session limit (choose one)</label>
+        <select id="sessionMode">
+          <option value="infinite">Run until Stop</option>
+          <option value="cycles">Total cycles (set below)</option>
+          <option value="time">Total session time</option>
         </select>
       </div>
     </div>
-    <div class="col">
-      <label>Session limit (choose one)</label>
-      <select id="sessionMode">
-        <option value="infinite">Run until Stop</option>
-        <option value="cycles">Total cycles (set below)</option>
-        <option value="time">Total session time</option>
-      </select>
-    </div>
-  </div>
 
-  <div class="row" style="margin-top:8px;">
-    <div class="col">
-      <label id="cyclesLabel">Total cycles</label>
-      <input id="totalCycles" type="number" inputmode="numeric" min="1" value="5" step="1">
-    </div>
-    <div class="col">
-      <label id="totalTimeLabel">Total session time</label>
-      <div class="row" style="gap:6px;">
-        <input id="totalTime" type="number" inputmode="numeric" min="1" value="300" step="1">
-        <select id="totalTimeUnit">
-          <option value="seconds" selected>Seconds</option>
-          <option value="minutes">Minutes</option>
-          <option value="hours">Hours</option>
-        </select>
+    <div class="row" style="margin-top: 8px">
+      <div class="col">
+        <label id="cyclesLabel">Total cycles</label>
+        <input
+          id="totalCycles"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          value="5"
+          step="1"
+        />
+      </div>
+      <div class="col">
+        <label id="totalTimeLabel">Total session time</label>
+        <div class="row" style="gap: 6px">
+          <input
+            id="totalTime"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            value="300"
+            step="1"
+          />
+          <select id="totalTimeUnit">
+            <option value="seconds" selected>Seconds</option>
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+          </select>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="controls">
-    <button id="startBtn">Start</button>
-    <button id="pauseBtn" disabled>Pause</button>
-    <button id="nextBtn" disabled>Next</button>
-    <button id="stopBtn" disabled>Stop</button>
-  </div>
-  <div class="status" aria-live="polite">
-    <div class="big" id="displayBpm">BPM: —</div>
-    <div class="big" id="displayGroove">Groove: —</div>
-    <div style="margin-top:8px">Cycle remaining time: <span id="countdown">—</span> s</div>
-    <div style="margin-top:6px">Cycles done: <span id="cyclesDone">0</span></div>
+    <div class="controls">
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn" disabled>Pause</button>
+      <button id="nextBtn" disabled>Next</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+    <div class="status" aria-live="polite">
+      <div class="big" id="displayBpm">BPM: —</div>
+      <div class="big" id="displayGroove">Groove: —</div>
+      <div style="margin-top: 8px">
+        Cycle remaining time: <span id="countdown">—</span> s
+      </div>
+      <div style="margin-top: 6px">
+        Cycles done: <span id="cyclesDone">0</span>
+      </div>
 
-    <!-- ✅ Added beat indicator here -->
-    <div id="beat-indicator-container" title="Metronome beat indicator"></div>
-  </div>
+      <!-- ✅ Added beat indicator here -->
+      <div id="beat-indicator-container" title="Metronome beat indicator"></div>
+    </div>
 
-  <!-- JS -->
-<script type="module" src="./js/main.js"></script>
-</body>
+    <!-- JS -->
+    <script type="module" src="./js/main.js"></script>
+  </body>
 </html>

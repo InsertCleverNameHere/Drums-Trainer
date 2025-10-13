@@ -1,11 +1,13 @@
 // main.js - simple bootstrap that wires modules together
-import * as metronome from './metronomeCore.js';
-import { createVisualCallback } from './visuals.js';
-import { initUI } from './uiController.js';
-import * as utils from './utils.js';
+import * as metronome from "./metronomeCore.js";
+import { createVisualCallback } from "./visuals.js";
+import { initUI } from "./uiController.js";
+import * as utils from "./utils.js";
 
 // register visuals (pass the getter so visuals can read beatsPerBar)
-metronome.registerVisualCallback(createVisualCallback(metronome.getBeatsPerBar));
+metronome.registerVisualCallback(
+  createVisualCallback(metronome.getBeatsPerBar)
+);
 
 // init UI with metronome functions
 initUI({

@@ -97,7 +97,8 @@ function scheduler() {
 // --- public functions ---
 export function startMetronome(newBpm = 120) {
   if (isRunning) return;
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx)
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
   bpm = Math.max(40, Math.min(240, newBpm)); // clamp to reasonable range for now
   currentBeat = 0;
@@ -120,9 +121,13 @@ export function setBeatsPerBar(n) {
   beatsPerBar = Math.max(1, Math.round(n));
   console.log(`Beats per bar set to ${beatsPerBar}`);
 }
-export function getBeatsPerBar() { return beatsPerBar; }
+export function getBeatsPerBar() {
+  return beatsPerBar;
+}
 // expose current bpm
-export function getBpm() { return bpm; }
+export function getBpm() {
+  return bpm;
+}
 
 // --- Pause/Resume control ---
 export function pauseMetronome() {
@@ -150,10 +155,6 @@ export function resumeMetronome() {
   scheduler(); // restart scheduler loop
   console.info("▶️ Metronome resumed after pause");
 }
-
-// optionally expose current bpm
-export function getBpm() {
-  return bpm;
 // --- Cycle completion handling ---
 export function requestEndOfCycle(callback) {
   if (!isRunning || endOfCycleRequested) return;
