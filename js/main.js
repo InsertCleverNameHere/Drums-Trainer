@@ -20,7 +20,8 @@ initUI({
   getBeatsPerBar: metronome.getBeatsPerBar,
   getBpm: metronome.getBpm,
   requestEndOfCycle: metronome.requestEndOfCycle,
+  performCountIn: metronome.performCountIn,
 });
 
 // optional console version log (update as you bump the version)
-console.info("Random Groove Trainer v1.0.5 — Cached Offline");
+console.info("Random Groove Trainer v1.0.6 — Cached Offline");

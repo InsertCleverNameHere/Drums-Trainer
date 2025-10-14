@@ -16,6 +16,10 @@ let beatsPerBar = 4; // configurable beats-per-bar
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
 
+// short adjustment pause (ms) to wait after a cycle ends before notifying UI
+// increased to 1700ms per request
+const adjustmentPauseMs = 1700;
+
 // visual callback that can be registered by visuals.js
 let onBeatVisual = () => {};
 
@@ -75,11 +79,22 @@ function scheduleNote() {
     console.log("🟢 Cycle finished cleanly at bar boundary.");
 
     // notify UI
+    // invoke the UI callback after a short adjustment pause so visuals and
+    // user can take a breath before any count-in / next-cycle logic runs.
     if (typeof onCycleComplete === "function") {
       try {
-        onCycleComplete();
+        console.info(
+          `⏸️ Scheduling ${adjustmentPauseMs}ms adjustment pause before cycle-complete callback.`
+        );
+        setTimeout(() => {
+          try {
+            onCycleComplete();
+          } catch (err) {
+            console.error("onCycleComplete callback error:", err);
+          }
+        }, adjustmentPauseMs);
       } catch (err) {
-        console.error("onCycleComplete callback error:", err);
+        console.error("Failed to schedule onCycleComplete:", err);
       }
     }
   }
@@ -107,6 +122,56 @@ export function startMetronome(newBpm = 120) {
   isPaused = false;
   scheduler();
   console.log(`Metronome started at ${bpm} BPM`);
+}
+
+// --- Count-in helper ---
+// Plays a 3-2-1 count-in using the provided BPM to determine interval when
+// tempoSynced is true. Returns a Promise that resolves when the count-in
+// completes.
+export function performCountIn(nextBpm = 120, tempoSynced = true) {
+  const steps = 3;
+  const intervalMs = tempoSynced ? 60000 / Math.max(1, nextBpm) : 1000;
+
+  return new Promise((resolve) => {
+    if (!audioCtx)
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const now = audioCtx.currentTime + 0.02; // slight headroom
+    for (let i = 0; i < steps; i++) {
+      const t = now + (i * intervalMs) / 1000;
+      const osc = audioCtx.createOscillator();
+      const envelope = audioCtx.createGain();
+
+      // Make 3 & 2 distinct from the regular metronome ticks.
+      // Step indices: 0 -> '3', 1 -> '2', 2 -> '1'
+      if (i === 0) {
+        // '3' — lower, short click
+        osc.frequency.value = 700;
+        envelope.gain.value = 0.22;
+        osc.type = "sine";
+      } else if (i === 1) {
+        // '2' — mid, slightly longer
+        osc.frequency.value = 1400;
+        envelope.gain.value = 0.25;
+        osc.type = "sine";
+      } else {
+        // '1' — final accent; restore previous, slightly lower pitch so it's
+        // distinct but not too high (matches earlier behavior)
+        osc.frequency.value = 1600;
+        envelope.gain.value = 0.3;
+        // leave osc.type as default for a familiar timbre
+      }
+
+      osc.connect(envelope);
+      envelope.connect(audioCtx.destination);
+      osc.start(t);
+      // stop shortly after; give a touch more for middle tick
+      osc.stop(t + (i === 1 ? 0.09 : 0.06));
+    }
+
+    // resolve slightly after the last scheduled tick
+    setTimeout(() => resolve(), Math.ceil(intervalMs * steps) + 30);
+  });
 }
 
 export function stopMetronome() {
@@ -171,5 +236,4 @@ export function requestEndOfCycle(callback) {
   console.log(`⏳ Will stop at end of bar #${targetBarEnd}`);
 }
 
-// keep the module lightweight; other features (pause/resume, offsets, 1s cycle pause)
-// will be implemented in Phase 1 extensions after modular refactor.
+// keep the module lightweight

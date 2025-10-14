@@ -1,5 +1,10 @@
 body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial;
   margin: 18px;
   max-width: 900px;
 }
@@ -68,6 +73,50 @@ button {
   gap: 8px;
   flex-wrap: wrap;
 }
+.controls .toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+}
+
+/* Toggle switch appearance */
+.toggle input[type="checkbox"] {
+  /* visually hide the native checkbox but keep it accessible */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 42px;
+  height: 24px;
+  background: #dcdcdc;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: background 160ms ease;
+}
+.toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform 160ms ease;
+}
+.toggle input[type="checkbox"]:checked {
+  background: #4caf50;
+}
+.toggle input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+}
+.toggle #tempoSyncedLabel {
+  margin-left: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
 .small {
   font-size: 0.92rem;
 }
@@ -101,4 +150,76 @@ button {
   font-style: italic;
   transition: opacity 180ms ease;
   opacity: 1;
+}
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+}
+
+#metronomeVisuals {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-height: 160px; /* enough space for countdown + beat dots */
+  padding-top: 12px;
+}
+
+.countdown-badge {
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  color: #333;
+  opacity: 0.6;
+  margin-bottom: 0;
+  margin-top: -24px;
+  min-height: 3rem;
+}
+
+.countdown-badge.pulse {
+  animation: pulse 0.5s ease;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+.fade-out {
+  animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }

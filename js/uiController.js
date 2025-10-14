@@ -7,6 +7,7 @@ let startMetronomeFn,
   getBeatsPerBarFn,
   getBpmFn;
 let pauseMetronomeFn, resumeMetronomeFn, getPauseStateFn, requestEndOfCycleFn;
+let performCountInFn;
 
 export function initUI(deps) {
   // deps: { startMetronome, stopMetronome, setBeatsPerBar, pauseMetronome, resumeMetronome, getPauseState, getBeatsPerBar, getBpm }
@@ -16,6 +17,7 @@ export function initUI(deps) {
   resumeMetronomeFn = deps.resumeMetronome;
   getPauseStateFn = deps.getPauseState;
   requestEndOfCycleFn = deps.requestEndOfCycle;
+  performCountInFn = deps.performCountIn;
   setBeatsPerBarFn = deps.setBeatsPerBar;
   getBeatsPerBarFn = deps.getBeatsPerBar;
   getBpmFn = deps.getBpm;
@@ -36,6 +38,7 @@ export function initUI(deps) {
   const nextBtn = document.getElementById("nextBtn");
   const pauseBtn = document.getElementById("pauseBtn");
   pauseBtn.disabled = false; // enabled
+  stopBtn.disabled = false; // enabled
   const bpmMinEl = document.getElementById("bpmMin");
   const bpmMaxEl = document.getElementById("bpmMax");
   const groovesEl = document.getElementById("grooves");
@@ -51,15 +54,39 @@ export function initUI(deps) {
   const cycleUnitEl = document.getElementById("cycleUnit");
   const sessionCountdownEl = document.getElementById("sessionCountdown");
   const finishingBadgeEl = document.getElementById("finishingBadge");
+  // read persisted preference; default to false (fixed count-in)
+  const stored = localStorage.getItem("tempoSyncedCountIn");
+  let tempoSynced = stored === null ? false : stored === "true";
+
+  // Use the checkbox placed in `index.html` if present, otherwise skip UI wiring
+  const tempoCheckbox = document.getElementById("tempoSyncedToggle");
+  if (tempoCheckbox) {
+    // initialize UI state
+    tempoCheckbox.checked = tempoSynced;
+    tempoCheckbox.onchange = () => {
+      tempoSynced = !!tempoCheckbox.checked;
+      localStorage.setItem(
+        "tempoSyncedCountIn",
+        tempoSynced ? "true" : "false"
+      );
+      console.info("tempoSyncedCountIn set to", tempoSynced);
+    };
+  } else {
+    console.warn(
+      "tempoSyncedToggle not found in DOM — count-in preference will still work but no UI toggle is available."
+    );
+  }
 
   let activeTimer = null;
   let sessionTimer = null; // legacy / reserved
   let sessionInterval = null; // per-second session countdown interval
+  let visualCountdownTimer = null; // timer for visual countdown
   let sessionRemaining = 0; // seconds remaining for total session time
   let sessionEnding = false; // true when total-session time expired and we're waiting for finishing bar
   let cyclesDone = 0;
   let isRunning = false;
   let isFinishingBar = false; // True only while letting bar finish
+  let isCountingIn = false; // True while counting down
   let isPaused = false;
   let pausedRemaining = 0;
   let remaining = 0;
@@ -83,65 +110,131 @@ export function initUI(deps) {
     // show/hide badge
     if (finishingBadgeEl)
       finishingBadgeEl.classList.toggle("visible", isFinishingBar);
-    // disable pause while finishing
+    // disable pause and stop while finishing
     pauseBtn.disabled = isFinishingBar;
+    stopBtn.disabled = isFinishingBar;
+  }
+
+  function showCountdownVisual(step) {
+    const badge = document.getElementById("countdownBadge");
+    if (!badge) return;
+    badge.textContent = step;
+    // Remove previous animation classes
+    badge.classList.remove("fade-in", "fade-out");
+    void badge.offsetWidth; // force reflow
+    // Apply fade-in
+    badge.classList.add("fade-in");
   }
 
   function runCycle() {
+    const mode = sessionModeEl.value;
+    const cyclesLimit = parseInt(totalCyclesEl.value);
+
+    // ✅ Check session limits BEFORE doing anything
+    if (mode === "cycles" && cyclesDone >= cyclesLimit) {
+      stopSession("✅ Session complete (cycles limit reached)");
+      return;
+    }
+    if (mode === "time" && sessionEnding) {
+      stopSession("✅ Session complete (time limit reached)");
+      return;
+    }
+
     const { bpm, groove } = randomizeGroove();
 
     // show groove immediately
     displayGroove.textContent = `Groove: ${groove}`;
     cyclesDoneEl.textContent = ++cyclesDone;
 
-    // start the metronome (this may clamp bpm internally)
-    startMetronomeFn(bpm);
-
-    // read effective BPM that metronomeCore is actually using (post-clamp)
-    const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
-    displayBpm.textContent = `BPM: ${effectiveBpm}`;
-
     const durationValue = parseInt(cycleDurationEl.value);
     const durationUnit = cycleUnitEl.value;
     remaining = durationUnit === "minutes" ? durationValue * 60 : durationValue;
 
-    countdownEl.textContent = remaining;
-    clearInterval(activeTimer);
+    // If a performCountIn function is available, run it first using the next
+    // cycle's BPM and the tempoSynced preference. Otherwise start immediately.
+    const startAfterCountIn = () => {
+      startMetronomeFn(bpm);
 
-    activeTimer = setInterval(() => {
-      if (isPaused) return; // Skip ticking while paused
-      remaining--;
+      // read effective BPM that metronomeCore is actually using (post-clamp)
+      const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
+      displayBpm.textContent = `BPM: ${effectiveBpm}`;
+
+      // ✅ Start countdown only after metronome starts
       countdownEl.textContent = remaining;
+      clearInterval(activeTimer);
 
-      if (remaining <= 0) {
-        clearInterval(activeTimer);
-        setFinishingBar(true); //Disable pause during the finishing bar
+      activeTimer = setInterval(() => {
+        if (isPaused) return;
+        remaining--;
+        countdownEl.textContent = remaining;
 
-        if (typeof requestEndOfCycleFn === "function") {
-          console.log("🟡 Requesting end of current cycle...");
-          requestEndOfCycleFn(() => {
-            console.log("✅ Cycle finished cleanly — moving to next.");
-            setFinishingBar(false); //Allow pausing again
+        if (remaining <= 0) {
+          clearInterval(activeTimer);
+          setFinishingBar(true);
 
-            const mode = sessionModeEl.value;
-            const cyclesLimit = parseInt(totalCyclesEl.value);
-
-            if (mode === "cycles" && cyclesDone >= cyclesLimit) {
-              stopSession("✅ Session complete (cycles limit reached)");
-            } else if (mode === "time" && sessionEnding) {
-              // If the total session timer triggered this finishing bar, stop the session instead of starting a new cycle
-              stopSession("✅ Session complete (time limit reached)");
-            } else {
-              setTimeout(runCycle, 1000);
-            }
-          });
-        } else {
-          stopMetronomeFn();
-          setFinishingBar(false); //Allow pausing again
-          setTimeout(runCycle, 1000);
+          if (typeof requestEndOfCycleFn === "function") {
+            requestEndOfCycleFn(() => {
+              setFinishingBar(false);
+              runCycle(); // next cycle
+            });
+          } else {
+            stopMetronomeFn();
+            setFinishingBar(false);
+            runCycle();
+          }
         }
+      }, 1000);
+    };
+
+    // Clear any previous visual countdown
+    if (visualCountdownTimer) {
+      clearInterval(visualCountdownTimer);
+      visualCountdownTimer = null;
+    }
+
+    // Visual countdown (minimal)
+    let step = 3;
+    const interval = tempoSynced ? 60000 / bpm : 1000;
+    // setup to disable buttons while counting in
+    isCountingIn = true;
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+    nextBtn.disabled = true;
+    // Show first step immediately
+    showCountdownVisual(step--);
+
+    visualCountdownTimer = setInterval(() => {
+      if (step === 0) {
+        clearInterval(visualCountdownTimer);
+        visualCountdownTimer = null;
+
+        isCountingIn = false;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+        nextBtn.disabled = false;
+
+        const badge = document.getElementById("countdownBadge");
+        if (badge) badge.textContent = "";
+        if (badge) {
+          badge.classList.remove("fade-in");
+          badge.classList.add("fade-out");
+        }
+        return;
       }
-    }, 1000);
+
+      showCountdownVisual(step--);
+    }, interval);
+
+    if (typeof performCountInFn === "function") {
+      performCountInFn(bpm, tempoSynced)
+        .then(startAfterCountIn)
+        .catch((err) => {
+          console.error("Count-in failed:", err);
+          startAfterCountIn();
+        });
+    } else {
+      startAfterCountIn();
+    }
   }
 
   function stopSession(message) {
@@ -149,10 +242,23 @@ export function initUI(deps) {
     stopMetronomeFn();
     clearInterval(activeTimer);
     clearTimeout(sessionTimer);
+    if (sessionInterval) clearInterval(sessionInterval);
+    sessionInterval = null;
+    sessionRemaining = 0;
+    sessionEnding = false;
+    cyclesDone = 0;
+    setFinishingBar(false);
     startBtn.disabled = false;
     stopBtn.disabled = true;
     nextBtn.disabled = true;
     console.log(message || "Session stopped");
+    // safeguard for visual countdown
+    if (visualCountdownTimer) {
+      clearInterval(visualCountdownTimer);
+      visualCountdownTimer = null;
+    }
+    const badge = document.getElementById("countdownBadge");
+    if (badge) badge.textContent = "";
   }
 
   startBtn.onclick = () => {
@@ -163,7 +269,6 @@ export function initUI(deps) {
     sessionEnding = false;
     runCycle();
     startBtn.disabled = true;
-    stopBtn.disabled = false;
     nextBtn.disabled = false;
 
     const mode = sessionModeEl.value;
@@ -223,11 +328,18 @@ export function initUI(deps) {
     }
   };
 
-  stopBtn.onclick = () => stopSession("🛑 Stopped by user");
+  stopBtn.onclick = () => {
+    if (isCountingIn || isFinishingBar) {
+      console.warn("⏳ Cannot stop during countdown or finishing bar");
+      return;
+    }
+
+    stopSession("🛑 Stopped by user");
+  };
 
   pauseBtn.onclick = () => {
-    if (isFinishingBar) {
-      console.warn("⏳ Cannot pause during finishing bar");
+    if (isCountingIn || isFinishingBar) {
+      console.warn("⏳ Cannot pause during countdown or finishing bar");
       return;
     }
 
@@ -248,12 +360,14 @@ export function initUI(deps) {
             requestEndOfCycleFn(() => {
               console.log("✅ Cycle finished cleanly — moving to next.");
               setFinishingBar(false);
+              // metronomeCore has already waited 1s; proceed to next cycle
               runCycle();
             });
           } else {
             stopMetronomeFn();
             setFinishingBar(false);
-            setTimeout(runCycle, 1000);
+            // metronomeCore will include the adjustment pause; start next cycle now
+            runCycle();
           }
         }
       }, 1000);
@@ -276,6 +390,12 @@ export function initUI(deps) {
 
   nextBtn.onclick = () => {
     if (!isRunning) return;
+
+    if (isCountingIn) {
+      console.warn("⏳ Cannot skip during countdown");
+      return;
+    }
+
     stopMetronomeFn();
     clearInterval(activeTimer);
     runCycle();
