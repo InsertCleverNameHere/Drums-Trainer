@@ -107,16 +107,34 @@ export function initUI(deps) {
     // show/hide badge
     if (finishingBadgeEl)
       finishingBadgeEl.classList.toggle("visible", isFinishingBar);
-    // disable pause while finishing
+    // disable pause and stop while finishing
     pauseBtn.disabled = isFinishingBar;
+    stopBtn.disabled = isFinishingBar;
   }
 
   function runCycle() {
+    const mode = sessionModeEl.value;
+    const cyclesLimit = parseInt(totalCyclesEl.value);
+
+    // ✅ Check session limits BEFORE doing anything
+    if (mode === "cycles" && cyclesDone >= cyclesLimit) {
+      stopSession("✅ Session complete (cycles limit reached)");
+      return;
+    }
+    if (mode === "time" && sessionEnding) {
+      stopSession("✅ Session complete (time limit reached)");
+      return;
+    }
+
     const { bpm, groove } = randomizeGroove();
 
     // show groove immediately
     displayGroove.textContent = `Groove: ${groove}`;
     cyclesDoneEl.textContent = ++cyclesDone;
+
+    const durationValue = parseInt(cycleDurationEl.value);
+    const durationUnit = cycleUnitEl.value;
+    remaining = durationUnit === "minutes" ? durationValue * 60 : durationValue;
 
     // If a performCountIn function is available, run it first using the next
     // cycle's BPM and the tempoSynced preference. Otherwise start immediately.
@@ -126,13 +144,37 @@ export function initUI(deps) {
       // read effective BPM that metronomeCore is actually using (post-clamp)
       const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
       displayBpm.textContent = `BPM: ${effectiveBpm}`;
+
+      // ✅ Start countdown only after metronome starts
+      countdownEl.textContent = remaining;
+      clearInterval(activeTimer);
+
+      activeTimer = setInterval(() => {
+        if (isPaused) return;
+        remaining--;
+        countdownEl.textContent = remaining;
+
+        if (remaining <= 0) {
+          clearInterval(activeTimer);
+          setFinishingBar(true);
+
+          if (typeof requestEndOfCycleFn === "function") {
+            requestEndOfCycleFn(() => {
+              setFinishingBar(false);
+              runCycle(); // next cycle
+            });
+          } else {
+            stopMetronomeFn();
+            setFinishingBar(false);
+            runCycle();
+          }
+        }
+      }, 1000);
     };
 
     if (typeof performCountInFn === "function") {
       performCountInFn(bpm, tempoSynced)
-        .then(() => {
-          startAfterCountIn();
-        })
+        .then(startAfterCountIn)
         .catch((err) => {
           console.error("Count-in failed:", err);
           startAfterCountIn();
@@ -140,51 +182,6 @@ export function initUI(deps) {
     } else {
       startAfterCountIn();
     }
-
-    const durationValue = parseInt(cycleDurationEl.value);
-    const durationUnit = cycleUnitEl.value;
-    remaining = durationUnit === "minutes" ? durationValue * 60 : durationValue;
-
-    countdownEl.textContent = remaining;
-    clearInterval(activeTimer);
-
-    activeTimer = setInterval(() => {
-      if (isPaused) return; // Skip ticking while paused
-      remaining--;
-      countdownEl.textContent = remaining;
-
-      if (remaining <= 0) {
-        clearInterval(activeTimer);
-        setFinishingBar(true); //Disable pause during the finishing bar
-
-        if (typeof requestEndOfCycleFn === "function") {
-          console.log("🟡 Requesting end of current cycle...");
-          requestEndOfCycleFn(() => {
-            console.log("✅ Cycle finished cleanly — moving to next.");
-            setFinishingBar(false); //Allow pausing again
-
-            const mode = sessionModeEl.value;
-            const cyclesLimit = parseInt(totalCyclesEl.value);
-
-            if (mode === "cycles" && cyclesDone >= cyclesLimit) {
-              stopSession("✅ Session complete (cycles limit reached)");
-            } else if (mode === "time" && sessionEnding) {
-              // If the total session timer triggered this finishing bar, stop the session instead of starting a new cycle
-              stopSession("✅ Session complete (time limit reached)");
-            } else {
-              // metronomeCore provides a short adjustment pause before invoking this callback,
-              // so start the next cycle immediately here.
-              runCycle();
-            }
-          });
-        } else {
-          stopMetronomeFn();
-          setFinishingBar(false); //Allow pausing again
-          // metronomeCore schedules a short adjustment pause; continue immediately.
-          runCycle();
-        }
-      }
-    }, 1000);
   }
 
   function stopSession(message) {
@@ -192,6 +189,12 @@ export function initUI(deps) {
     stopMetronomeFn();
     clearInterval(activeTimer);
     clearTimeout(sessionTimer);
+    if (sessionInterval) clearInterval(sessionInterval);
+    sessionInterval = null;
+    sessionRemaining = 0;
+    sessionEnding = false;
+    cyclesDone = 0;
+    setFinishingBar(false);
     startBtn.disabled = false;
     stopBtn.disabled = true;
     nextBtn.disabled = true;

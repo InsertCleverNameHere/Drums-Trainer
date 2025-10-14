@@ -236,5 +236,4 @@ export function requestEndOfCycle(callback) {
   console.log(`⏳ Will stop at end of bar #${targetBarEnd}`);
 }
 
-// keep the module lightweight; other features (pause/resume, offsets, 1s cycle pause)
-// will be implemented in Phase 1 extensions after modular refactor.
+// keep the module lightweight
