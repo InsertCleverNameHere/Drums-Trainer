@@ -51,38 +51,13 @@
 - Split JS into the structure above.
 - Keeps code maintainable, prepares for future features.
 
-### 2. Pause / Resume Functionality + Tempo-Synced Countdown Integration
+### ✅ 2. Pause / Resume Functionality + Tempo-Synced Countdown Integration
 
 **Goals:**
 
 - Make the currently disabled Pause button functional.
 - Ensure the current measure plays to the end before pausing or switching cycles.
 - Integrate the 3-2-1 tempo-synced countdown into both start and cycle transitions.
-
-**Behavior Details:**
-
-- **Pause:** Stops all scheduling (audio + visual) and freezes the `cycleTimer` (remaining time is preserved).
-- **Resume:** Continues playback from the same beat and timing (does not restart the current measure).
-- **Cycle End Flow:**
-  1. ✅ Current measure completes fully even if the `cycleTimer` reaches zero.
-  2. ✅ A short 1.7-second adjustment pause follows.
-  3. ✅ A **3-2-1 count-in** plays, using the _next_ cycle’s BPM to determine timing (unless fixed mode selected).
-  4. ✅ The next cycle begins automatically.
-- **Initial Start:** When the user presses **Start**, the same 3-2-1 count-in runs before the first groove begins (if enabled).
-
-**UI Flag / Toggle (Tempo vs Fixed count-in)**
-
-- Add a user-facing toggle near the playback controls with label:  
-  **“Tempo-synced Count-in”** (tooltip: _“When on, count-in ticks follow the selected BPM; when off, each step is 1 second.”_).
-- **Modes:**
-  - **Tempo-synced (default):** Count-in interval = `60_000 / BPM` ms (i.e., one beat long, so ticks align musically).
-  - **Fixed:** Count-in interval = `1000` ms per step (3 → 2 → 1 each 1 second).
-- Persist the flag in `localStorage`, e.g.:
-  - Key: `tempoSyncedCountIn`
-  - Values: `'true'` or `'false'` (string) or `'tempo'` / `'fixed'` if you prefer.
-- Behavior when toggled:
-  - Updates the stored preference immediately.
-  - Applies to every subsequent count-in (including Start, Resume, and between cycles). If toggled _during_ an active count-in, the change applies on the next count-in.
 
 ### 3. Keyboard Shortcuts
 
