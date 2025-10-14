@@ -38,6 +38,7 @@ export function initUI(deps) {
   const nextBtn = document.getElementById("nextBtn");
   const pauseBtn = document.getElementById("pauseBtn");
   pauseBtn.disabled = false; // enabled
+  stopBtn.disabled = false; // enabled
   const bpmMinEl = document.getElementById("bpmMin");
   const bpmMaxEl = document.getElementById("bpmMax");
   const groovesEl = document.getElementById("grooves");
@@ -79,11 +80,13 @@ export function initUI(deps) {
   let activeTimer = null;
   let sessionTimer = null; // legacy / reserved
   let sessionInterval = null; // per-second session countdown interval
+  let visualCountdownTimer = null; // timer for visual countdown
   let sessionRemaining = 0; // seconds remaining for total session time
   let sessionEnding = false; // true when total-session time expired and we're waiting for finishing bar
   let cyclesDone = 0;
   let isRunning = false;
   let isFinishingBar = false; // True only while letting bar finish
+  let isCountingIn = false; // True while counting down
   let isPaused = false;
   let pausedRemaining = 0;
   let remaining = 0;
@@ -110,6 +113,15 @@ export function initUI(deps) {
     // disable pause and stop while finishing
     pauseBtn.disabled = isFinishingBar;
     stopBtn.disabled = isFinishingBar;
+  }
+
+  function showCountdownVisual(step) {
+    const badge = document.getElementById("countdownBadge");
+    if (!badge) return;
+    badge.textContent = step;
+    badge.classList.remove("pulse"); // optional CSS class
+    void badge.offsetWidth; // force reflow
+    badge.classList.add("pulse");
   }
 
   function runCycle() {
@@ -172,6 +184,39 @@ export function initUI(deps) {
       }, 1000);
     };
 
+    // Clear any previous visual countdown
+    if (visualCountdownTimer) {
+      clearInterval(visualCountdownTimer);
+      visualCountdownTimer = null;
+    }
+
+    // Visual countdown (minimal)
+    let step = 3;
+    const interval = tempoSynced ? 60000 / bpm : 1000;
+    // setup to disable buttons while counting in
+    isCountingIn = true;
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+    // Show first step immediately
+    showCountdownVisual(step--);
+
+    visualCountdownTimer = setInterval(() => {
+      if (step === 0) {
+        clearInterval(visualCountdownTimer);
+        visualCountdownTimer = null;
+
+        isCountingIn = false;
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+
+        const badge = document.getElementById("countdownBadge");
+        if (badge) badge.textContent = "";
+        return;
+      }
+
+      showCountdownVisual(step--);
+    }, interval);
+
     if (typeof performCountInFn === "function") {
       performCountInFn(bpm, tempoSynced)
         .then(startAfterCountIn)
@@ -199,6 +244,13 @@ export function initUI(deps) {
     stopBtn.disabled = true;
     nextBtn.disabled = true;
     console.log(message || "Session stopped");
+    // safeguard for visual countdown
+    if (visualCountdownTimer) {
+      clearInterval(visualCountdownTimer);
+      visualCountdownTimer = null;
+    }
+    const badge = document.getElementById("countdownBadge");
+    if (badge) badge.textContent = "";
   }
 
   startBtn.onclick = () => {
@@ -209,7 +261,6 @@ export function initUI(deps) {
     sessionEnding = false;
     runCycle();
     startBtn.disabled = true;
-    stopBtn.disabled = false;
     nextBtn.disabled = false;
 
     const mode = sessionModeEl.value;
@@ -269,11 +320,18 @@ export function initUI(deps) {
     }
   };
 
-  stopBtn.onclick = () => stopSession("🛑 Stopped by user");
+  stopBtn.onclick = () => {
+    if (isCountingIn || isFinishingBar) {
+      console.warn("⏳ Cannot stop during countdown or finishing bar");
+      return;
+    }
+
+    stopSession("🛑 Stopped by user");
+  };
 
   pauseBtn.onclick = () => {
-    if (isFinishingBar) {
-      console.warn("⏳ Cannot pause during finishing bar");
+    if (isCountingIn || isFinishingBar) {
+      console.warn("⏳ Cannot pause during countdown or finishing bar");
       return;
     }
 
