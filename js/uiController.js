@@ -119,9 +119,11 @@ export function initUI(deps) {
     const badge = document.getElementById("countdownBadge");
     if (!badge) return;
     badge.textContent = step;
-    badge.classList.remove("pulse"); // optional CSS class
+    // Remove previous animation classes
+    badge.classList.remove("fade-in", "fade-out");
     void badge.offsetWidth; // force reflow
-    badge.classList.add("pulse");
+    // Apply fade-in
+    badge.classList.add("fade-in");
   }
 
   function runCycle() {
@@ -197,6 +199,7 @@ export function initUI(deps) {
     isCountingIn = true;
     pauseBtn.disabled = true;
     stopBtn.disabled = true;
+    nextBtn.disabled = true;
     // Show first step immediately
     showCountdownVisual(step--);
 
@@ -208,9 +211,14 @@ export function initUI(deps) {
         isCountingIn = false;
         pauseBtn.disabled = false;
         stopBtn.disabled = false;
+        nextBtn.disabled = false;
 
         const badge = document.getElementById("countdownBadge");
         if (badge) badge.textContent = "";
+        if (badge) {
+          badge.classList.remove("fade-in");
+          badge.classList.add("fade-out");
+        }
         return;
       }
 
@@ -382,6 +390,12 @@ export function initUI(deps) {
 
   nextBtn.onclick = () => {
     if (!isRunning) return;
+
+    if (isCountingIn) {
+      console.warn("⏳ Cannot skip during countdown");
+      return;
+    }
+
     stopMetronomeFn();
     clearInterval(activeTimer);
     runCycle();

@@ -194,3 +194,32 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+.fade-out {
+  animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
