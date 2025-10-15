@@ -401,6 +401,35 @@ export function initUI(deps) {
     runCycle();
   };
 
+  // --- Keyboard hotkeys (layout-independent) ---
+  document.addEventListener("keydown", (event) => {
+    // Ignore keypresses when focused on text inputs, textareas, or contenteditable elements
+    const active = document.activeElement;
+    const isInputFocused =
+      document.activeElement.tagName === "INPUT" ||
+      document.activeElement.tagName === "TEXTAREA" ||
+      document.activeElement.isContentEditable;
+    if (isInputFocused) return;
+
+    if (event.repeat) return; // Ignore repeated key presses
+
+    switch (event.code) {
+      case "Space": // Start/Stop
+        event.preventDefault();
+        if (!startBtn.disabled) startBtn.click();
+        else if (!stopBtn.disabled) stopBtn.click();
+        break;
+
+      case "KeyP": // Pause/Resume
+        if (!pauseBtn.disabled) pauseBtn.click();
+        break;
+
+      case "KeyN": // Next
+        if (!nextBtn.disabled) nextBtn.click();
+        break;
+    }
+  });
+
   // expose a small API to check running state if needed later
   return {
     isRunning: () => isRunning,
