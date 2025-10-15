@@ -288,7 +288,10 @@ export function initUI(deps) {
       if (sessionInterval) clearInterval(sessionInterval);
 
       sessionInterval = setInterval(() => {
-        if (isPaused) return; // do not decrement while paused
+        if (isPaused || isCountingIn) {
+          console.log("⏳ Session tick skipped — counting in or paused");
+          return; // ⏸️ Skip while paused or counting in
+        }
         sessionRemaining--;
         if (sessionCountdownEl)
           sessionCountdownEl.textContent = String(sessionRemaining);
