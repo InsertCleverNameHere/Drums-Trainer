@@ -401,7 +401,8 @@ export function initUI(deps) {
     runCycle();
   };
 
-  // --- Keyboard hotkeys (layout-independent) ---
+  // HOTKEYS LOGIC BELOW
+  // --- Simple Keyboard hotkeys (layout-independent) ---
   document.addEventListener("keydown", (event) => {
     // Ignore keypresses when focused on text inputs, textareas, or contenteditable elements
     const active = document.activeElement;
@@ -427,6 +428,51 @@ export function initUI(deps) {
       case "KeyN": // Next
         if (!nextBtn.disabled) nextBtn.click();
         break;
+    }
+  });
+
+  // --- Advanced Hotkeys: BPM adjustment (min/max) ---
+  let adjustingTarget = "min"; // "min" or "max"
+
+  document.addEventListener("keydown", (event) => {
+    // Ignore keypresses while typing or in editable areas
+    const active = document.activeElement;
+    const isInputFocused =
+      active.tagName === "INPUT" ||
+      active.tagName === "TEXTAREA" ||
+      active.isContentEditable;
+    if (isInputFocused) return;
+
+    // Arrow navigation for selecting target BPM
+    if (event.code === "ArrowRight") {
+      adjustingTarget = "max";
+      console.log("🎚️ Adjusting target: MAX BPM");
+      return;
+    }
+    if (event.code === "ArrowLeft") {
+      adjustingTarget = "min";
+      console.log("🎚️ Adjusting target: MIN BPM");
+      return;
+    }
+
+    // Handle Up/Down for BPM adjustment
+    if (event.code === "ArrowUp" || event.code === "ArrowDown") {
+      event.preventDefault();
+
+      const bpmInput = adjustingTarget === "min" ? bpmMinEl : bpmMaxEl;
+      let current = parseInt(bpmInput.value) || 0;
+
+      // Fine-tune (Shift = ±1), else coarse (±5)
+      const delta = event.shiftKey ? 1 : 5;
+      const direction = event.code === "ArrowUp" ? 1 : -1;
+
+      // Apply change and clamp to reasonable range
+      current = Math.min(300, Math.max(30, current + direction * delta));
+      bpmInput.value = current;
+
+      // Optional visual cue (flash input)
+      bpmInput.classList.add("bpm-flash");
+      setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
     }
   });
 
