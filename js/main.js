@@ -24,4 +24,4 @@ initUI({
 });
 
 // optional console version log (update as you bump the version)
-console.info("Random Groove Trainer v1.0.7 — Cached Offline");
+console.info("Random Groove Trainer v1.0.8 — Cached Offline");

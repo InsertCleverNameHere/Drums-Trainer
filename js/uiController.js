@@ -34,11 +34,9 @@ export function initUI(deps) {
 
   // DOM elements
   const startBtn = document.getElementById("startBtn");
-  const stopBtn = document.getElementById("stopBtn");
   const nextBtn = document.getElementById("nextBtn");
   const pauseBtn = document.getElementById("pauseBtn");
-  pauseBtn.disabled = true; // disabled until metronome starts
-  stopBtn.disabled = false; // enabled
+  pauseBtn.disabled = false; // enabled
   const bpmMinEl = document.getElementById("bpmMin");
   const bpmMaxEl = document.getElementById("bpmMax");
   const groovesEl = document.getElementById("grooves");
@@ -110,9 +108,16 @@ export function initUI(deps) {
     // show/hide badge
     if (finishingBadgeEl)
       finishingBadgeEl.classList.toggle("visible", isFinishingBar);
-    // disable pause and stop while finishing
-    pauseBtn.disabled = isFinishingBar;
-    stopBtn.disabled = isFinishingBar;
+
+    if (isFinishingBar) {
+      startBtn.textContent = "Stop"; // 🔁 show "Stop" while finishing
+      startBtn.disabled = true;
+      pauseBtn.disabled = true;
+    } else {
+      startBtn.textContent = "Start"; // restore label when finishing ends
+      startBtn.disabled = false;
+      pauseBtn.disabled = true; // keep pause disabled until next cycle
+    }
   }
 
   function showCountdownVisual(step) {
@@ -133,6 +138,9 @@ export function initUI(deps) {
     // ✅ Check session limits BEFORE doing anything
     if (mode === "cycles" && cyclesDone >= cyclesLimit) {
       stopSession("✅ Session complete (cycles limit reached)");
+      startBtn.textContent = "Start"; // 🔁 restore label
+      startBtn.disabled = false; // re-enable button
+      pauseBtn.disabled = true; // keep pause disabled
       return;
     }
     if (mode === "time" && sessionEnding) {
@@ -198,7 +206,7 @@ export function initUI(deps) {
     // setup to disable buttons while counting in
     isCountingIn = true;
     pauseBtn.disabled = true;
-    stopBtn.disabled = true;
+    startBtn.disabled = true;
     nextBtn.disabled = true;
     // Show first step immediately
     showCountdownVisual(step--);
@@ -210,7 +218,7 @@ export function initUI(deps) {
 
         isCountingIn = false;
         pauseBtn.disabled = false;
-        stopBtn.disabled = false;
+        startBtn.disabled = false;
         nextBtn.disabled = false;
 
         const badge = document.getElementById("countdownBadge");
@@ -248,9 +256,7 @@ export function initUI(deps) {
     sessionEnding = false;
     cyclesDone = 0;
     setFinishingBar(false);
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    pauseBtn.disabled = true; // disabled until metronome starts again
+    startBtn.disabled = true;
     nextBtn.disabled = true;
     console.log(message || "Session stopped");
     // safeguard for visual countdown
@@ -260,18 +266,39 @@ export function initUI(deps) {
     }
     const badge = document.getElementById("countdownBadge");
     if (badge) badge.textContent = "";
+
+    // Restore Start button state
+    startBtn.textContent = "Start";
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
   }
 
   startBtn.onclick = () => {
-    if (isRunning) return;
+    if (isRunning) {
+      // ⏹️ Stop
+      if (isCountingIn || isFinishingBar) {
+        console.warn("⏳ Cannot stop during countdown or finishing bar");
+        return;
+      }
+
+      stopSession("🛑 Stopped by user");
+      startBtn.textContent = "Start";
+      startBtn.disabled = false;
+      return;
+    }
+    // ▶️ Start
     isRunning = true;
-    pauseBtn.disabled = false; // enable pause only when metronome is active
+    isPaused = false;
     cyclesDone = 0;
-    // ensure sessionEnding flag reset when starting
     sessionEnding = false;
-    runCycle();
+
+    // Disable all controls during count-in
     startBtn.disabled = true;
-    nextBtn.disabled = false;
+    pauseBtn.disabled = true; // stays disabled until metronome starts
+    nextBtn.disabled = true;
+
+    runCycle(); // handles re-enabling buttons after count-in
+    startBtn.textContent = "Stop"; // show "Stop" as soon as metronome starts
 
     const mode = sessionModeEl.value;
     if (mode === "time") {
@@ -319,6 +346,8 @@ export function initUI(deps) {
               setFinishingBar(false);
               sessionEnding = false;
               stopSession("✅ Session complete (time limit reached)");
+              startBtn.textContent = "Start";
+              startBtn.disabled = false;
             });
           } else {
             console.log(
@@ -327,26 +356,15 @@ export function initUI(deps) {
             setFinishingBar(false);
             sessionEnding = false;
             stopSession("✅ Session complete (time limit reached)");
+            startBtn.textContent = "Start";
+            startBtn.disabled = false;
           }
         }
       }, 1000);
     }
   };
 
-  stopBtn.onclick = () => {
-    if (isCountingIn || isFinishingBar) {
-      console.warn("⏳ Cannot stop during countdown or finishing bar");
-      return;
-    }
-
-    stopSession("🛑 Stopped by user");
-  };
-
   pauseBtn.onclick = () => {
-    if (!isRunning) {
-      console.warn("⚠️ Cannot pause/resume — metronome is not running");
-      return;
-    }
     if (isCountingIn || isFinishingBar) {
       console.warn("⏳ Cannot pause during countdown or finishing bar");
       return;
@@ -427,7 +445,7 @@ export function initUI(deps) {
       case "Space": // Start/Stop
         event.preventDefault();
         if (!startBtn.disabled) startBtn.click();
-        else if (!stopBtn.disabled) stopBtn.click();
+        else if (!startBtn.disabled) startBtn.click();
         break;
 
       case "KeyP": // Pause/Resume
