@@ -68,6 +68,7 @@
 
 ### 4. Footer & Cache Version Log
 
+- Move Hotkeys information from footer to a button that displays them on command, additionally make footer appear only briefly then disappear (maybe 10s?)
 - Display app version in footer.
 - Console log cache version for debugging:
   ```js
