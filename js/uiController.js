@@ -37,7 +37,7 @@ export function initUI(deps) {
   const stopBtn = document.getElementById("stopBtn");
   const nextBtn = document.getElementById("nextBtn");
   const pauseBtn = document.getElementById("pauseBtn");
-  pauseBtn.disabled = false; // enabled
+  pauseBtn.disabled = true; // disabled until metronome starts
   stopBtn.disabled = false; // enabled
   const bpmMinEl = document.getElementById("bpmMin");
   const bpmMaxEl = document.getElementById("bpmMax");
@@ -250,6 +250,7 @@ export function initUI(deps) {
     setFinishingBar(false);
     startBtn.disabled = false;
     stopBtn.disabled = true;
+    pauseBtn.disabled = true; // disabled until metronome starts again
     nextBtn.disabled = true;
     console.log(message || "Session stopped");
     // safeguard for visual countdown
@@ -264,6 +265,7 @@ export function initUI(deps) {
   startBtn.onclick = () => {
     if (isRunning) return;
     isRunning = true;
+    pauseBtn.disabled = false; // enable pause only when metronome is active
     cyclesDone = 0;
     // ensure sessionEnding flag reset when starting
     sessionEnding = false;
@@ -341,6 +343,10 @@ export function initUI(deps) {
   };
 
   pauseBtn.onclick = () => {
+    if (!isRunning) {
+      console.warn("⚠️ Cannot pause/resume — metronome is not running");
+      return;
+    }
     if (isCountingIn || isFinishingBar) {
       console.warn("⏳ Cannot pause during countdown or finishing bar");
       return;
