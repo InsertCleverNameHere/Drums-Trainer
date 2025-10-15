@@ -59,12 +59,12 @@
 - Ensure the current measure plays to the end before pausing or switching cycles.
 - Integrate the 3-2-1 tempo-synced countdown into both start and cycle transitions.
 
-### 3. Keyboard Shortcuts
+### ✅ 3. Keyboard Shortcuts
 
-- Space → Start/Stop
-- P → Pause/Resume
-- Arrow keys → Adjust BPM
-- N → Next groove
+- ✅ Space → Start/Stop
+- ✅ P → Pause/Resume
+- ✅ Arrow keys → Adjust BPM
+- ✅ N → Next groove
 
 ### 4. Footer & Cache Version Log
 
