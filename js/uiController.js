@@ -36,7 +36,8 @@ export function initUI(deps) {
   const startBtn = document.getElementById("startBtn");
   const nextBtn = document.getElementById("nextBtn");
   const pauseBtn = document.getElementById("pauseBtn");
-  pauseBtn.disabled = false; // enabled
+  pauseBtn.disabled = true; // Pause disabled until metronome starts
+  nextBtn.disabled = true; // Next disabled until metronome starts
   const bpmMinEl = document.getElementById("bpmMin");
   const bpmMaxEl = document.getElementById("bpmMax");
   const groovesEl = document.getElementById("grooves");
@@ -131,6 +132,25 @@ export function initUI(deps) {
     badge.classList.add("fade-in");
   }
 
+  function completeCycle() {
+    cyclesDone++;
+    cyclesDoneEl.textContent = cyclesDone;
+
+    // Check session limits AFTER incrementing
+    const mode = sessionModeEl.value;
+    const cyclesLimit = parseInt(totalCyclesEl.value);
+    if (mode === "cycles" && cyclesDone >= cyclesLimit) {
+      stopSession("✅ Session complete (cycles limit reached)");
+      startBtn.textContent = "Start";
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      return;
+    }
+
+    setFinishingBar(false);
+    runCycle(); // next cycle
+  }
+
   function runCycle() {
     const mode = sessionModeEl.value;
     const cyclesLimit = parseInt(totalCyclesEl.value);
@@ -152,7 +172,6 @@ export function initUI(deps) {
 
     // show groove immediately
     displayGroove.textContent = `Groove: ${groove}`;
-    cyclesDoneEl.textContent = ++cyclesDone;
 
     const durationValue = parseInt(cycleDurationEl.value);
     const durationUnit = cycleUnitEl.value;
@@ -162,12 +181,13 @@ export function initUI(deps) {
     // cycle's BPM and the tempoSynced preference. Otherwise start immediately.
     const startAfterCountIn = () => {
       startMetronomeFn(bpm);
+      startBtn.textContent = "Stop"; // show "Stop" as soon as metronome starts
 
       // read effective BPM that metronomeCore is actually using (post-clamp)
       const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
       displayBpm.textContent = `BPM: ${effectiveBpm}`;
 
-      // ✅ Start countdown only after metronome starts
+      // Start countdown only after metronome starts
       countdownEl.textContent = remaining;
       clearInterval(activeTimer);
 
@@ -182,13 +202,11 @@ export function initUI(deps) {
 
           if (typeof requestEndOfCycleFn === "function") {
             requestEndOfCycleFn(() => {
-              setFinishingBar(false);
-              runCycle(); // next cycle
+              completeCycle();
             });
           } else {
             stopMetronomeFn();
-            setFinishingBar(false);
-            runCycle();
+            completeCycle();
           }
         }
       }, 1000);
@@ -298,7 +316,6 @@ export function initUI(deps) {
     nextBtn.disabled = true;
 
     runCycle(); // handles re-enabling buttons after count-in
-    startBtn.textContent = "Stop"; // show "Stop" as soon as metronome starts
 
     const mode = sessionModeEl.value;
     if (mode === "time") {
@@ -386,15 +403,11 @@ export function initUI(deps) {
           if (typeof requestEndOfCycleFn === "function") {
             requestEndOfCycleFn(() => {
               console.log("✅ Cycle finished cleanly — moving to next.");
-              setFinishingBar(false);
-              // metronomeCore has already waited 1s; proceed to next cycle
-              runCycle();
+              completeCycle();
             });
           } else {
             stopMetronomeFn();
-            setFinishingBar(false);
-            // metronomeCore will include the adjustment pause; start next cycle now
-            runCycle();
+            completeCycle();
           }
         }
       }, 1000);
@@ -423,9 +436,15 @@ export function initUI(deps) {
       return;
     }
 
+    // Stop current cycle immediately
     stopMetronomeFn();
     clearInterval(activeTimer);
-    runCycle();
+
+    // If paused, resume state so next cycle starts clean
+    isPaused = false;
+    pauseBtn.textContent = "Pause"; // Ensure button reflects correct state on starting a new cycle
+
+    runCycle(); // start next cycle without counting this one
   };
 
   // HOTKEYS LOGIC BELOW
