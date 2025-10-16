@@ -80,6 +80,20 @@
 - Color-code version numbers in the footer for visibility.
 - Track shown messages via localStorage to prevent repeated display.
 
+- ### 🔢 Intelligent Versioning System
+
+- Implement dynamic versioning using the latest GitHub commit hash.
+- Automatically increment the minor version (e.g. `v2.0.1`, `v2.0.2`) when a new commit is detected.
+- Store the last seen hash and minor version in `localStorage` to track changes across sessions.
+- Display the current version in the footer and console log.
+- Assign a distinct color to each version for visual recognition, rotating automatically when the version changes.
+- Avoid color similarity using color distance logic and cache the last used color.
+- Detect when a new version is available by comparing the latest commit hash to the stored one.
+- Show a persistent “Update Available” banner when a new version is detected.
+- Include a clickable “Update” button that forces a page refresh to load the latest version.
+- Track message display via `localStorage` to avoid repeated alerts.
+
+
 ---
 
 ### Phase 2 — Functional Enhancements
