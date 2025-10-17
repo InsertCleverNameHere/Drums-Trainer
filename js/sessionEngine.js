@@ -160,7 +160,50 @@ export function nextCycle() {
 }
 
 export function stopSession(message = "") {
-  // Stops session and resets state
+  flags.isRunning = false;
+  flags.isPaused = false;
+  flags.isCountingIn = false;
+  flags.isFinishingBar = false;
+  flags.sessionEnding = false;
+  flags.cyclesDone = 0;
+  flags.remaining = 0;
+  flags.pausedRemaining = 0;
+  flags.sessionRemaining = 0;
+
+  metronome.stopMetronome();
+
+  clearInterval(timers.activeTimer);
+  clearTimeout(timers.sessionTimer);
+  if (timers.sessionInterval) clearInterval(timers.sessionInterval);
+  timers.sessionInterval = null;
+
+  if (timers.visualCountdownTimer) {
+    clearInterval(timers.visualCountdownTimer);
+    timers.visualCountdownTimer = null;
+  }
+
+  setFinishingBar(false);
+
+  if (ui.startBtn) {
+    ui.startBtn.textContent = "Start";
+    ui.startBtn.disabled = false;
+  }
+  if (ui.pauseBtn) {
+    ui.pauseBtn.disabled = true;
+    ui.pauseBtn.textContent = "Pause";
+  }
+  if (ui.nextBtn) {
+    ui.nextBtn.disabled = true;
+  }
+
+  if (ui.countdownEl) ui.countdownEl.textContent = "";
+  if (ui.sessionCountdownEl) ui.sessionCountdownEl.textContent = "";
+
+  visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
+    step: "",
+  });
+
+  console.log(message || "Session stopped");
 }
 
 // === Internal Helpers ===

@@ -120,35 +120,6 @@ export function initUI(deps) {
     });
   }
 
-  function stopSession(message) {
-    isRunning = false;
-    stopMetronomeFn();
-    clearInterval(activeTimer);
-    clearTimeout(sessionTimer);
-    if (sessionInterval) clearInterval(sessionInterval);
-    sessionInterval = null;
-    sessionRemaining = 0;
-    sessionEnding = false;
-    cyclesDone = 0;
-    setFinishingBar(false);
-    startBtn.disabled = true;
-    nextBtn.disabled = true;
-    console.log(message || "Session stopped");
-    // safeguard for visual countdown
-    if (visualCountdownTimer) {
-      clearInterval(visualCountdownTimer);
-      visualCountdownTimer = null;
-    }
-    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
-      step: "",
-    });
-
-    // Restore Start button state
-    startBtn.textContent = "Start";
-    startBtn.disabled = false;
-    pauseBtn.disabled = true;
-  }
-
   startBtn.onclick = () => startSession();
 
   pauseBtn.onclick = () => {
