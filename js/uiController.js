@@ -120,25 +120,6 @@ export function initUI(deps) {
     });
   }
 
-  function completeCycle() {
-    cyclesDone++;
-    cyclesDoneEl.textContent = cyclesDone;
-
-    // Check session limits AFTER incrementing
-    const mode = sessionModeEl.value;
-    const cyclesLimit = parseInt(totalCyclesEl.value);
-    if (mode === "cycles" && cyclesDone >= cyclesLimit) {
-      stopSession("✅ Session complete (cycles limit reached)");
-      startBtn.textContent = "Start";
-      startBtn.disabled = false;
-      pauseBtn.disabled = true;
-      return;
-    }
-
-    setFinishingBar(false);
-    startSession(); // ✅ triggers runCycle internally
-  }
-
   function stopSession(message) {
     isRunning = false;
     stopMetronomeFn();
@@ -192,11 +173,11 @@ export function initUI(deps) {
           if (typeof requestEndOfCycleFn === "function") {
             requestEndOfCycleFn(() => {
               console.log("✅ Cycle finished cleanly — moving to next.");
-              completeCycle();
+              sessionEngine.completeCycle();
             });
           } else {
             stopMetronomeFn();
-            completeCycle();
+            sessionEngine.completeCycle();
           }
         }
       }, 1000);

@@ -274,8 +274,31 @@ function runCycle() {
   }
 }
 
-function completeCycle() {
-  // Called when a cycle finishes
+export function completeCycle() {
+  setFinishingBar(false);
+  flags.cyclesDone++;
+  ui.cyclesDoneEl.textContent = flags.cyclesDone;
+
+  const mode = ui.sessionModeEl.value;
+  const cyclesLimit = parseInt(ui.totalCyclesEl.value);
+
+  if (mode === "cycles" && flags.cyclesDone >= cyclesLimit) {
+    stopSession("✅ Session complete (cycles limit reached)");
+    ui.startBtn.textContent = "Start";
+    ui.startBtn.disabled = false;
+    ui.pauseBtn.disabled = true;
+    return;
+  }
+
+  if (mode === "time" && flags.sessionEnding) {
+    stopSession("✅ Session complete (time limit reached)");
+    ui.startBtn.textContent = "Start";
+    ui.startBtn.disabled = false;
+    ui.pauseBtn.disabled = true;
+    return;
+  }
+
+  runCycle(); // Start next cycle
 }
 
 function setFinishingBar(flag) {
