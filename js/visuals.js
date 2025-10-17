@@ -35,7 +35,7 @@ export function createVisualCallback(getBeatsPerBar) {
     const beatIndex = beat % beats;
     const dots = container.children;
 
-    // reset all dots quickly
+    // Reset all dots quickly (clear previous highlights)
     for (let i = 0; i < dots.length; i++) {
       dots[i].style.backgroundColor = "#bfbfbf";
       dots[i].style.transform = "scale(1)";
@@ -46,6 +46,7 @@ export function createVisualCallback(getBeatsPerBar) {
     const activeDot = dots[beatIndex];
     if (!activeDot) return;
 
+    // Accent beat (larger, different color)
     activeDot.style.backgroundColor = isAccent ? "#b22222" : "#006400";
     activeDot.style.transform = "scale(1.5)";
     activeDot.style.opacity = "1";
