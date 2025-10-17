@@ -61,9 +61,30 @@ export function createVisualCallback(getBeatsPerBar) {
   };
 }
 
-export function flashInput(el) {
-  el.classList.remove("bpm-flash");
-  void el.offsetWidth; // force reflow
-  el.classList.add("bpm-flash");
-  setTimeout(() => el.classList.remove("bpm-flash"), 150);
+// Flash the BPM input field
+export function updateCountdownBadge(badgeEl, options = {}) {
+  if (!badgeEl) return;
+
+  const {
+    step = "", // Text to show (or clear)
+    fadeIn = false, // Apply fade-in animation
+    fadeOut = false, // Apply fade-out animation
+  } = options;
+
+  badgeEl.textContent = step;
+
+  // Reset animations
+  badgeEl.classList.remove("fade-in", "fade-out");
+  void badgeEl.offsetWidth; // force reflow
+
+  if (fadeIn) badgeEl.classList.add("fade-in");
+  if (fadeOut) badgeEl.classList.add("fade-out");
+}
+
+// Clear the countdown badge
+export function clearCountdownBadge(badgeEl) {
+  if (!badgeEl) return;
+  badgeEl.textContent = "";
+  badgeEl.classList.remove("fade-in");
+  badgeEl.classList.add("fade-out");
 }

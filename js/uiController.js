@@ -112,14 +112,10 @@ export function initUI(deps) {
   }
 
   function showCountdownVisual(step) {
-    const badge = document.getElementById("countdownBadge");
-    if (!badge) return;
-    badge.textContent = step;
-    // Remove previous animation classes
-    badge.classList.remove("fade-in", "fade-out");
-    void badge.offsetWidth; // force reflow
-    // Apply fade-in
-    badge.classList.add("fade-in");
+    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
+      step,
+      fadeIn: true,
+    });
   }
 
   function completeCycle() {
@@ -235,12 +231,13 @@ export function initUI(deps) {
         startBtn.disabled = false;
         nextBtn.disabled = false;
 
-        const badge = document.getElementById("countdownBadge");
-        if (badge) badge.textContent = "";
-        if (badge) {
-          badge.classList.remove("fade-in");
-          badge.classList.add("fade-out");
-        }
+        visuals.updateCountdownBadge(
+          document.getElementById("countdownBadge"),
+          {
+            step: "",
+            fadeOut: true,
+          }
+        );
         return;
       }
 
@@ -278,8 +275,9 @@ export function initUI(deps) {
       clearInterval(visualCountdownTimer);
       visualCountdownTimer = null;
     }
-    const badge = document.getElementById("countdownBadge");
-    if (badge) badge.textContent = "";
+    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
+      step: "",
+    });
 
     // Restore Start button state
     startBtn.textContent = "Start";
