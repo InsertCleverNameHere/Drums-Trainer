@@ -509,7 +509,8 @@ export function initUI(deps) {
       bpmInput.value = current;
 
       // Optional visual cue (flash input)
-      visuals.flashInput(bpmInput);
+      bpmInput.classList.add("bpm-flash");
+      setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
     }
   });
 
