@@ -60,3 +60,10 @@ export function createVisualCallback(getBeatsPerBar) {
     }, 120);
   };
 }
+
+export function flashInput(el) {
+  el.classList.remove("bpm-flash");
+  void el.offsetWidth; // force reflow
+  el.classList.add("bpm-flash");
+  setTimeout(() => el.classList.remove("bpm-flash"), 150);
+}

@@ -2,6 +2,7 @@
 // Depends on metronomeCore functions passed in at init.
 
 import * as utils from "./utils.js";
+import * as visuals from "./visuals.js";
 
 let startMetronomeFn,
   stopMetronomeFn,
@@ -510,9 +511,7 @@ export function initUI(deps) {
       bpmInput.value = current;
 
       // Optional visual cue (flash input)
-      bpmInput.classList.add("bpm-flash");
-      void bpmInput.offsetWidth; // force reflow
-      setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
+      visuals.flashInput(bpmInput);
     }
   });
 
