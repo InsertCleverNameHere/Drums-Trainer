@@ -4,6 +4,7 @@ import { createVisualCallback } from "./visuals.js";
 import { initUI } from "./uiController.js";
 import * as utils from "./utils.js";
 import { initSessionEngine } from "./sessionEngine.js";
+import { startSession } from "./sessionEngine.js";
 
 // === DOM Elements ===
 const startBtn = document.getElementById("startBtn");
@@ -61,6 +62,9 @@ initSessionEngine({
     cycleUnitEl,
     sessionCountdownEl,
     finishingBadgeEl,
+    bpmMaxEl,
+    bpmMinEl,
+    groovesEl,
   },
 });
 
@@ -77,6 +81,11 @@ initUI({
   getBpm: metronome.getBpm,
   requestEndOfCycle: metronome.requestEndOfCycle,
   performCountIn: metronome.performCountIn,
+});
+
+// === Event Listeners ===
+startBtn.addEventListener("click", () => {
+  startSession();
 });
 
 // === Version Log ===

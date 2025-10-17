@@ -165,7 +165,113 @@ export function stopSession(message = "") {
 
 // === Internal Helpers ===
 function runCycle() {
-  // Starts a new cycle, handles count-in and countdown
+  const mode = ui.sessionModeEl.value;
+  const cyclesLimit = parseInt(ui.totalCyclesEl.value);
+
+  if (mode === "cycles" && flags.cyclesDone >= cyclesLimit) {
+    stopSession("✅ Session complete (cycles limit reached)");
+    ui.startBtn.textContent = "Start";
+    ui.startBtn.disabled = false;
+    ui.pauseBtn.disabled = true;
+    return;
+  }
+  if (mode === "time" && flags.sessionEnding) {
+    stopSession("✅ Session complete (time limit reached)");
+    return;
+  }
+
+  const bpmMin = parseInt(ui.bpmMinEl.value);
+  const bpmMax = parseInt(ui.bpmMaxEl.value);
+  const { bpm, groove } = utils.randomizeGroove(
+    ui.groovesEl.value,
+    bpmMin,
+    bpmMax
+  );
+
+  ui.displayGroove.textContent = `Groove: ${groove}`;
+
+  const durationValue = parseInt(ui.cycleDurationEl.value);
+  const durationUnit = ui.cycleUnitEl.value;
+  flags.remaining =
+    durationUnit === "minutes" ? durationValue * 60 : durationValue;
+
+  const startAfterCountIn = () => {
+    metronome.startMetronome(bpm);
+    ui.startBtn.textContent = "Stop";
+
+    const effectiveBpm =
+      typeof metronome.getBpm === "function" ? metronome.getBpm() : bpm;
+    ui.displayBpm.textContent = `BPM: ${effectiveBpm}`;
+
+    ui.countdownEl.textContent = flags.remaining;
+    clearInterval(timers.activeTimer);
+
+    timers.activeTimer = setInterval(() => {
+      if (flags.isPaused) return;
+      flags.remaining--;
+      ui.countdownEl.textContent = flags.remaining;
+
+      if (flags.remaining <= 0) {
+        clearInterval(timers.activeTimer);
+        setFinishingBar(true);
+
+        if (typeof metronome.requestEndOfCycle === "function") {
+          metronome.requestEndOfCycle(() => {
+            completeCycle();
+          });
+        } else {
+          metronome.stopMetronome();
+          completeCycle();
+        }
+      }
+    }, 1000);
+  };
+
+  if (timers.visualCountdownTimer) {
+    clearInterval(timers.visualCountdownTimer);
+    timers.visualCountdownTimer = null;
+  }
+
+  let step = 3;
+  const interval = sessionConfig.tempoSynced ? 60000 / bpm : 1000;
+  flags.isCountingIn = true;
+  ui.pauseBtn.disabled = true;
+  ui.startBtn.disabled = true;
+  ui.nextBtn.disabled = true;
+
+  showCountdownVisual(step--);
+
+  timers.visualCountdownTimer = setInterval(() => {
+    if (step === 0) {
+      clearInterval(timers.visualCountdownTimer);
+      timers.visualCountdownTimer = null;
+
+      flags.isCountingIn = false;
+      ui.pauseBtn.disabled = false;
+      ui.startBtn.disabled = false;
+      ui.nextBtn.disabled = false;
+
+      visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
+        step: "",
+        fadeOut: true,
+      });
+      return;
+    }
+
+    showCountdownVisual(step--);
+  }, interval);
+
+  if (typeof metronome.performCountIn === "function") {
+    metronome
+      .performCountIn(bpm, sessionConfig.tempoSynced)
+      .then(startAfterCountIn)
+      .catch((err) => {
+        console.error("Count-in failed:", err);
+        startAfterCountIn();
+      });
+  } else {
+    startAfterCountIn();
+  }
 }
 
 function completeCycle() {
@@ -173,11 +279,16 @@ function completeCycle() {
 }
 
 function setFinishingBar(flag) {
-  // Toggles finishing bar state and updates UI
+  flags.isFinishingBar = Boolean(flag);
+  if (ui.finishingBadgeEl)
+    ui.finishingBadgeEl.classList.toggle("visible", flags.isFinishingBar);
 }
 
 function showCountdownVisual(step) {
-  // Triggers visual countdown badge
+  visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
+    step,
+    fadeIn: true,
+  });
 }
 
 function updateButtonStates() {

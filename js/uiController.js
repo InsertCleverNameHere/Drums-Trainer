@@ -3,6 +3,7 @@
 
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
+import * as sessionEngine from "./sessionEngine.js";
 import { startSession } from "./sessionEngine.js";
 
 let startMetronomeFn,
@@ -135,126 +136,7 @@ export function initUI(deps) {
     }
 
     setFinishingBar(false);
-    runCycle(); // next cycle
-  }
-
-  function runCycle() {
-    const mode = sessionModeEl.value;
-    const cyclesLimit = parseInt(totalCyclesEl.value);
-
-    // ✅ Check session limits BEFORE doing anything
-    if (mode === "cycles" && cyclesDone >= cyclesLimit) {
-      stopSession("✅ Session complete (cycles limit reached)");
-      startBtn.textContent = "Start"; // 🔁 restore label
-      startBtn.disabled = false; // re-enable button
-      pauseBtn.disabled = true; // keep pause disabled
-      return;
-    }
-    if (mode === "time" && sessionEnding) {
-      stopSession("✅ Session complete (time limit reached)");
-      return;
-    }
-
-    const bpmMin = parseInt(bpmMinEl.value);
-    const bpmMax = parseInt(bpmMaxEl.value);
-    const { bpm, groove } = utils.randomizeGroove(
-      groovesEl.value,
-      bpmMin,
-      bpmMax
-    );
-
-    // show groove immediately
-    displayGroove.textContent = `Groove: ${groove}`;
-
-    const durationValue = parseInt(cycleDurationEl.value);
-    const durationUnit = cycleUnitEl.value;
-    remaining = durationUnit === "minutes" ? durationValue * 60 : durationValue;
-
-    // If a performCountIn function is available, run it first using the next
-    // cycle's BPM and the tempoSynced preference. Otherwise start immediately.
-    const startAfterCountIn = () => {
-      startMetronomeFn(bpm);
-      startBtn.textContent = "Stop"; // show "Stop" as soon as metronome starts
-
-      // read effective BPM that metronomeCore is actually using (post-clamp)
-      const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
-      displayBpm.textContent = `BPM: ${effectiveBpm}`;
-
-      // Start countdown only after metronome starts
-      countdownEl.textContent = remaining;
-      clearInterval(activeTimer);
-
-      activeTimer = setInterval(() => {
-        if (isPaused) return;
-        remaining--;
-        countdownEl.textContent = remaining;
-
-        if (remaining <= 0) {
-          clearInterval(activeTimer);
-          setFinishingBar(true);
-
-          if (typeof requestEndOfCycleFn === "function") {
-            requestEndOfCycleFn(() => {
-              completeCycle();
-            });
-          } else {
-            stopMetronomeFn();
-            completeCycle();
-          }
-        }
-      }, 1000);
-    };
-
-    // Clear any previous visual countdown
-    if (visualCountdownTimer) {
-      clearInterval(visualCountdownTimer);
-      visualCountdownTimer = null;
-    }
-
-    // Visual countdown (minimal)
-    let step = 3;
-    const interval = tempoSynced ? 60000 / bpm : 1000;
-    // setup to disable buttons while counting in
-    isCountingIn = true;
-    pauseBtn.disabled = true;
-    startBtn.disabled = true;
-    nextBtn.disabled = true;
-    // Show first step immediately
-    showCountdownVisual(step--);
-
-    visualCountdownTimer = setInterval(() => {
-      if (step === 0) {
-        clearInterval(visualCountdownTimer);
-        visualCountdownTimer = null;
-
-        isCountingIn = false;
-        pauseBtn.disabled = false;
-        startBtn.disabled = false;
-        nextBtn.disabled = false;
-
-        visuals.updateCountdownBadge(
-          document.getElementById("countdownBadge"),
-          {
-            step: "",
-            fadeOut: true,
-          }
-        );
-        return;
-      }
-
-      showCountdownVisual(step--);
-    }, interval);
-
-    if (typeof performCountInFn === "function") {
-      performCountInFn(bpm, tempoSynced)
-        .then(startAfterCountIn)
-        .catch((err) => {
-          console.error("Count-in failed:", err);
-          startAfterCountIn();
-        });
-    } else {
-      startAfterCountIn();
-    }
+    startSession(); // ✅ triggers runCycle internally
   }
 
   function stopSession(message) {
@@ -351,7 +233,7 @@ export function initUI(deps) {
     isPaused = false;
     pauseBtn.textContent = "Pause"; // Ensure button reflects correct state on starting a new cycle
 
-    runCycle(); // start next cycle without counting this one
+    startSession(); // ✅ triggers runCycle internally
   };
 
   // HOTKEYS LOGIC BELOW
