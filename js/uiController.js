@@ -1,5 +1,8 @@
 // uiController.js
-// Moved UI & session logic. Depends on metronomeCore functions passed in at init.
+// Depends on metronomeCore functions passed in at init.
+
+import * as utils from "./utils.js";
+import * as visuals from "./visuals.js";
 
 let startMetronomeFn,
   stopMetronomeFn,
@@ -90,20 +93,7 @@ export function initUI(deps) {
   let pausedRemaining = 0;
   let remaining = 0;
 
-  function randomizeGroove() {
-    const grooves = groovesEl.value
-      .split("\n")
-      .map((g) => g.trim())
-      .filter(Boolean);
-    const bpmMin = parseInt(bpmMinEl.value);
-    const bpmMax = parseInt(bpmMaxEl.value);
-    // use simple random BPM logic (keeps multiples-of-5 behavior from earlier)
-    const randomBpm =
-      Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
-    const randomGroove = grooves[Math.floor(Math.random() * grooves.length)];
-    return { bpm: randomBpm, groove: randomGroove };
-  }
-
+  // Sets the finishing bar state and updates the UI accordingly
   function setFinishingBar(flag) {
     isFinishingBar = Boolean(flag);
     // show/hide badge
@@ -122,14 +112,10 @@ export function initUI(deps) {
   }
 
   function showCountdownVisual(step) {
-    const badge = document.getElementById("countdownBadge");
-    if (!badge) return;
-    badge.textContent = step;
-    // Remove previous animation classes
-    badge.classList.remove("fade-in", "fade-out");
-    void badge.offsetWidth; // force reflow
-    // Apply fade-in
-    badge.classList.add("fade-in");
+    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
+      step,
+      fadeIn: true,
+    });
   }
 
   function completeCycle() {
@@ -168,7 +154,13 @@ export function initUI(deps) {
       return;
     }
 
-    const { bpm, groove } = randomizeGroove();
+    const bpmMin = parseInt(bpmMinEl.value);
+    const bpmMax = parseInt(bpmMaxEl.value);
+    const { bpm, groove } = utils.randomizeGroove(
+      groovesEl.value,
+      bpmMin,
+      bpmMax
+    );
 
     // show groove immediately
     displayGroove.textContent = `Groove: ${groove}`;
@@ -239,12 +231,13 @@ export function initUI(deps) {
         startBtn.disabled = false;
         nextBtn.disabled = false;
 
-        const badge = document.getElementById("countdownBadge");
-        if (badge) badge.textContent = "";
-        if (badge) {
-          badge.classList.remove("fade-in");
-          badge.classList.add("fade-out");
-        }
+        visuals.updateCountdownBadge(
+          document.getElementById("countdownBadge"),
+          {
+            step: "",
+            fadeOut: true,
+          }
+        );
         return;
       }
 
@@ -282,8 +275,9 @@ export function initUI(deps) {
       clearInterval(visualCountdownTimer);
       visualCountdownTimer = null;
     }
-    const badge = document.getElementById("countdownBadge");
-    if (badge) badge.textContent = "";
+    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
+      step: "",
+    });
 
     // Restore Start button state
     startBtn.textContent = "Start";
@@ -321,10 +315,8 @@ export function initUI(deps) {
     if (mode === "time") {
       const totalValue = parseInt(totalTimeEl.value);
       const totalUnit = totalTimeUnitEl.value;
-      let totalSeconds = totalValue;
+      let totalSeconds = utils.convertToSeconds(totalValue, totalUnit);
 
-      if (totalUnit === "minutes") totalSeconds *= 60;
-      else if (totalUnit === "hours") totalSeconds *= 3600;
       // use a visible per-second countdown for the total session time and pause it when user pauses
       sessionRemaining = totalSeconds;
       if (sessionCountdownEl)
@@ -513,12 +505,11 @@ export function initUI(deps) {
       const direction = event.code === "ArrowUp" ? 1 : -1;
 
       // Apply change and clamp to reasonable range
-      current = Math.min(300, Math.max(30, current + direction * delta));
+      current = utils.clamp(current + direction * delta, 30, 300);
       bpmInput.value = current;
 
       // Optional visual cue (flash input)
-      bpmInput.classList.add("bpm-flash");
-      setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
+      visuals.flashInput(bpmInput);
     }
   });
 

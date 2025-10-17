@@ -35,7 +35,7 @@ export function createVisualCallback(getBeatsPerBar) {
     const beatIndex = beat % beats;
     const dots = container.children;
 
-    // reset all dots quickly
+    // Reset all dots quickly (clear previous highlights)
     for (let i = 0; i < dots.length; i++) {
       dots[i].style.backgroundColor = "#bfbfbf";
       dots[i].style.transform = "scale(1)";
@@ -46,6 +46,7 @@ export function createVisualCallback(getBeatsPerBar) {
     const activeDot = dots[beatIndex];
     if (!activeDot) return;
 
+    // Accent beat (larger, different color)
     activeDot.style.backgroundColor = isAccent ? "#b22222" : "#006400";
     activeDot.style.transform = "scale(1.5)";
     activeDot.style.opacity = "1";
@@ -58,4 +59,32 @@ export function createVisualCallback(getBeatsPerBar) {
       activeDot.style.backgroundColor = "#bfbfbf";
     }, 120);
   };
+}
+
+// Flash the BPM input field
+export function updateCountdownBadge(badgeEl, options = {}) {
+  if (!badgeEl) return;
+
+  const {
+    step = "", // Text to show (or clear)
+    fadeIn = false, // Apply fade-in animation
+    fadeOut = false, // Apply fade-out animation
+  } = options;
+
+  badgeEl.textContent = step;
+
+  // Reset animations
+  badgeEl.classList.remove("fade-in", "fade-out");
+  void badgeEl.offsetWidth; // force reflow
+
+  if (fadeIn) badgeEl.classList.add("fade-in");
+  if (fadeOut) badgeEl.classList.add("fade-out");
+}
+
+// Clear the countdown badge
+export function clearCountdownBadge(badgeEl) {
+  if (!badgeEl) return;
+  badgeEl.textContent = "";
+  badgeEl.classList.remove("fade-in");
+  badgeEl.classList.add("fade-out");
 }
