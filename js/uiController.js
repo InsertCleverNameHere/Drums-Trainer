@@ -3,6 +3,7 @@
 
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
+import { startSession } from "./sessionEngine.js";
 
 let startMetronomeFn,
   stopMetronomeFn,
@@ -285,93 +286,7 @@ export function initUI(deps) {
     pauseBtn.disabled = true;
   }
 
-  startBtn.onclick = () => {
-    if (isRunning) {
-      // ⏹️ Stop
-      if (isCountingIn || isFinishingBar) {
-        console.warn("⏳ Cannot stop during countdown or finishing bar");
-        return;
-      }
-
-      stopSession("🛑 Stopped by user");
-      startBtn.textContent = "Start";
-      startBtn.disabled = false;
-      return;
-    }
-    // ▶️ Start
-    isRunning = true;
-    isPaused = false;
-    cyclesDone = 0;
-    sessionEnding = false;
-
-    // Disable all controls during count-in
-    startBtn.disabled = true;
-    pauseBtn.disabled = true; // stays disabled until metronome starts
-    nextBtn.disabled = true;
-
-    runCycle(); // handles re-enabling buttons after count-in
-
-    const mode = sessionModeEl.value;
-    if (mode === "time") {
-      const totalValue = parseInt(totalTimeEl.value);
-      const totalUnit = totalTimeUnitEl.value;
-      let totalSeconds = utils.convertToSeconds(totalValue, totalUnit);
-
-      // use a visible per-second countdown for the total session time and pause it when user pauses
-      sessionRemaining = totalSeconds;
-      if (sessionCountdownEl)
-        sessionCountdownEl.textContent = String(sessionRemaining);
-
-      // clear any existing interval
-      if (sessionInterval) clearInterval(sessionInterval);
-
-      sessionInterval = setInterval(() => {
-        if (isPaused || isCountingIn) {
-          console.log("⏳ Session tick skipped — counting in or paused");
-          return; // ⏸️ Skip while paused or counting in
-        }
-        sessionRemaining--;
-        if (sessionCountdownEl)
-          sessionCountdownEl.textContent = String(sessionRemaining);
-
-        if (sessionRemaining <= 0) {
-          // stop the interval to avoid repeats
-          clearInterval(sessionInterval);
-          sessionInterval = null;
-
-          // mark that we're finishing the bar so Pause is disabled
-          setFinishingBar(true);
-          // indicate that the session ended and we're waiting for the finishing bar
-          sessionEnding = true;
-
-          if (typeof requestEndOfCycleFn === "function") {
-            console.log(
-              "🟡 Session time reached — requesting end of current bar..."
-            );
-            requestEndOfCycleFn(() => {
-              console.log(
-                "✅ Final cycle finished cleanly — stopping session (time limit reached)."
-              );
-              setFinishingBar(false);
-              sessionEnding = false;
-              stopSession("✅ Session complete (time limit reached)");
-              startBtn.textContent = "Start";
-              startBtn.disabled = false;
-            });
-          } else {
-            console.log(
-              "🔴 requestEndOfCycle not available — stopping immediately."
-            );
-            setFinishingBar(false);
-            sessionEnding = false;
-            stopSession("✅ Session complete (time limit reached)");
-            startBtn.textContent = "Start";
-            startBtn.disabled = false;
-          }
-        }
-      }, 1000);
-    }
-  };
+  startBtn.onclick = () => startSession();
 
   pauseBtn.onclick = () => {
     if (isCountingIn || isFinishingBar) {
