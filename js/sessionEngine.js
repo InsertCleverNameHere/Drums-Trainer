@@ -152,7 +152,51 @@ export function startSession() {
 }
 
 export function pauseSession() {
-  // Handles pause/resume logic
+  if (flags.isCountingIn || flags.isFinishingBar) {
+    console.warn("⏳ Cannot pause during countdown or finishing bar");
+    return;
+  }
+
+  if (flags.isPaused) {
+    // ▶️ Resume
+    flags.isPaused = false;
+    metronome.resumeMetronome();
+
+    timers.activeTimer = setInterval(() => {
+      if (flags.isPaused) return;
+      flags.remaining--;
+      ui.countdownEl.textContent = flags.remaining;
+
+      if (flags.remaining <= 0) {
+        clearInterval(timers.activeTimer);
+        setFinishingBar(true);
+
+        if (typeof metronome.requestEndOfCycle === "function") {
+          metronome.requestEndOfCycle(() => {
+            completeCycle();
+          });
+        } else {
+          metronome.stopMetronome();
+          completeCycle();
+        }
+      }
+    }, 1000);
+
+    ui.pauseBtn.textContent = "Pause";
+    console.log("▶️ Resumed metronome");
+  } else {
+    // ⏸️ Pause
+    flags.isPaused = true;
+    metronome.pauseMetronome();
+
+    clearInterval(timers.activeTimer);
+    flags.pausedRemaining = flags.remaining;
+
+    ui.pauseBtn.textContent = "Resume";
+    console.log(
+      "⏸️ Paused metronome at " + flags.pausedRemaining + "s remaining"
+    );
+  }
 }
 
 export function nextCycle() {

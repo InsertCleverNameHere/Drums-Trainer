@@ -81,19 +81,9 @@ export function initUI(deps) {
     );
   }
 
-  let activeTimer = null;
-  let sessionTimer = null; // legacy / reserved
-  let sessionInterval = null; // per-second session countdown interval
-  let visualCountdownTimer = null; // timer for visual countdown
-  let sessionRemaining = 0; // seconds remaining for total session time
-  let sessionEnding = false; // true when total-session time expired and we're waiting for finishing bar
-  let cyclesDone = 0;
   let isRunning = false;
   let isFinishingBar = false; // True only while letting bar finish
   let isCountingIn = false; // True while counting down
-  let isPaused = false;
-  let pausedRemaining = 0;
-  let remaining = 0;
 
   // Sets the finishing bar state and updates the UI accordingly
   function setFinishingBar(flag) {
@@ -123,50 +113,7 @@ export function initUI(deps) {
   startBtn.onclick = () => startSession();
 
   pauseBtn.onclick = () => {
-    if (isCountingIn || isFinishingBar) {
-      console.warn("⏳ Cannot pause during countdown or finishing bar");
-      return;
-    }
-
-    if (isPaused) {
-      // ▶️ Resume
-      isPaused = false;
-      resumeMetronomeFn();
-
-      // Resume countdown
-      activeTimer = setInterval(() => {
-        if (isPaused) return;
-        remaining--;
-        countdownEl.textContent = remaining;
-        if (remaining <= 0) {
-          clearInterval(activeTimer);
-          setFinishingBar(true);
-          if (typeof requestEndOfCycleFn === "function") {
-            requestEndOfCycleFn(() => {
-              console.log("✅ Cycle finished cleanly — moving to next.");
-              sessionEngine.completeCycle();
-            });
-          } else {
-            stopMetronomeFn();
-            sessionEngine.completeCycle();
-          }
-        }
-      }, 1000);
-
-      pauseBtn.textContent = "Pause";
-      console.log("▶️ Resumed metronome");
-    } else {
-      // ⏸️ Pause
-      isPaused = true;
-      pauseMetronomeFn();
-
-      // Stop the countdown timer
-      clearInterval(activeTimer);
-      pausedRemaining = remaining; // remember where we left off
-
-      pauseBtn.textContent = "Resume";
-      console.log("⏸️ Paused metronome at " + pausedRemaining + "s remaining");
-    }
+    sessionEngine.pauseSession();
   };
 
   nextBtn.onclick = () => {
