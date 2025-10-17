@@ -1,5 +1,7 @@
 // uiController.js
-// Moved UI & session logic. Depends on metronomeCore functions passed in at init.
+// Depends on metronomeCore functions passed in at init.
+
+import * as utils from "./utils.js";
 
 let startMetronomeFn,
   stopMetronomeFn,
@@ -321,10 +323,8 @@ export function initUI(deps) {
     if (mode === "time") {
       const totalValue = parseInt(totalTimeEl.value);
       const totalUnit = totalTimeUnitEl.value;
-      let totalSeconds = totalValue;
+      let totalSeconds = utils.convertToSeconds(totalValue, totalUnit);
 
-      if (totalUnit === "minutes") totalSeconds *= 60;
-      else if (totalUnit === "hours") totalSeconds *= 3600;
       // use a visible per-second countdown for the total session time and pause it when user pauses
       sessionRemaining = totalSeconds;
       if (sessionCountdownEl)
