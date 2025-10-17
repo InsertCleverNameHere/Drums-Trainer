@@ -14,6 +14,11 @@ export function convertToSeconds(value, unit) {
   return n;
 }
 
+// Clamps a value between a minimum and maximum range
+export function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 // Randomly selects a groove and BPM within the specified ranges
 export function randomizeGroove(groovesText, bpmMin, bpmMax) {
   const grooves = groovesText

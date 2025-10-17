@@ -506,11 +506,12 @@ export function initUI(deps) {
       const direction = event.code === "ArrowUp" ? 1 : -1;
 
       // Apply change and clamp to reasonable range
-      current = Math.min(300, Math.max(30, current + direction * delta));
+      current = utils.clamp(current + direction * delta, 30, 300);
       bpmInput.value = current;
 
       // Optional visual cue (flash input)
       bpmInput.classList.add("bpm-flash");
+      void bpmInput.offsetWidth; // force reflow
       setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
     }
   });

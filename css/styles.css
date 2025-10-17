@@ -1,10 +1,5 @@
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Arial;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
   margin: 18px;
   max-width: 900px;
 }
@@ -250,4 +245,17 @@ button:disabled {
     font-size: 0.8rem;
     padding: 6px 10px;
   }
+}
+
+@keyframes bpmFlash {
+  0% {
+    background-color: #f5e8b0;
+  }
+  100% {
+    background-color: inherit;
+  }
+}
+
+.bpm-flash {
+  animation: bpmFlash 0.15s ease-in-out;
 }
