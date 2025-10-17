@@ -4,7 +4,7 @@
 let audioCtx = null;
 let nextNoteTime = 0.0;
 let currentBeat = 0;
-let isRunning = false;
+let isMetronomePlaying = false;
 let schedulerTimer = null;
 let endOfCycleRequested = false;
 let targetBarEnd = null;
@@ -69,7 +69,7 @@ function scheduleNote() {
   // === NEW LOGIC: stop at end of bar if requested ===
   if (endOfCycleRequested && currentBeat % beatsPerBar === 0) {
     endOfCycleRequested = false;
-    isRunning = false;
+    isMetronomePlaying = false;
 
     if (schedulerTimer) {
       clearTimeout(schedulerTimer);
@@ -102,7 +102,7 @@ function scheduleNote() {
 
 // Scheduler loop
 function scheduler() {
-  if (!isRunning || isPaused) return;
+  if (!isMetronomePlaying || isPaused) return;
   while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
     scheduleNote();
   }
@@ -111,14 +111,17 @@ function scheduler() {
 
 // --- public functions ---
 export function startMetronome(newBpm = 120) {
-  if (isRunning) return;
+  if (isMetronomePlaying) {
+    console.warn("⚠️ Metronome already playing — start skipped");
+    return;
+  }
   if (!audioCtx)
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
   bpm = Math.max(40, Math.min(240, newBpm)); // clamp to reasonable range for now
   currentBeat = 0;
   nextNoteTime = audioCtx.currentTime + 0.1;
-  isRunning = true;
+  isMetronomePlaying = true;
   isPaused = false;
   scheduler();
   console.log(`Metronome started at ${bpm} BPM`);
@@ -175,10 +178,15 @@ export function performCountIn(nextBpm = 120, tempoSynced = true) {
 }
 
 export function stopMetronome() {
-  isRunning = false;
+  isMetronomePlaying = false;
   if (schedulerTimer) clearTimeout(schedulerTimer);
   schedulerTimer = null;
   console.log("Metronome stopped");
+}
+
+export function resetPlaybackFlag() {
+  // Neccessary to handle restarting the metronome in new modules
+  isMetronomePlaying = false;
 }
 
 // --- beats-per-bar config
@@ -196,7 +204,7 @@ export function getBpm() {
 
 // --- Pause/Resume control ---
 export function pauseMetronome() {
-  if (!isRunning || isPaused) return;
+  if (!isMetronomePlaying || isPaused) return;
   isPaused = true;
 
   // Stop scheduling new beats but let current one finish
@@ -222,7 +230,7 @@ export function resumeMetronome() {
 }
 // --- Cycle completion handling ---
 export function requestEndOfCycle(callback) {
-  if (!isRunning || endOfCycleRequested) return;
+  if (!isMetronomePlaying || endOfCycleRequested) return;
 
   // Calculate the target bar to stop after finishing this one
   const currentBar = Math.floor(currentBeat / beatsPerBar);

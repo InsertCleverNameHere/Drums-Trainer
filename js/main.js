@@ -45,6 +45,7 @@ initSessionEngine({
     getBpm: metronome.getBpm,
     requestEndOfCycle: metronome.requestEndOfCycle,
     performCountIn: metronome.performCountIn,
+    resetPlaybackFlag: metronome.resetPlaybackFlag,
   },
   ui: {
     startBtn,
@@ -81,11 +82,6 @@ initUI({
   getBpm: metronome.getBpm,
   requestEndOfCycle: metronome.requestEndOfCycle,
   performCountIn: metronome.performCountIn,
-});
-
-// === Event Listeners ===
-startBtn.addEventListener("click", () => {
-  startSession();
 });
 
 // === Version Log ===

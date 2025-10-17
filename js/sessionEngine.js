@@ -25,7 +25,7 @@ export function initSessionEngine(deps) {
 
   // Session state flags
   flags = {
-    isRunning: false,
+    sessionActive: false,
     isPaused: false,
     isCountingIn: false,
     isFinishingBar: false,
@@ -67,7 +67,7 @@ export function initSessionEngine(deps) {
 
 // === Public API ===
 export function startSession() {
-  if (flags.isRunning) {
+  if (flags.sessionActive) {
     // ⏹️ Stop session if already running
     if (flags.isCountingIn || flags.isFinishingBar) {
       console.warn("⏳ Cannot stop during countdown or finishing bar");
@@ -200,11 +200,30 @@ export function pauseSession() {
 }
 
 export function nextCycle() {
-  // Skips current cycle and starts next
+  if (!flags.sessionActive) return;
+
+  if (flags.isCountingIn || flags.isFinishingBar) {
+    console.warn("⏭️ Cannot skip during countdown or finishing bar");
+    return;
+  }
+
+  console.log("⏭️ Skipping to next cycle");
+
+  metronome.pauseMetronome();
+  metronome.resetPlaybackFlag(); // ✅ allows clean restart
+  clearInterval(timers.activeTimer);
+  timers.activeTimer = null;
+
+  // Reset pause state so next cycle starts clean
+  flags.isPaused = false;
+  ui.pauseBtn.textContent = "Pause"; // Match original behavior
+
+  runCycle(); // start next cycle directly
+  // updateButtonStates(); // optional, once implemented
 }
 
 export function stopSession(message = "") {
-  flags.isRunning = false;
+  flags.sessionActive = false;
   flags.isPaused = false;
   flags.isCountingIn = false;
   flags.isFinishingBar = false;
@@ -283,8 +302,10 @@ function runCycle() {
     durationUnit === "minutes" ? durationValue * 60 : durationValue;
 
   const startAfterCountIn = () => {
-    metronome.startMetronome(bpm);
-    ui.startBtn.textContent = "Stop";
+    metronome.startMetronome(bpm); // ✅ now allowed to start again
+    flags.sessionActive = true;
+
+    ui.startBtn.textContent = "Stop"; // Update button text to "Stop" in anticipation of stopping after the countdown
 
     const effectiveBpm =
       typeof metronome.getBpm === "function" ? metronome.getBpm() : bpm;

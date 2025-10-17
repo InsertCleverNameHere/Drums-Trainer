@@ -81,7 +81,7 @@ export function initUI(deps) {
     );
   }
 
-  let isRunning = false;
+  let sessionActive = false;
   let isFinishingBar = false; // True only while letting bar finish
   let isCountingIn = false; // True while counting down
 
@@ -117,22 +117,7 @@ export function initUI(deps) {
   };
 
   nextBtn.onclick = () => {
-    if (!isRunning) return;
-
-    if (isCountingIn) {
-      console.warn("⏳ Cannot skip during countdown");
-      return;
-    }
-
-    // Stop current cycle immediately
-    stopMetronomeFn();
-    clearInterval(activeTimer);
-
-    // If paused, resume state so next cycle starts clean
-    isPaused = false;
-    pauseBtn.textContent = "Pause"; // Ensure button reflects correct state on starting a new cycle
-
-    startSession(); // ✅ triggers runCycle internally
+    sessionEngine.nextCycle();
   };
 
   // HOTKEYS LOGIC BELOW
@@ -210,8 +195,8 @@ export function initUI(deps) {
     }
   });
 
-  // expose a small API to check running state if needed later
+  // expose a small API to check session state if needed later
   return {
-    isRunning: () => isRunning,
+    sessionActive: () => sessionActive,
   };
 }
