@@ -92,20 +92,7 @@ export function initUI(deps) {
   let pausedRemaining = 0;
   let remaining = 0;
 
-  function randomizeGroove() {
-    const grooves = groovesEl.value
-      .split("\n")
-      .map((g) => g.trim())
-      .filter(Boolean);
-    const bpmMin = parseInt(bpmMinEl.value);
-    const bpmMax = parseInt(bpmMaxEl.value);
-    // use simple random BPM logic (keeps multiples-of-5 behavior from earlier)
-    const randomBpm =
-      Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
-    const randomGroove = grooves[Math.floor(Math.random() * grooves.length)];
-    return { bpm: randomBpm, groove: randomGroove };
-  }
-
+  // Sets the finishing bar state and updates the UI accordingly
   function setFinishingBar(flag) {
     isFinishingBar = Boolean(flag);
     // show/hide badge
@@ -170,7 +157,13 @@ export function initUI(deps) {
       return;
     }
 
-    const { bpm, groove } = randomizeGroove();
+    const bpmMin = parseInt(bpmMinEl.value);
+    const bpmMax = parseInt(bpmMaxEl.value);
+    const { bpm, groove } = utils.randomizeGroove(
+      groovesEl.value,
+      bpmMin,
+      bpmMax
+    );
 
     // show groove immediately
     displayGroove.textContent = `Groove: ${groove}`;

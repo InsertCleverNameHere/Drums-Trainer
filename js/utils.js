@@ -14,17 +14,28 @@ export function convertToSeconds(value, unit) {
   return n;
 }
 
-// random BPM between min and max, integer step 1
-export function randomBpm(minBpm, maxBpm) {
-  minBpm = Math.round(Number(minBpm) || 30);
-  maxBpm = Math.round(Number(maxBpm) || 60);
-  if (minBpm > maxBpm) {
-    // swap to be defensive
-    const t = minBpm;
-    minBpm = maxBpm;
-    maxBpm = t;
-  }
-  return randomInt(minBpm, maxBpm);
+// Randomly selects a groove and BPM within the specified ranges
+export function randomizeGroove(groovesText, bpmMin, bpmMax) {
+  const grooves = groovesText
+    .split("\n")
+    .map((g) => g.trim())
+    .filter(Boolean);
+
+  bpmMin = parseInt(bpmMin);
+  bpmMax = parseInt(bpmMax);
+
+  if (isNaN(bpmMin)) bpmMin = 30;
+  if (isNaN(bpmMax)) bpmMax = 60;
+  if (bpmMin > bpmMax) [bpmMin, bpmMax] = [bpmMax, bpmMin];
+
+  const randomBpm =
+    Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
+  const randomGroove =
+    grooves.length > 0
+      ? grooves[Math.floor(Math.random() * grooves.length)]
+      : "No groove selected";
+
+  return { bpm: randomBpm, groove: randomGroove };
 }
 
 export function pickRandom(arr) {
