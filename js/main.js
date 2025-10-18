@@ -86,4 +86,19 @@ initUI({
 
 // === Version Log ===
 // console version log (update as you bump the version)
-console.info("Random Groove Trainer v1.1.0 — Cached Offline");
+// to be handled dynamically later
+const appVersion = "v1.1.0";
+const footerEl = document.getElementById("VersionNumber");
+
+console.info(`Random Groove Trainer ${appVersion} — Cached Offline`);
+
+if (footerEl) {
+  footerEl.textContent = `Random Groove Trainer ${appVersion}`;
+}
+
+setTimeout(() => {
+  if (footerEl) {
+    footerEl.style.opacity = "0";
+    footerEl.style.transition = "opacity 0.6s ease";
+  }
+}, 10000); // 10 seconds
