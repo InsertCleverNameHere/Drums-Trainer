@@ -89,35 +89,45 @@ initUI({
 // to be handled dynamically later
 const appVersion = "v1.1.0";
 const footerEl = document.getElementById("VersionNumber");
+const versionKey = "lastSeenVersion";
+const colorKey = "versionColor";
+const messageKey = (status) =>
+  status.includes("Update") ? "updateMsgCount" : "cachedMsgCount";
 
+// Get stored values
+const storedVersion = localStorage.getItem(versionKey);
+const isNewVersion = storedVersion !== appVersion;
+let versionColor = localStorage.getItem(colorKey);
+
+// Update color and reset counters if version changed
+if (isNewVersion || !versionColor) {
+  versionColor = utils.generateColorFromVersion(appVersion);
+  localStorage.setItem(colorKey, versionColor);
+  localStorage.setItem(versionKey, appVersion);
+  localStorage.setItem("cachedMsgCount", "0");
+  localStorage.setItem("updateMsgCount", "0");
+}
+
+// update footer message according to cache state
 function updateFooterMessage(
   status = "✅ Cached Offline",
   showRefresh = false
 ) {
-  const fullMessage = `🎵 Random Groove Trainer ${appVersion} — ${status}`;
-  const key = status.includes("Update") ? "updateMsgCount" : "cachedMsgCount";
-  const versionKey = "lastSeenVersion";
-
-  const storedVersion = localStorage.getItem(versionKey);
-  const isNewVersion = storedVersion !== appVersion;
-
-  if (isNewVersion) {
-    localStorage.setItem(versionKey, appVersion);
-    localStorage.setItem(key, "0"); // reset count for new version
-  }
-
+  const key = messageKey(status);
   const shownCount = parseInt(localStorage.getItem(key)) || 0;
   const suppressMessage = shownCount >= 3;
 
-  // Always log version info
   console.info(`🎵 Random Groove Trainer ${appVersion} — ${status}`);
 
   if (!footerEl) return;
 
-  // Always show version, even if message is suppressed
-  footerEl.textContent = suppressMessage
-    ? `🎵 Random Groove Trainer ${appVersion}`
-    : fullMessage;
+  const fullText = suppressMessage
+    ? `🎵 Random Groove Trainer <span style="color:${versionColor}">${appVersion}</span>`
+    : `🎵 Random Groove Trainer — ${status} <span style="color:${versionColor}">${appVersion}</span>`;
+
+  footerEl.innerHTML = fullText;
+  footerEl.style.visibility = "visible";
+  footerEl.style.animation = "fadeIn 1s ease forwards";
 
   footerEl.style.opacity = "1";
   footerEl.style.transition = "opacity 0.6s ease";
@@ -134,7 +144,6 @@ function updateFooterMessage(
     footerEl.style.opacity = "0";
   }, 10000);
 
-  // Only increment count if message was shown
   if (!suppressMessage) {
     localStorage.setItem(key, shownCount + 1);
   }
