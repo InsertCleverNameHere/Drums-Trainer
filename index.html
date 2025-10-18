@@ -14,6 +14,33 @@
       instantly. Built-in metronome uses lightweight bundled javascript for
       accuracy.
     </p>
+<!-- Add this near the top of <body> -->
+<div id="tooltipTrigger" title="Help / Hotkeys">❔</div>
+<div id="tooltipDialog">
+  <div class="tooltip-content">
+    <h2>🎵 Random Groove Trainer</h2>
+    <p>This app helps you practice groove transitions by randomly selecting a BPM and groove name. You set a BPM range, enter groove names, and choose session settings. The built-in metronome guides you through each cycle.</p>
+
+    <p><strong>How to use:</strong></p>
+    <ul>
+      <li>Set your desired BPM range</li>
+      <li>Enter groove names (one per line)</li>
+      <li>Choose session duration or cycle count</li>
+      <li>Click <strong>Start</strong> or press <strong>Space</strong> to begin</li>
+    </ul>
+
+    <p><strong>Hotkeys:</strong></p>
+    <ul>
+      <li>H = Show this help</li>
+      <li>⎵ Space = ▶️ Start / ⏹️ Stop</li>
+      <li>P = ⏸️ Pause / ▶️ Resume</li>
+      <li>N = ⏭️ Next Groove</li>
+      <li>⬆️ / ⬇️ = Adjust BPM (±5)</li>
+      <li>Shift + ⬆️ / ⬇️ = Fine Tune (±1)</li>
+      <li>← / → = Switch Min/Max</li>
+    </ul>
+  </div>
+</div>
 
     <label>BPM range (min / max)</label>
     <div class="row">
@@ -159,20 +186,7 @@ Funk
   <div id="countdownBadge" class="countdown-badge"></div>
   <div id="beat-indicator-container"></div>
 </div>
-<footer id="shortcutHints">
-    <div class="footer-hotkeys">
-      🎵<strong>Keyboard Hotkeys:</strong><br />
-  ⎵ Space = ▶️ Start / ⏹️ Stop &nbsp;&nbsp;
-  P = ⏸️ Pause / ▶️ Resume &nbsp;•&nbsp;
-  N = ⏭️ Next Groove &nbsp;•&nbsp;
-    </div>
-    <div class="footer-hotkeys advanced">
-      ⚙️<strong>Advanced Hotkeys:</strong><br />
-       ⬆️ / ⬇️ = Adjust BPM (±5) •
-      ⇧(Shift) + ⬆️ / ⬇️ = Fine Tune (±1) •
-       ← / → = 🎚️ Switch Min/Max
-    </div>
-</footer>
+<footer id="VersionNumber">Add versioning here later</footer>
 
     <!-- JS -->
     <script type="module" src="./js/main.js"></script>
