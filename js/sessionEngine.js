@@ -281,6 +281,16 @@ export function stopSession(message = "") {
 
 // Starts a new cycle with randomized groove and BPM, handles count-in and timers
 function runCycle() {
+  // Check the toggle status at the start of the cycle
+  const checkbox = document.getElementById("tempoSyncedToggle");
+  if (checkbox) {
+    sessionConfig.tempoSynced = checkbox.checked;
+    localStorage.setItem(
+      "tempoSyncedCountIn",
+      sessionConfig.tempoSynced ? "true" : "false"
+    );
+  }
+
   const mode = ui.sessionModeEl.value;
   const cyclesLimit = parseInt(ui.totalCyclesEl.value);
 
