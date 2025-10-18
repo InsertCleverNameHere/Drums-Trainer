@@ -134,7 +134,7 @@ button {
   transition: all 0.15s ease;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
 }
-/* finishing badge (plain text) */
+/* finishing badge (plain text) — shown during final bar of session */
 .finishing-badge {
   display: none;
   color: #8a6d00;
@@ -188,6 +188,8 @@ button {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background-color: #e0e0e0;
+  border: 1px solid #ccc;
 }
 
 .fade-in {

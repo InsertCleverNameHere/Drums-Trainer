@@ -11,6 +11,7 @@ function ensureContainer(
   const container = document.getElementById(containerId);
   if (!container) return null;
 
+  // Rebuild beat dots if the number doesn't match current beatsPerBar
   if (container.childElementCount !== beatsPerBar) {
     container.innerHTML = "";
     for (let i = 0; i < beatsPerBar; i++) {

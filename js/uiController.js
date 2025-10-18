@@ -2,7 +2,8 @@
 // Depends on metronomeCore functions passed in at init.
 
 import * as utils from "./utils.js";
-import * as visuals from "./visuals.js";
+import * as sessionEngine from "./sessionEngine.js";
+import { startSession } from "./sessionEngine.js";
 
 let startMetronomeFn,
   stopMetronomeFn,
@@ -79,368 +80,20 @@ export function initUI(deps) {
     );
   }
 
-  let activeTimer = null;
-  let sessionTimer = null; // legacy / reserved
-  let sessionInterval = null; // per-second session countdown interval
-  let visualCountdownTimer = null; // timer for visual countdown
-  let sessionRemaining = 0; // seconds remaining for total session time
-  let sessionEnding = false; // true when total-session time expired and we're waiting for finishing bar
-  let cyclesDone = 0;
-  let isRunning = false;
-  let isFinishingBar = false; // True only while letting bar finish
-  let isCountingIn = false; // True while counting down
-  let isPaused = false;
-  let pausedRemaining = 0;
-  let remaining = 0;
+  // Wire up session start button
+  startBtn.onclick = () => startSession();
 
-  // Sets the finishing bar state and updates the UI accordingly
-  function setFinishingBar(flag) {
-    isFinishingBar = Boolean(flag);
-    // show/hide badge
-    if (finishingBadgeEl)
-      finishingBadgeEl.classList.toggle("visible", isFinishingBar);
-
-    if (isFinishingBar) {
-      startBtn.textContent = "Stop"; // 🔁 show "Stop" while finishing
-      startBtn.disabled = true;
-      pauseBtn.disabled = true;
-    } else {
-      startBtn.textContent = "Start"; // restore label when finishing ends
-      startBtn.disabled = false;
-      pauseBtn.disabled = true; // keep pause disabled until next cycle
-    }
-  }
-
-  function showCountdownVisual(step) {
-    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
-      step,
-      fadeIn: true,
-    });
-  }
-
-  function completeCycle() {
-    cyclesDone++;
-    cyclesDoneEl.textContent = cyclesDone;
-
-    // Check session limits AFTER incrementing
-    const mode = sessionModeEl.value;
-    const cyclesLimit = parseInt(totalCyclesEl.value);
-    if (mode === "cycles" && cyclesDone >= cyclesLimit) {
-      stopSession("✅ Session complete (cycles limit reached)");
-      startBtn.textContent = "Start";
-      startBtn.disabled = false;
-      pauseBtn.disabled = true;
-      return;
-    }
-
-    setFinishingBar(false);
-    runCycle(); // next cycle
-  }
-
-  function runCycle() {
-    const mode = sessionModeEl.value;
-    const cyclesLimit = parseInt(totalCyclesEl.value);
-
-    // ✅ Check session limits BEFORE doing anything
-    if (mode === "cycles" && cyclesDone >= cyclesLimit) {
-      stopSession("✅ Session complete (cycles limit reached)");
-      startBtn.textContent = "Start"; // 🔁 restore label
-      startBtn.disabled = false; // re-enable button
-      pauseBtn.disabled = true; // keep pause disabled
-      return;
-    }
-    if (mode === "time" && sessionEnding) {
-      stopSession("✅ Session complete (time limit reached)");
-      return;
-    }
-
-    const bpmMin = parseInt(bpmMinEl.value);
-    const bpmMax = parseInt(bpmMaxEl.value);
-    const { bpm, groove } = utils.randomizeGroove(
-      groovesEl.value,
-      bpmMin,
-      bpmMax
-    );
-
-    // show groove immediately
-    displayGroove.textContent = `Groove: ${groove}`;
-
-    const durationValue = parseInt(cycleDurationEl.value);
-    const durationUnit = cycleUnitEl.value;
-    remaining = durationUnit === "minutes" ? durationValue * 60 : durationValue;
-
-    // If a performCountIn function is available, run it first using the next
-    // cycle's BPM and the tempoSynced preference. Otherwise start immediately.
-    const startAfterCountIn = () => {
-      startMetronomeFn(bpm);
-      startBtn.textContent = "Stop"; // show "Stop" as soon as metronome starts
-
-      // read effective BPM that metronomeCore is actually using (post-clamp)
-      const effectiveBpm = typeof getBpmFn === "function" ? getBpmFn() : bpm;
-      displayBpm.textContent = `BPM: ${effectiveBpm}`;
-
-      // Start countdown only after metronome starts
-      countdownEl.textContent = remaining;
-      clearInterval(activeTimer);
-
-      activeTimer = setInterval(() => {
-        if (isPaused) return;
-        remaining--;
-        countdownEl.textContent = remaining;
-
-        if (remaining <= 0) {
-          clearInterval(activeTimer);
-          setFinishingBar(true);
-
-          if (typeof requestEndOfCycleFn === "function") {
-            requestEndOfCycleFn(() => {
-              completeCycle();
-            });
-          } else {
-            stopMetronomeFn();
-            completeCycle();
-          }
-        }
-      }, 1000);
-    };
-
-    // Clear any previous visual countdown
-    if (visualCountdownTimer) {
-      clearInterval(visualCountdownTimer);
-      visualCountdownTimer = null;
-    }
-
-    // Visual countdown (minimal)
-    let step = 3;
-    const interval = tempoSynced ? 60000 / bpm : 1000;
-    // setup to disable buttons while counting in
-    isCountingIn = true;
-    pauseBtn.disabled = true;
-    startBtn.disabled = true;
-    nextBtn.disabled = true;
-    // Show first step immediately
-    showCountdownVisual(step--);
-
-    visualCountdownTimer = setInterval(() => {
-      if (step === 0) {
-        clearInterval(visualCountdownTimer);
-        visualCountdownTimer = null;
-
-        isCountingIn = false;
-        pauseBtn.disabled = false;
-        startBtn.disabled = false;
-        nextBtn.disabled = false;
-
-        visuals.updateCountdownBadge(
-          document.getElementById("countdownBadge"),
-          {
-            step: "",
-            fadeOut: true,
-          }
-        );
-        return;
-      }
-
-      showCountdownVisual(step--);
-    }, interval);
-
-    if (typeof performCountInFn === "function") {
-      performCountInFn(bpm, tempoSynced)
-        .then(startAfterCountIn)
-        .catch((err) => {
-          console.error("Count-in failed:", err);
-          startAfterCountIn();
-        });
-    } else {
-      startAfterCountIn();
-    }
-  }
-
-  function stopSession(message) {
-    isRunning = false;
-    stopMetronomeFn();
-    clearInterval(activeTimer);
-    clearTimeout(sessionTimer);
-    if (sessionInterval) clearInterval(sessionInterval);
-    sessionInterval = null;
-    sessionRemaining = 0;
-    sessionEnding = false;
-    cyclesDone = 0;
-    setFinishingBar(false);
-    startBtn.disabled = true;
-    nextBtn.disabled = true;
-    console.log(message || "Session stopped");
-    // safeguard for visual countdown
-    if (visualCountdownTimer) {
-      clearInterval(visualCountdownTimer);
-      visualCountdownTimer = null;
-    }
-    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
-      step: "",
-    });
-
-    // Restore Start button state
-    startBtn.textContent = "Start";
-    startBtn.disabled = false;
-    pauseBtn.disabled = true;
-  }
-
-  startBtn.onclick = () => {
-    if (isRunning) {
-      // ⏹️ Stop
-      if (isCountingIn || isFinishingBar) {
-        console.warn("⏳ Cannot stop during countdown or finishing bar");
-        return;
-      }
-
-      stopSession("🛑 Stopped by user");
-      startBtn.textContent = "Start";
-      startBtn.disabled = false;
-      return;
-    }
-    // ▶️ Start
-    isRunning = true;
-    isPaused = false;
-    cyclesDone = 0;
-    sessionEnding = false;
-
-    // Disable all controls during count-in
-    startBtn.disabled = true;
-    pauseBtn.disabled = true; // stays disabled until metronome starts
-    nextBtn.disabled = true;
-
-    runCycle(); // handles re-enabling buttons after count-in
-
-    const mode = sessionModeEl.value;
-    if (mode === "time") {
-      const totalValue = parseInt(totalTimeEl.value);
-      const totalUnit = totalTimeUnitEl.value;
-      let totalSeconds = utils.convertToSeconds(totalValue, totalUnit);
-
-      // use a visible per-second countdown for the total session time and pause it when user pauses
-      sessionRemaining = totalSeconds;
-      if (sessionCountdownEl)
-        sessionCountdownEl.textContent = String(sessionRemaining);
-
-      // clear any existing interval
-      if (sessionInterval) clearInterval(sessionInterval);
-
-      sessionInterval = setInterval(() => {
-        if (isPaused || isCountingIn) {
-          console.log("⏳ Session tick skipped — counting in or paused");
-          return; // ⏸️ Skip while paused or counting in
-        }
-        sessionRemaining--;
-        if (sessionCountdownEl)
-          sessionCountdownEl.textContent = String(sessionRemaining);
-
-        if (sessionRemaining <= 0) {
-          // stop the interval to avoid repeats
-          clearInterval(sessionInterval);
-          sessionInterval = null;
-
-          // mark that we're finishing the bar so Pause is disabled
-          setFinishingBar(true);
-          // indicate that the session ended and we're waiting for the finishing bar
-          sessionEnding = true;
-
-          if (typeof requestEndOfCycleFn === "function") {
-            console.log(
-              "🟡 Session time reached — requesting end of current bar..."
-            );
-            requestEndOfCycleFn(() => {
-              console.log(
-                "✅ Final cycle finished cleanly — stopping session (time limit reached)."
-              );
-              setFinishingBar(false);
-              sessionEnding = false;
-              stopSession("✅ Session complete (time limit reached)");
-              startBtn.textContent = "Start";
-              startBtn.disabled = false;
-            });
-          } else {
-            console.log(
-              "🔴 requestEndOfCycle not available — stopping immediately."
-            );
-            setFinishingBar(false);
-            sessionEnding = false;
-            stopSession("✅ Session complete (time limit reached)");
-            startBtn.textContent = "Start";
-            startBtn.disabled = false;
-          }
-        }
-      }, 1000);
-    }
-  };
-
+  // Wire up pause and next cycle buttons
   pauseBtn.onclick = () => {
-    if (isCountingIn || isFinishingBar) {
-      console.warn("⏳ Cannot pause during countdown or finishing bar");
-      return;
-    }
-
-    if (isPaused) {
-      // ▶️ Resume
-      isPaused = false;
-      resumeMetronomeFn();
-
-      // Resume countdown
-      activeTimer = setInterval(() => {
-        if (isPaused) return;
-        remaining--;
-        countdownEl.textContent = remaining;
-        if (remaining <= 0) {
-          clearInterval(activeTimer);
-          setFinishingBar(true);
-          if (typeof requestEndOfCycleFn === "function") {
-            requestEndOfCycleFn(() => {
-              console.log("✅ Cycle finished cleanly — moving to next.");
-              completeCycle();
-            });
-          } else {
-            stopMetronomeFn();
-            completeCycle();
-          }
-        }
-      }, 1000);
-
-      pauseBtn.textContent = "Pause";
-      console.log("▶️ Resumed metronome");
-    } else {
-      // ⏸️ Pause
-      isPaused = true;
-      pauseMetronomeFn();
-
-      // Stop the countdown timer
-      clearInterval(activeTimer);
-      pausedRemaining = remaining; // remember where we left off
-
-      pauseBtn.textContent = "Resume";
-      console.log("⏸️ Paused metronome at " + pausedRemaining + "s remaining");
-    }
+    sessionEngine.pauseSession();
   };
 
   nextBtn.onclick = () => {
-    if (!isRunning) return;
-
-    if (isCountingIn) {
-      console.warn("⏳ Cannot skip during countdown");
-      return;
-    }
-
-    // Stop current cycle immediately
-    stopMetronomeFn();
-    clearInterval(activeTimer);
-
-    // If paused, resume state so next cycle starts clean
-    isPaused = false;
-    pauseBtn.textContent = "Pause"; // Ensure button reflects correct state on starting a new cycle
-
-    runCycle(); // start next cycle without counting this one
+    sessionEngine.nextCycle();
   };
 
   // HOTKEYS LOGIC BELOW
-  // --- Simple Keyboard hotkeys (layout-independent) ---
+  // --- Simple (Start, Pause, Next) Keyboard hotkeys (layout-independent)  ---
   document.addEventListener("keydown", (event) => {
     // Ignore keypresses when focused on text inputs, textareas, or contenteditable elements
     const active = document.activeElement;
@@ -456,7 +109,6 @@ export function initUI(deps) {
       case "Space": // Start/Stop
         event.preventDefault();
         if (!startBtn.disabled) startBtn.click();
-        else if (!startBtn.disabled) startBtn.click();
         break;
 
       case "KeyP": // Pause/Resume
@@ -469,7 +121,7 @@ export function initUI(deps) {
     }
   });
 
-  // --- Advanced Hotkeys: BPM adjustment (min/max) ---
+  // --- Advanced Hotkeys: BPM adjustment (min/max) (Arrow Keys) ---
   let adjustingTarget = "min"; // "min" or "max"
 
   document.addEventListener("keydown", (event) => {
@@ -514,8 +166,8 @@ export function initUI(deps) {
     }
   });
 
-  // expose a small API to check running state if needed later
+  // expose a small API to check session state if needed later
   return {
-    isRunning: () => isRunning,
+    sessionActive: () => sessionActive,
   };
 }

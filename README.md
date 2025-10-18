@@ -1,5 +1,9 @@
 Inspired by gamefying my practice sessions:
- a simple, lightweight html groove randomizer with a built in metronome to help you train using your grooves on different tempo ranges
+a simple, lightweight html groove randomizer with a built in metronome to help you train using your grooves on different tempo ranges
 
-  find it on
-   https://insertclevernamehere.github.io/Drums-Trainer/
+find it on
+https://insertclevernamehere.github.io/Drums-Trainer/
+
+## Credits
+
+Favicon icon sourced from [Tempo icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/tempo)
