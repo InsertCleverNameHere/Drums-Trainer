@@ -121,6 +121,9 @@ export function startSession() {
 
         setFinishingBar(true);
         flags.sessionEnding = true;
+        ui.startBtn.textContent = "Stop";
+        ui.startBtn.disabled = true;
+        ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
           console.log(
@@ -135,6 +138,7 @@ export function startSession() {
             stopSession("✅ Session complete (time limit reached)");
             ui.startBtn.textContent = "Start";
             ui.startBtn.disabled = false;
+            ui.pauseBtn.disabled = true;
           });
         } else {
           console.log(
@@ -145,6 +149,7 @@ export function startSession() {
           stopSession("✅ Session complete (time limit reached)");
           ui.startBtn.textContent = "Start";
           ui.startBtn.disabled = false;
+          ui.pauseBtn.disabled = true;
         }
       }
     }, 1000);
@@ -170,6 +175,9 @@ export function pauseSession() {
       if (flags.remaining <= 0) {
         clearInterval(timers.activeTimer);
         setFinishingBar(true);
+        ui.startBtn.textContent = "Stop";
+        ui.startBtn.disabled = true;
+        ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
           metronome.requestEndOfCycle(() => {
@@ -270,6 +278,8 @@ export function stopSession(message = "") {
 }
 
 // === Internal Helpers ===
+
+// Starts a new cycle with randomized groove and BPM, handles count-in and timers
 function runCycle() {
   const mode = ui.sessionModeEl.value;
   const cyclesLimit = parseInt(ui.totalCyclesEl.value);
@@ -322,6 +332,9 @@ function runCycle() {
       if (flags.remaining <= 0) {
         clearInterval(timers.activeTimer);
         setFinishingBar(true);
+        ui.startBtn.textContent = "Stop";
+        ui.startBtn.disabled = true;
+        ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
           metronome.requestEndOfCycle(() => {
@@ -382,6 +395,7 @@ function runCycle() {
   }
 }
 
+// Called after a cycle finishes — updates state and starts next if needed
 export function completeCycle() {
   setFinishingBar(false);
   flags.cyclesDone++;
@@ -409,23 +423,19 @@ export function completeCycle() {
   runCycle(); // Start next cycle
 }
 
+// Toggles the finishing bar badge and disables Next button during final bar
 function setFinishingBar(flag) {
   flags.isFinishingBar = Boolean(flag);
   if (ui.finishingBadgeEl)
     ui.finishingBadgeEl.classList.toggle("visible", flags.isFinishingBar);
+
+  if (ui.nextBtn) ui.nextBtn.disabled = flags.isFinishingBar; // 🔒 Disable Next button during finishing bar
 }
 
+// Updates countdown badge with current step (3, 2, 1)
 function showCountdownVisual(step) {
   visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
     step,
     fadeIn: true,
   });
-}
-
-function updateButtonStates() {
-  // Enables/disables buttons based on session state
-}
-
-function updateSessionCountdown() {
-  // Handles total session countdown logic
 }

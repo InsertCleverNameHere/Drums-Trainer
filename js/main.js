@@ -4,8 +4,8 @@ import { createVisualCallback } from "./visuals.js";
 import { initUI } from "./uiController.js";
 import * as utils from "./utils.js";
 import { initSessionEngine } from "./sessionEngine.js";
-import { startSession } from "./sessionEngine.js";
 
+// Grab all relevant DOM elements for UI and session control
 // === DOM Elements ===
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
@@ -27,13 +27,13 @@ const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
 
 // === Metronome Setup ===
-// register visuals (pass the getter so visuals can read beatsPerBar)
+// Register beat visualizer with metronome using beats-per-bar getter
 metronome.registerVisualCallback(
   createVisualCallback(metronome.getBeatsPerBar)
 );
 
 // === Session Engine Setup ===
-// Initialize session engine components correctly and cleanly
+// Wire up session engine with metronome and UI dependencies
 initSessionEngine({
   metronome: {
     startMetronome: metronome.startMetronome,
@@ -70,7 +70,7 @@ initSessionEngine({
 });
 
 // === UI Setup ===
-// init UI with metronome functions
+// Initialize UI interactions and hotkeys with metronome functions
 initUI({
   startMetronome: metronome.startMetronome,
   stopMetronome: metronome.stopMetronome,
@@ -86,4 +86,4 @@ initUI({
 
 // === Version Log ===
 // console version log (update as you bump the version)
-console.info("Random Groove Trainer v1.0.8 — Cached Offline");
+console.info("Random Groove Trainer v1.1.0 — Cached Offline");

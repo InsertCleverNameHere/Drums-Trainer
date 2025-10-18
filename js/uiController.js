@@ -2,7 +2,6 @@
 // Depends on metronomeCore functions passed in at init.
 
 import * as utils from "./utils.js";
-import * as visuals from "./visuals.js";
 import * as sessionEngine from "./sessionEngine.js";
 import { startSession } from "./sessionEngine.js";
 
@@ -81,37 +80,10 @@ export function initUI(deps) {
     );
   }
 
-  let sessionActive = false;
-  let isFinishingBar = false; // True only while letting bar finish
-  let isCountingIn = false; // True while counting down
-
-  // Sets the finishing bar state and updates the UI accordingly
-  function setFinishingBar(flag) {
-    isFinishingBar = Boolean(flag);
-    // show/hide badge
-    if (finishingBadgeEl)
-      finishingBadgeEl.classList.toggle("visible", isFinishingBar);
-
-    if (isFinishingBar) {
-      startBtn.textContent = "Stop"; // 🔁 show "Stop" while finishing
-      startBtn.disabled = true;
-      pauseBtn.disabled = true;
-    } else {
-      startBtn.textContent = "Start"; // restore label when finishing ends
-      startBtn.disabled = false;
-      pauseBtn.disabled = true; // keep pause disabled until next cycle
-    }
-  }
-
-  function showCountdownVisual(step) {
-    visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
-      step,
-      fadeIn: true,
-    });
-  }
-
+  // Wire up session start button
   startBtn.onclick = () => startSession();
 
+  // Wire up pause and next cycle buttons
   pauseBtn.onclick = () => {
     sessionEngine.pauseSession();
   };
@@ -121,7 +93,7 @@ export function initUI(deps) {
   };
 
   // HOTKEYS LOGIC BELOW
-  // --- Simple Keyboard hotkeys (layout-independent) ---
+  // --- Simple (Start, Pause, Next) Keyboard hotkeys (layout-independent)  ---
   document.addEventListener("keydown", (event) => {
     // Ignore keypresses when focused on text inputs, textareas, or contenteditable elements
     const active = document.activeElement;
@@ -137,7 +109,6 @@ export function initUI(deps) {
       case "Space": // Start/Stop
         event.preventDefault();
         if (!startBtn.disabled) startBtn.click();
-        else if (!startBtn.disabled) startBtn.click();
         break;
 
       case "KeyP": // Pause/Resume
@@ -150,7 +121,7 @@ export function initUI(deps) {
     }
   });
 
-  // --- Advanced Hotkeys: BPM adjustment (min/max) ---
+  // --- Advanced Hotkeys: BPM adjustment (min/max) (Arrow Keys) ---
   let adjustingTarget = "min"; // "min" or "max"
 
   document.addEventListener("keydown", (event) => {

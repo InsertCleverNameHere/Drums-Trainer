@@ -27,12 +27,12 @@ let onBeatVisual = () => {};
 let isPaused = false;
 let pauseTime = 0;
 
-// allow visuals to register their callback
+// Registers a visual callback to be triggered on each beat
 export function registerVisualCallback(cb) {
   if (typeof cb === "function") onBeatVisual = cb;
 }
 
-// core tick generator (plays short oscillator clicks)
+// Generates a short audio tick (accented or regular)
 function playTick(isAccent) {
   if (!audioCtx) return;
   const osc = audioCtx.createOscillator();
@@ -66,7 +66,7 @@ function scheduleNote() {
   const secondsPerBeat = 60.0 / bpm;
   nextNoteTime += secondsPerBeat;
 
-  // === NEW LOGIC: stop at end of bar if requested ===
+  // If end-of-cycle was requested, stop at next bar boundary and notify UI
   if (endOfCycleRequested && currentBeat % beatsPerBar === 0) {
     endOfCycleRequested = false;
     isMetronomePlaying = false;
@@ -100,7 +100,7 @@ function scheduleNote() {
   }
 }
 
-// Scheduler loop
+// Continuously schedules beats ahead of time while metronome is active
 function scheduler() {
   if (!isMetronomePlaying || isPaused) return;
   while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
@@ -110,6 +110,8 @@ function scheduler() {
 }
 
 // --- public functions ---
+// Starts the metronome with the given BPM
+
 export function startMetronome(newBpm = 120) {
   if (isMetronomePlaying) {
     console.warn("⚠️ Metronome already playing — start skipped");
@@ -177,6 +179,7 @@ export function performCountIn(nextBpm = 120, tempoSynced = true) {
   });
 }
 
+// Stops the metronome and clears scheduler
 export function stopMetronome() {
   isMetronomePlaying = false;
   if (schedulerTimer) clearTimeout(schedulerTimer);
@@ -185,7 +188,7 @@ export function stopMetronome() {
 }
 
 export function resetPlaybackFlag() {
-  // Neccessary to handle restarting the metronome in new modules
+  // Necessary to handle restarting the metronome in new modules
   isMetronomePlaying = false;
 }
 
@@ -233,6 +236,7 @@ export function requestEndOfCycle(callback) {
   if (!isMetronomePlaying || endOfCycleRequested) return;
 
   // Calculate the target bar to stop after finishing this one
+  // targetBarEnd is informational only; not used in scheduling logic for now
   const currentBar = Math.floor(currentBeat / beatsPerBar);
   targetBarEnd = currentBar + 1;
   endOfCycleRequested = true;

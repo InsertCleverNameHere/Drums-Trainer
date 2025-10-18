@@ -1,11 +1,12 @@
 // utils.js
 // Small helper functions used by the UI
 
+// Returns a random integer between min and max (inclusive)
 export function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// converts unit user chooses to seconds for internal logic
+// Converts unit user chooses (minutes or hours) to seconds for internal logic
 export function convertToSeconds(value, unit) {
   const n = parseInt(value);
   if (isNaN(n) || n <= 0) return 0;
@@ -43,6 +44,7 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
   return { bpm: randomBpm, groove: randomGroove };
 }
 
+// Picks a random element from an array (returns empty string if invalid)
 export function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
   return arr[Math.floor(Math.random() * arr.length)];
