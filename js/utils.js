@@ -1,5 +1,5 @@
 // utils.js
-// Small helper functions used by the UI
+// Small helper functions used by the UI and others
 
 // Returns a random integer between min and max (inclusive)
 export function randomInt(min, max) {

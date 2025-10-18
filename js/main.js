@@ -90,15 +90,49 @@ initUI({
 const appVersion = "v1.1.0";
 const footerEl = document.getElementById("VersionNumber");
 
-console.info(`Random Groove Trainer ${appVersion} — Cached Offline`);
+function updateFooterMessage(
+  status = "✅ Cached Offline",
+  showRefresh = false
+) {
+  const fullMessage = `🎵 Random Groove Trainer ${appVersion} — ${status}`;
+  console.info(fullMessage); // ✅ Log to console
 
-if (footerEl) {
-  footerEl.textContent = `Random Groove Trainer ${appVersion}`;
+  if (!footerEl) return;
+
+  footerEl.textContent = fullMessage;
+  footerEl.style.opacity = "1";
+  footerEl.style.transition = "opacity 0.6s ease";
+
+  if (showRefresh) {
+    const refreshBtn = document.createElement("button");
+    refreshBtn.textContent = "🔄 Update";
+    refreshBtn.style.marginLeft = "12px";
+    refreshBtn.onclick = () => location.reload(true);
+    footerEl.appendChild(refreshBtn);
+  }
+
+  setTimeout(() => {
+    footerEl.style.opacity = "0";
+  }, 10000);
 }
 
-setTimeout(() => {
-  if (footerEl) {
-    footerEl.style.opacity = "0";
-    footerEl.style.transition = "opacity 0.6s ease";
-  }
-}, 10000); // 10 seconds
+// Initial message
+updateFooterMessage();
+
+// Service worker update detection
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js").then((reg) => {
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed") {
+          if (navigator.serviceWorker.controller) {
+            updateFooterMessage("Update Available", true);
+          } else {
+            updateFooterMessage("Cached Offline");
+          }
+        }
+      });
+    });
+  });
+}
