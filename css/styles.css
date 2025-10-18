@@ -221,7 +221,7 @@ button:disabled {
   }
 }
 
-#shortcutHints {
+#VersionNumber {
   position: fixed;
   bottom: 10px;
   left: 50%;
@@ -238,12 +238,12 @@ button:disabled {
   opacity: 0.9;
 }
 
-#shortcutHints:hover {
+#VersionNumber:hover {
   opacity: 1;
 }
 
 @media (max-width: 600px) {
-  #shortcutHints {
+  #VersionNumber {
     font-size: 0.8rem;
     padding: 6px 10px;
   }
@@ -260,4 +260,69 @@ button:disabled {
 
 .bpm-flash {
   animation: bpmFlash 0.15s ease-in-out;
+}
+
+/* Tooltip trigger button */
+#tooltipTrigger {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 42px;
+  height: 42px;
+  background: #333;
+  color: #fff;
+  font-size: 1.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Tooltip dialog */
+#tooltipDialog {
+  position: fixed;
+  top: 60px;
+  right: 12px;
+  max-width: 300px;
+  background: #222;
+  color: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  z-index: 9999;
+}
+
+#tooltipDialog.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tooltip-content h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.tooltip-content ul {
+  padding-left: 18px;
+  margin: 8px 0 0;
+}
+
+.tooltip-content li {
+  margin-bottom: 4px;
+}
+
+/* Mobile-friendly */
+@media (max-width: 600px) {
+  #tooltipDialog {
+    max-width: 90%;
+    right: 5%;
+    top: 60px;
+  }
 }
