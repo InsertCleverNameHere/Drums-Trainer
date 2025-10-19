@@ -2,32 +2,54 @@
 const fs = require("fs");
 const { execSync } = require("child_process");
 
-const filePath = "./commits.json";
+const commitsPath = "./commits.json";
+const modePath = "./versioningMode.json";
 
-// Step 1: Read current commits.json
-const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
-const currentHash = data.latestHash;
-const currentVersion = data.version;
+// Step 1: Read current version and hash
+const { latestHash: currentHash, version: currentVersion } = JSON.parse(
+  fs.readFileSync(commitsPath, "utf8")
+);
+let mode = "patch"; // default fallback
+
+try {
+  mode = JSON.parse(fs.readFileSync(modePath, "utf8")).mode || "patch";
+} catch (err) {
+  console.warn("⚠️ Could not read versioningMode.json. Defaulting to 'patch'.");
+}
 
 // Step 2: Get latest Git commit hash
 const latestHash = execSync("git rev-parse HEAD").toString().trim();
 
-// Step 3: Compare hashes
-if (latestHash === currentHash) {
-  console.log("✅ No change in commit hash. Version remains:", currentVersion);
+// Step 3: Exit early if mode is 'none' or hash hasn't changed
+if (latestHash === currentHash || mode === "none") {
+  console.log("✅ No version bump. Mode:", mode);
   process.exit(0);
 }
 
-// Step 4: Bump patch version (vX.Y.Z → vX.Y.(Z+1))
-const versionParts = currentVersion.replace("v", "").split(".");
-versionParts[2] = parseInt(versionParts[2]) + 1;
-const newVersion = `v${versionParts.join(".")}`;
+// Step 4: Parse and bump version
+const [x, y, z] = currentVersion.replace("v", "").split(".").map(Number);
+let newVersion;
 
-// Step 5: Write updated data back to commits.json
-const updated = {
-  latestHash,
-  version: newVersion,
-};
+switch (mode) {
+  case "major":
+    newVersion = `v${x + 1}.0.0`;
+    break;
+  case "minor":
+    newVersion = `v${x}.${y + 1}.0`;
+    break;
+  case "patch":
+  default:
+    newVersion = `v${x}.${y}.${z + 1}`;
+    break;
+}
 
-fs.writeFileSync(filePath, JSON.stringify(updated, null, 2));
-console.log(`🔄 Commit hash changed. Version bumped to ${newVersion}`);
+// Step 5: Write updated version
+fs.writeFileSync(
+  commitsPath,
+  JSON.stringify({ latestHash, version: newVersion }, null, 2)
+);
+console.log(`🔄 Version bumped to ${newVersion} using mode '${mode}'`);
+
+// ✅ Step 6: Reset mode to 'patch'
+fs.writeFileSync(modePath, JSON.stringify({ mode: "patch" }, null, 2));
+console.log("🔁 Reset versioning mode to 'patch'");
