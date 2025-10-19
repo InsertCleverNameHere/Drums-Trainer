@@ -327,10 +327,6 @@ button:disabled {
   }
 }
 
-#VersionNumber {
-  visibility: hidden;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -340,8 +336,37 @@ button:disabled {
   }
 }
 
-#VersionNumber {
-  visibility: hidden;
+.update-button {
+  font-size: 1.15em;
+  padding: 4px 10px;
+  margin-left: 10px;
+  border: 2px solid currentColor;
+  background-color: transparent;
+  color: inherit;
+  font-weight: bold;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  vertical-align: middle;
+}
+
+.update-button:hover {
+  color: #ff4d00;
+  border-color: #ff4d00;
+  transform: scale(1.05);
+}
+
+.footer-hidden {
   opacity: 0;
-  animation: fadeIn 1s ease forwards;
+  visibility: hidden;
+  display: none;
+  transition: opacity 0.6s ease;
+}
+
+.footer-visible {
+  opacity: 1;
+  visibility: visible;
+  display: block;
+  transition: opacity 0.6s ease;
 }

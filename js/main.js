@@ -5,6 +5,10 @@ import { initUI } from "./uiController.js";
 import * as utils from "./utils.js";
 import { initSessionEngine } from "./sessionEngine.js";
 
+// set early to fetch from commits.json
+let appVersion;
+let versionColor;
+
 // Grab all relevant DOM elements for UI and session control
 // === DOM Elements ===
 const startBtn = document.getElementById("startBtn");
@@ -87,26 +91,60 @@ initUI({
 // === Version Log ===
 // console version log (update as you bump the version)
 // to be handled dynamically later
-const appVersion = "v1.1.0";
+// const appVersion = "v1.1.0"; legacy hardcoding, now handled dynamically via commits.json
 const footerEl = document.getElementById("VersionNumber");
 const versionKey = "lastSeenVersion";
 const colorKey = "versionColor";
 const messageKey = (status) =>
   status.includes("Update") ? "updateMsgCount" : "cachedMsgCount";
 
-// Get stored values
-const storedVersion = localStorage.getItem(versionKey);
-const isNewVersion = storedVersion !== appVersion;
-let versionColor = localStorage.getItem(colorKey);
+const hashKey = "lastSeenHash";
+
+fetch("./commits.json")
+  .then((res) => res.json())
+  .then(({ latestHash, version }) => {
+    appVersion = version;
+
+    const storedVersion = localStorage.getItem(versionKey);
+    const isNewVersion = storedVersion !== appVersion;
+    versionColor = localStorage.getItem(colorKey);
+
+    if (isNewVersion || !versionColor) {
+      versionColor = utils.generateColorFromVersion(appVersion);
+      localStorage.setItem(colorKey, versionColor);
+      localStorage.setItem(versionKey, appVersion);
+      localStorage.setItem("cachedMsgCount", "0");
+      localStorage.setItem("updateMsgCount", "0");
+    }
+
+    const lastSeenHash = localStorage.getItem(hashKey);
+    const hashChanged = latestHash !== lastSeenHash;
+
+    if (hashChanged) {
+      localStorage.setItem(hashKey, latestHash);
+      updateFooterMessage("Update Available", true);
+    } else {
+      updateFooterMessage();
+    }
+  })
+  .catch((err) => {
+    console.warn("Could not load commits.json:", err);
+    updateFooterMessage(); // fallback
+  });
+
+// Get stored values (legacy)
+//const storedVersion = localStorage.getItem(versionKey);
+//const isNewVersion = storedVersion !== appVersion;
+//let versionColor = localStorage.getItem(colorKey);
 
 // Update color and reset counters if version changed
-if (isNewVersion || !versionColor) {
-  versionColor = utils.generateColorFromVersion(appVersion);
-  localStorage.setItem(colorKey, versionColor);
-  localStorage.setItem(versionKey, appVersion);
-  localStorage.setItem("cachedMsgCount", "0");
-  localStorage.setItem("updateMsgCount", "0");
-}
+///if (isNewVersion || !versionColor) {
+//versionColor = utils.generateColorFromVersion(appVersion);
+//localStorage.setItem(colorKey, versionColor);
+//localStorage.setItem(versionKey, appVersion);
+//localStorage.setItem("cachedMsgCount", "0");
+//localStorage.setItem("updateMsgCount", "0");
+//}
 
 // update footer message according to cache state
 function updateFooterMessage(
@@ -126,31 +164,54 @@ function updateFooterMessage(
     : `🎵 Random Groove Trainer — ${status} <span style="color:${versionColor}">${appVersion}</span>`;
 
   footerEl.innerHTML = fullText;
-  footerEl.style.visibility = "visible";
-  footerEl.style.animation = "fadeIn 1s ease forwards";
-
-  footerEl.style.opacity = "1";
-  footerEl.style.transition = "opacity 0.6s ease";
+  footerEl.classList.remove("footer-hidden");
+  footerEl.classList.add("footer-visible");
 
   if (!suppressMessage && showRefresh) {
     const refreshBtn = document.createElement("button");
     refreshBtn.textContent = "🔄 Update";
     refreshBtn.style.marginLeft = "12px";
+    refreshBtn.style.fontSize = "1em"; // slightly larger than footer text
+    refreshBtn.style.padding = "2px 6px";
+    refreshBtn.style.border = "none";
+    refreshBtn.style.background = "transparent";
+    refreshBtn.style.color = versionColor;
+    refreshBtn.style.cursor = "pointer";
+    refreshBtn.style.textDecoration = "underline";
+    refreshBtn.style.verticalAlign = "baseline";
+    refreshBtn.style.marginLeft = "8px";
+    refreshBtn.style.fontWeight = "bold";
+    refreshBtn.style.transition = "color 0.3s ease";
+
+    // Use a hover color that’s distinct from your palette
+    const hoverAccent = "#ff4d00"; // bright orange-red, not in version color list
+
+    refreshBtn.onmouseover = () => {
+      refreshBtn.style.color = hoverAccent;
+    };
+    refreshBtn.onmouseout = () => {
+      refreshBtn.style.color = versionColor;
+    };
+
     refreshBtn.onclick = () => location.reload(true);
     footerEl.appendChild(refreshBtn);
   }
 
   setTimeout(() => {
     footerEl.style.opacity = "0";
-  }, 10000);
+    footerEl.style.transition = "opacity 0.6s ease";
+
+    // Wait for fade to finish before hiding
+    setTimeout(() => {
+      footerEl.classList.remove("footer-visible");
+      footerEl.classList.add("footer-hidden");
+    }, 600); // match transition duration
+  }, 5000);
 
   if (!suppressMessage) {
     localStorage.setItem(key, shownCount + 1);
   }
 }
-
-// Initial message
-updateFooterMessage();
 
 // Service worker update detection
 if ("serviceWorker" in navigator) {
