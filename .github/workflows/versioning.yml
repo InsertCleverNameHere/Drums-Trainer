@@ -1,0 +1,30 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Run version bump script
+        run: node bumpVersion.js
+
+      - name: Commit updated version
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add commits.json
+          git commit -m "Auto-bumped version via workflow" || echo "No changes to commit"
+          git push
