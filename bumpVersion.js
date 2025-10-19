@@ -1,4 +1,3 @@
-// bumpVersion.js
 const fs = require("fs");
 const { execSync } = require("child_process");
 
@@ -20,13 +19,17 @@ try {
 // Step 2: Get latest Git commit hash
 const latestHash = execSync("git rev-parse HEAD").toString().trim();
 
-// Step 3: Exit early if mode is 'none' or hash hasn't changed
+// ✅ Step 3: Always reset mode to 'patch'
+fs.writeFileSync(modePath, JSON.stringify({ mode: "patch" }, null, 2));
+console.log("🔁 Reset versioning mode to 'patch'");
+
+// Step 4: Exit early if mode is 'none' or hash hasn't changed
 if (latestHash === currentHash || mode === "none") {
   console.log("✅ No version bump. Mode:", mode);
   process.exit(0);
 }
 
-// Step 4: Parse and bump version
+// Step 5: Parse and bump version
 const [x, y, z] = currentVersion.replace("v", "").split(".").map(Number);
 let newVersion;
 
@@ -43,7 +46,7 @@ switch (mode) {
     break;
 }
 
-// Step 5: Write updated version
+// Step 6: Write updated version
 fs.writeFileSync(
   commitsPath,
   JSON.stringify({ latestHash, version: newVersion }, null, 2)
