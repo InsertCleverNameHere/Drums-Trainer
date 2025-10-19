@@ -69,20 +69,17 @@
 
     <label>Groove names (one per line)</label>
     <textarea
-      id="grooves"
-      rows="10"
-      placeholder="e.g. Rock \n Funk \n واحدة ونص \n مقسوم \n وحدة كبيرة \n ملفوف"
-    >
-Rock
+  id="grooves"
+  rows="10"
+  placeholder="e.g. Rock \n Funk \n واحدة ونص \n مقسوم \n وحدة كبيرة \n ملفوف"
+>Rock
 Funk
 واحدة ونص
 مقسوم
 وحدة كبيرة
-ملفوف
-  </textarea
-    >
+ملفوف</textarea>
 
-    <!-- NEW: Beats per bar input -->
+
     <label>Beats per bar</label>
     <input
       id="beatsPerBar"
@@ -157,7 +154,6 @@ Funk
       <button id="startBtn">Start</button>
       <button id="pauseBtn" disabled>Pause</button>
       <button id="nextBtn" disabled>Next</button>
-      <!-- Tempo-synced count-in toggle: unchecked = Fixed (1s steps); checked = Tempo-synced -->
       <label class="toggle" style="margin-left: 12px">
         <input id="tempoSyncedToggle" type="checkbox" />
         <span id="tempoSyncedLabel">Tempo-synced Count-in</span>
@@ -185,7 +181,7 @@ Funk
   <div id="countdownBadge" class="countdown-badge"></div>
   <div id="beat-indicator-container"></div>
 </div>
-<footer id="VersionNumber" class="footer-hidden"></footer>
+<footer id="VersionNumber"></footer>
 
     <!-- JS -->
     <script type="module" src="./js/main.js"></script>

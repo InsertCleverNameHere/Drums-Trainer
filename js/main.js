@@ -164,14 +164,25 @@ function updateFooterMessage(
     : `🎵 Random Groove Trainer — ${status} <span style="color:${versionColor}">${appVersion}</span>`;
 
   footerEl.innerHTML = fullText;
-  footerEl.classList.remove("footer-hidden");
-  footerEl.classList.add("footer-visible");
 
+  // Step 1: Set initial hidden state
+  footerEl.style.opacity = "0";
+  footerEl.style.visibility = "hidden";
+  footerEl.style.transition = "opacity 1.2s ease";
+
+  // 🔧 Force style flush
+  void footerEl.offsetWidth; // This forces the browser to apply the above styles
+
+  // Step 2: Trigger fade-in
+  footerEl.style.visibility = "visible";
+  footerEl.style.opacity = "0.9";
+
+  // ✅ Step 3: Add refresh button if needed
   if (!suppressMessage && showRefresh) {
     const refreshBtn = document.createElement("button");
     refreshBtn.textContent = "🔄 Update";
     refreshBtn.style.marginLeft = "12px";
-    refreshBtn.style.fontSize = "1em"; // slightly larger than footer text
+    refreshBtn.style.fontSize = "1em";
     refreshBtn.style.padding = "2px 6px";
     refreshBtn.style.border = "none";
     refreshBtn.style.background = "transparent";
@@ -179,13 +190,10 @@ function updateFooterMessage(
     refreshBtn.style.cursor = "pointer";
     refreshBtn.style.textDecoration = "underline";
     refreshBtn.style.verticalAlign = "baseline";
-    refreshBtn.style.marginLeft = "8px";
     refreshBtn.style.fontWeight = "bold";
     refreshBtn.style.transition = "color 0.3s ease";
 
-    // Use a hover color that’s distinct from your palette
-    const hoverAccent = "#ff4d00"; // bright orange-red, not in version color list
-
+    const hoverAccent = "#ff4d00";
     refreshBtn.onmouseover = () => {
       refreshBtn.style.color = hoverAccent;
     };
@@ -197,14 +205,13 @@ function updateFooterMessage(
     footerEl.appendChild(refreshBtn);
   }
 
+  // ✅ Step 4: Fade out after 5 seconds
   setTimeout(() => {
     footerEl.style.opacity = "0";
-    footerEl.style.transition = "opacity 0.6s ease";
 
-    // Wait for fade to finish before hiding
     setTimeout(() => {
-      footerEl.classList.remove("footer-visible");
       footerEl.classList.add("footer-hidden");
+      footerEl.style.visibility = "hidden";
     }, 600); // match transition duration
   }, 5000);
 
