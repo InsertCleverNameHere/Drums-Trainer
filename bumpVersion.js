@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
 
-const commitsPath = "./commits.json";
+const commitsPath = path.join(__dirname, "versioning/commits.json");
 const modePath = path.join(__dirname, "versioning/versioningMode.json");
 
 // Step 1: Read current version and hash
