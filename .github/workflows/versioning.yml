@@ -19,7 +19,7 @@ jobs:
           node-version: 18
 
       - name: Run version bump script
-        run: node bumpVersion.js
+        run: node versioning/bumpVersion.js
 
       - name: Commit updated version
         run: |

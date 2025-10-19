@@ -89,8 +89,6 @@ initUI({
 });
 
 // === Version Log ===
-// console version log (update as you bump the version)
-// to be handled dynamically later
 // const appVersion = "v1.1.0"; legacy hardcoding, now handled dynamically via commits.json
 const footerEl = document.getElementById("VersionNumber");
 const versionKey = "lastSeenVersion";
@@ -100,7 +98,7 @@ const messageKey = (status) =>
 
 const hashKey = "lastSeenHash";
 
-fetch("./commits.json")
+fetch("../versioning/commits.json")
   .then((res) => res.json())
   .then(({ latestHash, version }) => {
     appVersion = version;
