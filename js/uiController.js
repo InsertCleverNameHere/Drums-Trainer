@@ -57,6 +57,9 @@ export function initUI(deps) {
   const cycleUnitEl = document.getElementById("cycleUnit");
   const sessionCountdownEl = document.getElementById("sessionCountdown");
   const finishingBadgeEl = document.getElementById("finishingBadge");
+  const tooltipTrigger = document.getElementById("tooltipTrigger");
+  const tooltipDialog = document.getElementById("tooltipDialog");
+
   // read persisted preference; default to false (fixed count-in)
   const stored = localStorage.getItem("tempoSyncedCountIn");
   let tempoSynced = stored === null ? false : stored === "true";
@@ -92,6 +95,34 @@ export function initUI(deps) {
     sessionEngine.nextCycle();
   };
 
+  // Tooltip Logic
+  function toggleTooltip() {
+    const isVisible = tooltipDialog.classList.contains("visible");
+
+    if (isVisible) {
+      tooltipDialog.classList.remove("visible");
+      clearTimeout(tooltipDialog._hideTimer);
+    } else {
+      tooltipDialog.classList.add("visible");
+      tooltipDialog._hideTimer = setTimeout(() => {
+        tooltipDialog.classList.remove("visible");
+      }, 5000);
+    }
+  }
+
+  // Close tooltip if clicked outside it
+  document.addEventListener("click", (event) => {
+    const clickedInsideTooltip = tooltipDialog.contains(event.target);
+    const clickedTrigger = tooltipTrigger.contains(event.target);
+
+    if (!clickedInsideTooltip && !clickedTrigger) {
+      tooltipDialog.classList.remove("visible");
+      clearTimeout(tooltipDialog._hideTimer);
+    }
+  });
+
+  tooltipTrigger.onclick = toggleTooltip;
+
   // HOTKEYS LOGIC BELOW
   // --- Simple (Start, Pause, Next) Keyboard hotkeys (layout-independent)  ---
   document.addEventListener("keydown", (event) => {
@@ -117,6 +148,11 @@ export function initUI(deps) {
 
       case "KeyN": // Next
         if (!nextBtn.disabled) nextBtn.click();
+        break;
+
+      case "KeyH":
+        event.preventDefault();
+        toggleTooltip();
         break;
     }
   });

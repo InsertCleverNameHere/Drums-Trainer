@@ -1,6 +1,7 @@
 // utils.js
-// Small helper functions used by the UI
+// Small helper functions used by the UI and others
 
+// === Core metronome helpers ===
 // Returns a random integer between min and max (inclusive)
 export function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -48,4 +49,42 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
 export function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// === Meta app helpers ===
+
+// Version coloring:
+// Generates a unique HSL color based on version string
+export function generateColorFromVersion(version) {
+  const palette = [
+    "#e6194b",
+    "#3cb44b",
+    "#ffe119",
+    "#4363d8",
+    "#f58231",
+    "#911eb4",
+    "#46f0f0",
+    "#f032e6",
+    "#bcf60c",
+    "#fabebe",
+    "#008080",
+    "#e6beff",
+    "#9a6324",
+    "#fffac8",
+    "#800000",
+    "#aaffc3",
+    "#808000",
+    "#ffd8b1",
+    "#000075",
+    "#808080",
+  ];
+
+  // Simple hash to index into palette
+  let hash = 0;
+  for (let i = 0; i < version.length; i++) {
+    hash = version.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const index = Math.abs(hash) % palette.length;
+  return palette[index];
 }
