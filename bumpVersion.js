@@ -40,6 +40,9 @@ switch (mode) {
   case "minor":
     newVersion = `v${x}.${y + 1}.0`;
     break;
+  case "reset":
+    newVersion = `v${x}.0.0`;
+    break;
   case "patch":
   default:
     newVersion = `v${x}.${y}.${z + 1}`;

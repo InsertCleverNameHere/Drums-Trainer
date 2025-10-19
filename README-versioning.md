@@ -7,6 +7,7 @@ This file (`versioningMode.json`) controls how the app version is bumped when ne
 - `"patch"` → Bumps Z only (e.g., `v2.0.0` → `v2.0.1`)
 - `"minor"` → Bumps Y and resets Z (e.g., `v2.0.0` → `v2.1.0`)
 - `"major"` → Bumps X and resets Y and Z (e.g., `v2.0.0` → `v3.0.0`)
+- `"reset"` → Resets X and Y and Z (e.g., `v2.5.7` → `v2.0.0`)
 - `"none"` → Skips version bump even if commit hash changes
 
 ## Default Behavior
