@@ -52,7 +52,3 @@ fs.writeFileSync(
   JSON.stringify({ latestHash, version: newVersion }, null, 2)
 );
 console.log(`🔄 Version bumped to ${newVersion} using mode '${mode}'`);
-
-// ✅ Step 6: Reset mode to 'patch'
-fs.writeFileSync(modePath, JSON.stringify({ mode: "patch" }, null, 2));
-console.log("🔁 Reset versioning mode to 'patch'");
