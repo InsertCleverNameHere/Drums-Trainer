@@ -2,6 +2,8 @@ const CACHE_NAME = "groove-trainer-v1";
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
+  "./favicon.ico",
+  "./commits.json",
   "./manifest.json",
   "./css/styles.css",
   "./js/main.js",
