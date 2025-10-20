@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - deploy-page
 
 jobs:
   bump-version:
