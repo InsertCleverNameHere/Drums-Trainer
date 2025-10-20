@@ -1,18 +1,5 @@
 const CACHE_NAME = "groove-trainer-v1";
-const FILES_TO_CACHE = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./css/styles.css",
-  "./js/main.js",
-  "./js/metronomeCore.js"
-  "./js/visuals.js",
-  "./js/uiController.js",
-  "./js/utils.js",
-  "./js/sessionEngine.js",
-  "./commits.json",
-  "./favicon.ico",
-];
+const FILES_TO_CACHE = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(FILES_TO_CACHE)));

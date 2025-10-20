@@ -89,9 +89,6 @@ initUI({
 });
 
 // === Version Log ===
-// console version log (update as you bump the version)
-// to be handled dynamically later
-// const appVersion = "v1.1.0"; legacy hardcoding, now handled dynamically via commits.json
 const footerEl = document.getElementById("VersionNumber");
 const versionKey = "lastSeenVersion";
 const colorKey = "versionColor";
@@ -131,20 +128,6 @@ fetch("./commits.json")
     console.warn("Could not load commits.json:", err);
     updateFooterMessage(); // fallback
   });
-
-// Get stored values (legacy)
-//const storedVersion = localStorage.getItem(versionKey);
-//const isNewVersion = storedVersion !== appVersion;
-//let versionColor = localStorage.getItem(colorKey);
-
-// Update color and reset counters if version changed
-///if (isNewVersion || !versionColor) {
-//versionColor = utils.generateColorFromVersion(appVersion);
-//localStorage.setItem(colorKey, versionColor);
-//localStorage.setItem(versionKey, appVersion);
-//localStorage.setItem("cachedMsgCount", "0");
-//localStorage.setItem("updateMsgCount", "0");
-//}
 
 // update footer message according to cache state
 function updateFooterMessage(
@@ -222,7 +205,7 @@ function updateFooterMessage(
 
 // Service worker update detection
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("../service-worker.js").then((reg) => {
+  navigator.serviceWorker.register("./service-worker.js").then((reg) => {
     reg.addEventListener("updatefound", () => {
       const newWorker = reg.installing;
       newWorker.addEventListener("statechange", () => {
