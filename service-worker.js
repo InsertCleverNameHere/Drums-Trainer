@@ -16,7 +16,7 @@ const FILES_TO_CACHE = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open("static-cache-v1").then((cache) => {
+    caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll([
         "/",
         "/index.html",
