@@ -3,7 +3,7 @@ name: Auto Version Bump
 on:
   push:
     branches:
-      - main
+      - deploy-page
 
 jobs:
   bump-version:
