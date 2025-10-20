@@ -4,6 +4,9 @@ a simple, lightweight html groove randomizer with a built in metronome to help y
 find it on
 https://insertclevernamehere.github.io/Drums-Trainer/
 
+
+for more info on how versioning works check out its dedicated readme
+
 ## Credits
 
 Favicon icon sourced from [Tempo icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/tempo)
