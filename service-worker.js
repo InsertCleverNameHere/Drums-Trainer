@@ -14,9 +14,25 @@ const FILES_TO_CACHE = [
   "./favicon.ico",
 ];
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(FILES_TO_CACHE)));
-  self.skipWaiting();
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open("static-cache-v1").then((cache) => {
+      return cache.addAll([
+        "/",
+        "/index.html",
+        "/manifest.json",
+        "/css/styles.css",
+        "/js/main.js",
+        "/js/metronomeCore.js",
+        "/js/visuals.js",
+        "/js/uiController.js",
+        "/js/utils.js",
+        "/js/sessionEngine.js",
+        "/commits.json",
+        "/favicon.ico",
+      ]);
+    })
+  );
 });
 
 self.addEventListener("activate", (e) => {
@@ -36,16 +52,16 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     event.respondWith(
       caches
-        .match("./index.html")
-        .then((cachedResponse) => {
-          return cachedResponse || fetch(event.request);
+        .match("/index.html")
+        .then((response) => {
+          return response || fetch(event.request);
         })
-        .catch(() => caches.match("./index.html"))
+        .catch(() => caches.match("/index.html"))
     );
   } else {
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request);
       })
     );
   }
