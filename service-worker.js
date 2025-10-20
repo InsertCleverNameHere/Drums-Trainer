@@ -5,7 +5,13 @@ const FILES_TO_CACHE = [
   "./manifest.json",
   "./css/styles.css",
   "./js/main.js",
+  "./js/metronomeCore.js",
+  "./js/visuals.js",
+  "./js/uiController.js",
+  "./js/utils.js",
+  "./js/sessionEngine.js",
   "./commits.json",
+  "./favicon.ico",
 ];
 
 self.addEventListener("install", (e) => {
