@@ -8,28 +8,29 @@ const modePath = "./versioningMode.json";
 const { latestHash: currentHash, version: currentVersion } = JSON.parse(
   fs.readFileSync(commitsPath, "utf8")
 );
-let mode = "patch"; // default fallback
 
+// Step 2: Read mode
+let mode = "patch"; // default fallback
 try {
   mode = JSON.parse(fs.readFileSync(modePath, "utf8")).mode || "patch";
 } catch (err) {
   console.warn("⚠️ Could not read versioningMode.json. Defaulting to 'patch'.");
 }
 
-// Step 2: Get latest Git commit hash
-const latestHash = execSync("git rev-parse HEAD").toString().trim();
-
-// ✅ Step 3: Always reset mode to 'patch'
+// Step 3: Always reset mode to 'patch'
 fs.writeFileSync(modePath, JSON.stringify({ mode: "patch" }, null, 2));
 console.log("🔁 Reset versioning mode to 'patch'");
 
-// Step 4: Exit early if mode is 'none' or hash hasn't changed
+// Step 4: Get latest Git commit hash
+const latestHash = execSync("git rev-parse HEAD").toString().trim();
+
+// Step 5: Exit early if mode is 'none' or hash hasn't changed
 if (latestHash === currentHash || mode === "none") {
   console.log("✅ No version bump. Mode:", mode);
   process.exit(0);
 }
 
-// Step 5: Parse and bump version
+// Step 6: Parse and bump version
 const [x, y, z] = currentVersion.replace("v", "").split(".").map(Number);
 let newVersion;
 
@@ -49,7 +50,7 @@ switch (mode) {
     break;
 }
 
-// Step 6: Write updated version
+// Step 7: Write updated version
 fs.writeFileSync(
   commitsPath,
   JSON.stringify({ latestHash, version: newVersion }, null, 2)
