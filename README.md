@@ -5,7 +5,7 @@ find it on
 https://insertclevernamehere.github.io/Drums-Trainer/
 
 
-for more info on how versioning works check out its dedicated readme
+for more info on how versioning works check out its dedicated readme, new modes likely will be added soon
 
 ## Credits
 
