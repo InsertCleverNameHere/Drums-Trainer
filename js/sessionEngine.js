@@ -4,6 +4,7 @@
 // === Imports ===
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
+import { formatTime } from "./utils.js";
 
 // === Internal State ===
 let metronome = {};
@@ -101,7 +102,9 @@ export function startSession() {
 
     flags.sessionRemaining = totalSeconds;
     if (ui.sessionCountdownEl)
-      ui.sessionCountdownEl.textContent = String(flags.sessionRemaining);
+      ui.sessionCountdownEl.textContent = utils.formatTime(
+        flags.sessionRemaining
+      );
 
     if (timers.sessionInterval) clearInterval(timers.sessionInterval);
 
@@ -113,7 +116,9 @@ export function startSession() {
 
       flags.sessionRemaining--;
       if (ui.sessionCountdownEl)
-        ui.sessionCountdownEl.textContent = String(flags.sessionRemaining);
+        ui.sessionCountdownEl.textContent = utils.formatTime(
+          flags.sessionRemaining
+        );
 
       if (flags.sessionRemaining <= 0) {
         clearInterval(timers.sessionInterval);
@@ -170,7 +175,7 @@ export function pauseSession() {
     timers.activeTimer = setInterval(() => {
       if (flags.isPaused) return;
       flags.remaining--;
-      ui.countdownEl.textContent = flags.remaining;
+      ui.countdownEl.textContent = utils.formatTime(flags.remaining);
 
       if (flags.remaining <= 0) {
         clearInterval(timers.activeTimer);
@@ -331,13 +336,13 @@ function runCycle() {
       typeof metronome.getBpm === "function" ? metronome.getBpm() : bpm;
     ui.displayBpm.textContent = `BPM: ${effectiveBpm}`;
 
-    ui.countdownEl.textContent = flags.remaining;
+    ui.countdownEl.textContent = utils.formatTime(flags.remaining);
     clearInterval(timers.activeTimer);
 
     timers.activeTimer = setInterval(() => {
       if (flags.isPaused) return;
       flags.remaining--;
-      ui.countdownEl.textContent = flags.remaining;
+      ui.countdownEl.textContent = utils.formatTime(flags.remaining);
 
       if (flags.remaining <= 0) {
         clearInterval(timers.activeTimer);
