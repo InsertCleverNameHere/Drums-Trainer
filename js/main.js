@@ -119,7 +119,7 @@ fetch("./commits.json")
 
     if (hashChanged) {
       localStorage.setItem(hashKey, latestHash);
-      updateFooterMessage("Update Available", true);
+      updateFooterMessage("Update Available");
     } else {
       updateFooterMessage();
     }
@@ -131,8 +131,8 @@ fetch("./commits.json")
 
 // update footer message according to cache state
 function updateFooterMessage(
-  status = "✅ Cached Offline",
-  showRefresh = false
+  status = "✅ Cached Offline"
+  // showRefresh = false
 ) {
   const key = messageKey(status);
   const shownCount = parseInt(localStorage.getItem(key)) || 0;
@@ -160,35 +160,7 @@ function updateFooterMessage(
   footerEl.style.visibility = "visible";
   footerEl.style.opacity = "0.9";
 
-  // ✅ Step 3: Add refresh button if needed
-  if (!suppressMessage && showRefresh) {
-    const refreshBtn = document.createElement("button");
-    refreshBtn.textContent = "🔄 Update";
-    refreshBtn.style.marginLeft = "12px";
-    refreshBtn.style.fontSize = "1em";
-    refreshBtn.style.padding = "2px 6px";
-    refreshBtn.style.border = "none";
-    refreshBtn.style.background = "transparent";
-    refreshBtn.style.color = versionColor;
-    refreshBtn.style.cursor = "pointer";
-    refreshBtn.style.textDecoration = "underline";
-    refreshBtn.style.verticalAlign = "baseline";
-    refreshBtn.style.fontWeight = "bold";
-    refreshBtn.style.transition = "color 0.3s ease";
-
-    const hoverAccent = "#ff4d00";
-    refreshBtn.onmouseover = () => {
-      refreshBtn.style.color = hoverAccent;
-    };
-    refreshBtn.onmouseout = () => {
-      refreshBtn.style.color = versionColor;
-    };
-
-    refreshBtn.onclick = () => location.reload(true);
-    footerEl.appendChild(refreshBtn);
-  }
-
-  // ✅ Step 4: Fade out after 5 seconds
+  // ✅ Step 3: Fade out after 5 seconds
   setTimeout(() => {
     footerEl.style.opacity = "0";
 
@@ -211,7 +183,7 @@ if ("serviceWorker" in navigator) {
       newWorker.addEventListener("statechange", () => {
         if (newWorker.state === "installed") {
           if (navigator.serviceWorker.controller) {
-            updateFooterMessage("Update Available", true);
+            updateFooterMessage("Update Available");
           } else {
             updateFooterMessage("Cached Offline");
           }
@@ -220,3 +192,104 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+// Check for updates button
+const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
+
+document.addEventListener("click", (event) => {
+  const footerEl = document.getElementById("VersionNumber");
+
+  if (!footerEl || footerEl.classList.contains("footer-hidden")) return;
+
+  // Optional: prevent fade-out if the click was on the update button
+  const clickedElement = event.target;
+  if (clickedElement.id === "checkUpdatesBtn") return;
+
+  // Trigger fade-out
+  footerEl.style.opacity = "0";
+
+  setTimeout(() => {
+    footerEl.classList.add("footer-hidden");
+    footerEl.style.visibility = "hidden";
+  }, 600); // match transition duration
+});
+
+checkUpdatesBtn.addEventListener("click", () => {
+  fetch("./commits.json", { cache: "no-store" })
+    .then((res) => res.json())
+    .then(({ latestHash, version }) => {
+      const storedHash = localStorage.getItem("lastSeenHash");
+      const storedVersion = localStorage.getItem("lastSeenVersion");
+
+      const isNewVersion =
+        version !== storedVersion || latestHash !== storedHash;
+
+      if (isNewVersion) {
+        localStorage.setItem("lastSeenVersion", version);
+        localStorage.setItem("lastSeenHash", latestHash);
+
+        footerEl.innerHTML = `⟳ Update available — refreshing shortly...
+        <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
+        // Fade in footer
+        footerEl.style.opacity = "0";
+        footerEl.style.visibility = "hidden";
+        void footerEl.offsetWidth;
+        footerEl.style.visibility = "visible";
+        footerEl.style.opacity = "0.9";
+
+        // Schedule reload
+        const reloadTimeout = setTimeout(() => {
+          location.reload(true);
+        }, 5000);
+
+        // Cancel button logic
+        document
+          .getElementById("cancelReloadBtn")
+          .addEventListener("click", () => {
+            clearTimeout(reloadTimeout);
+
+            footerEl.innerHTML = `⟳ Update available — refresh canceled`;
+
+            setTimeout(() => {
+              footerEl.style.opacity = "0";
+              setTimeout(() => {
+                footerEl.classList.add("footer-hidden");
+                footerEl.style.visibility = "hidden";
+              }, 600);
+            }, 4000);
+          });
+      } else {
+        footerEl.innerHTML = `⟳ You're already on the latest version`;
+        footerEl.style.opacity = "0";
+        footerEl.style.visibility = "hidden";
+        void footerEl.offsetWidth;
+        footerEl.style.visibility = "visible";
+        footerEl.style.opacity = "0.9";
+
+        setTimeout(() => {
+          footerEl.style.opacity = "0";
+          setTimeout(() => {
+            footerEl.classList.add("footer-hidden");
+            footerEl.style.visibility = "hidden";
+          }, 600);
+        }, 5000);
+      }
+    })
+    .catch((err) => {
+      console.warn("Manual update check failed:", err);
+      footerEl.innerHTML = `⟳ Could not check for updates`;
+      footerEl.style.opacity = "0";
+      footerEl.style.visibility = "hidden";
+      void footerEl.offsetWidth;
+      footerEl.style.visibility = "visible";
+      footerEl.style.opacity = "0.9";
+
+      setTimeout(() => {
+        footerEl.style.opacity = "0";
+        setTimeout(() => {
+          footerEl.classList.add("footer-hidden");
+          footerEl.style.visibility = "hidden";
+        }, 600);
+      }, 5000);
+    });
+});
