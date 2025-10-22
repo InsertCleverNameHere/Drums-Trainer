@@ -3,15 +3,16 @@
 
 let audioCtx = null;
 let nextNoteTime = 0.0;
-let currentBeat = 0;
+let tickIndex = 0; // continuous tick counter (0-based)
+// let currentBeat = 0;
 let isMetronomePlaying = false;
 let schedulerTimer = null;
 let endOfCycleRequested = false;
-let targetBarEnd = null;
 let onCycleComplete = null;
 
 let bpm = 120;
 let beatsPerBar = 4; // configurable beats-per-bar
+let ticksPerBeat = 1; // subdivisions per beat (1 = one tick per beat)
 
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
@@ -25,7 +26,8 @@ let onBeatVisual = () => {};
 
 // === Pause/Resume state tracking ===
 let isPaused = false;
-let pauseTime = 0;
+let pauseWallTime = 0; // audioCtx.currentTime snapshot when paused
+let pauseAudioOffset = 0; // nextNoteTime offset preserved across pause
 
 // Registers a visual callback to be triggered on each beat
 export function registerVisualCallback(cb) {
@@ -51,23 +53,33 @@ function playTick(isAccent) {
 
 // Schedule a single beat ahead of time
 function scheduleNote() {
-  const isAccent = currentBeat % beatsPerBar === 0;
-  playTick(isAccent);
+  // Compute beat and tick positions
+  const beatNumber = Math.floor(tickIndex / ticksPerBeat); // 0-based beat number
+  const tickInBeat = tickIndex % ticksPerBeat;
 
-  // call visual callback safely
+  // Accent occurs on first tick of first beat in a bar
+  const isAccent = tickInBeat === 0 && beatNumber % beatsPerBar === 0;
+
+  // Play audio only on primary beat ticks (tickInBeat === 0) for now
+  if (tickInBeat === 0) {
+    playTick(isAccent);
+  }
+
+  // Safe visual callback: provide tickIndex, isAccent, tickInBeat
   try {
-    onBeatVisual(currentBeat, isAccent);
+    onBeatVisual(tickIndex, isAccent, tickInBeat);
   } catch (e) {
     console.error("Visual callback error:", e);
   }
 
-  // Increment beat and time
-  currentBeat++;
-  const secondsPerBeat = 60.0 / bpm;
-  nextNoteTime += secondsPerBeat;
+  // Advance tick and schedule next tick
+  tickIndex++;
+  const secondsPerTick = 60.0 / (bpm * ticksPerBeat);
+  nextNoteTime += secondsPerTick;
 
-  // If end-of-cycle was requested, stop at next bar boundary and notify UI
-  if (endOfCycleRequested && currentBeat % beatsPerBar === 0) {
+  // If end-of-cycle requested, stop at the next bar boundary (when nextBeat % beatsPerBar === 0)
+  const nextBeat = Math.floor(tickIndex / ticksPerBeat);
+  if (endOfCycleRequested && nextBeat % beatsPerBar === 0) {
     endOfCycleRequested = false;
     isMetronomePlaying = false;
 
@@ -78,9 +90,6 @@ function scheduleNote() {
 
     console.log("🟢 Cycle finished cleanly at bar boundary.");
 
-    // notify UI
-    // invoke the UI callback after a short adjustment pause so visuals and
-    // user can take a breath before any count-in / next-cycle logic runs.
     if (typeof onCycleComplete === "function") {
       try {
         console.info(
@@ -120,13 +129,14 @@ export function startMetronome(newBpm = 120) {
   if (!audioCtx)
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  bpm = Math.max(40, Math.min(240, newBpm)); // clamp to reasonable range for now
-  currentBeat = 0;
+  bpm = Math.max(20, Math.min(400, newBpm));
+  tickIndex = 0;
+  const secondsPerTick = 60.0 / (bpm * ticksPerBeat);
   nextNoteTime = audioCtx.currentTime + 0.1;
   isMetronomePlaying = true;
   isPaused = false;
   scheduler();
-  console.log(`Metronome started at ${bpm} BPM`);
+  console.log(`Metronome started at ${bpm} BPM (ticksPerBeat=${ticksPerBeat})`);
 }
 
 // --- Count-in helper ---
@@ -147,34 +157,25 @@ export function performCountIn(nextBpm = 120, tempoSynced = true) {
       const osc = audioCtx.createOscillator();
       const envelope = audioCtx.createGain();
 
-      // Make 3 & 2 distinct from the regular metronome ticks.
-      // Step indices: 0 -> '3', 1 -> '2', 2 -> '1'
       if (i === 0) {
-        // '3' — lower, short click
         osc.frequency.value = 700;
         envelope.gain.value = 0.22;
         osc.type = "sine";
       } else if (i === 1) {
-        // '2' — mid, slightly longer
         osc.frequency.value = 1400;
         envelope.gain.value = 0.25;
         osc.type = "sine";
       } else {
-        // '1' — final accent; restore previous, slightly lower pitch so it's
-        // distinct but not too high (matches earlier behavior)
         osc.frequency.value = 1600;
         envelope.gain.value = 0.3;
-        // leave osc.type as default for a familiar timbre
       }
 
       osc.connect(envelope);
       envelope.connect(audioCtx.destination);
       osc.start(t);
-      // stop shortly after; give a touch more for middle tick
       osc.stop(t + (i === 1 ? 0.09 : 0.06));
     }
 
-    // resolve slightly after the last scheduled tick
     setTimeout(() => resolve(), Math.ceil(intervalMs * steps) + 30);
   });
 }
@@ -192,17 +193,50 @@ export function resetPlaybackFlag() {
   isMetronomePlaying = false;
 }
 
-// --- beats-per-bar config
+// --- beats-per-bar and subdivision config
 export function setBeatsPerBar(n) {
-  beatsPerBar = Math.max(1, Math.round(n));
+  const newBeats = Math.max(1, Math.round(n));
+
+  // preserve current position: compute current beat and tick-in-beat
+  const currentBeat = Math.floor(tickIndex / Math.max(1, ticksPerBeat));
+  const tickInBeat = tickIndex % Math.max(1, ticksPerBeat);
+
+  // compute new tickIndex so we remain at the same relative tick within the new bar
+  const newBeatIndex = currentBeat % newBeats;
+  tickIndex = newBeatIndex * Math.max(1, ticksPerBeat) + tickInBeat;
+
+  beatsPerBar = newBeats;
   console.log(`Beats per bar set to ${beatsPerBar}`);
+
+  // If visuals are registered, trigger a refresh immediately (safe no-op if not)
+  try {
+    // invoke visual callback with current tickIndex and accent state for immediate update
+    const isAccent = tickInBeat === 0 && currentBeat % beatsPerBar === 0;
+    onBeatVisual(tickIndex, isAccent, tickInBeat);
+  } catch (e) {
+    // swallow errors to avoid disrupting metronome logic
+  }
 }
+
 export function getBeatsPerBar() {
   return beatsPerBar;
 }
+
+export function setTicksPerBeat(n) {
+  ticksPerBeat = Math.max(1, Math.round(n));
+  console.log(`Ticks per beat set to ${ticksPerBeat}`);
+}
+export function getTicksPerBeat() {
+  return ticksPerBeat;
+}
+
 // expose current bpm
 export function getBpm() {
   return bpm;
+}
+
+export function getPauseState() {
+  return !!isPaused;
 }
 
 // --- Pause/Resume control ---
@@ -210,13 +244,14 @@ export function pauseMetronome() {
   if (!isMetronomePlaying || isPaused) return;
   isPaused = true;
 
-  // Stop scheduling new beats but let current one finish
   if (schedulerTimer) {
     clearTimeout(schedulerTimer);
     schedulerTimer = null;
   }
-  pauseTime = audioCtx.currentTime;
-  console.info(`⏸️ Metronome paused at ${pauseTime.toFixed(3)}s`);
+
+  pauseWallTime = audioCtx ? audioCtx.currentTime : 0;
+  pauseAudioOffset = nextNoteTime - (audioCtx ? audioCtx.currentTime : 0);
+  console.info(`⏸️ Metronome paused at ${pauseWallTime.toFixed(3)}s`);
 }
 
 export function resumeMetronome() {
@@ -224,28 +259,21 @@ export function resumeMetronome() {
   isPaused = false;
 
   const resumeTime = audioCtx.currentTime;
-  const offset = resumeTime - pauseTime;
-
-  // Adjust timing so it stays in sync
-  nextNoteTime += offset;
-  scheduler(); // restart scheduler loop
+  nextNoteTime = resumeTime + pauseAudioOffset;
+  scheduler();
   console.info("▶️ Metronome resumed after pause");
 }
+
 // --- Cycle completion handling ---
 export function requestEndOfCycle(callback) {
   if (!isMetronomePlaying || endOfCycleRequested) return;
 
-  // Calculate the target bar to stop after finishing this one
-  // targetBarEnd is informational only; not used in scheduling logic for now
-  const currentBar = Math.floor(currentBeat / beatsPerBar);
-  targetBarEnd = currentBar + 1;
   endOfCycleRequested = true;
-
   if (typeof callback === "function") {
     onCycleComplete = callback;
   }
 
-  console.log(`⏳ Will stop at end of bar #${targetBarEnd}`);
+  console.log(`⏳ End-of-cycle requested — will stop at next bar boundary`);
 }
 
 // keep the module lightweight

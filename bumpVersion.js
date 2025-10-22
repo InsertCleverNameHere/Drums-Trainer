@@ -44,6 +44,9 @@ switch (mode) {
   case "reset":
     newVersion = `v${x}.0.0`;
     break;
+  case "resetmajor":
+    newVersion = `v${x}.${y}.0`;
+    break;
   case "patch":
   default:
     newVersion = `v${x}.${y}.${z + 1}`;

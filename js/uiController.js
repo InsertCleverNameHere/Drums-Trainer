@@ -15,6 +15,7 @@ let performCountInFn;
 
 export function initUI(deps) {
   // deps: { startMetronome, stopMetronome, setBeatsPerBar, pauseMetronome, resumeMetronome, getPauseState, getBeatsPerBar, getBpm }
+  // assign deps with defensive fallbacks to window.metronome if needed
   startMetronomeFn = deps.startMetronome;
   stopMetronomeFn = deps.stopMetronome;
   pauseMetronomeFn = deps.pauseMetronome;
@@ -22,9 +23,37 @@ export function initUI(deps) {
   getPauseStateFn = deps.getPauseState;
   requestEndOfCycleFn = deps.requestEndOfCycle;
   performCountInFn = deps.performCountIn;
+
+  // primary setter/getter may be missing from deps if init order differs;
+  // prefer deps first, then fall back to global window.metronome
   setBeatsPerBarFn = deps.setBeatsPerBar;
   getBeatsPerBarFn = deps.getBeatsPerBar;
   getBpmFn = deps.getBpm;
+
+  if (
+    typeof setBeatsPerBarFn !== "function" &&
+    typeof window !== "undefined" &&
+    window.metronome &&
+    typeof window.metronome.setBeatsPerBar === "function"
+  ) {
+    setBeatsPerBarFn = window.metronome.setBeatsPerBar;
+  }
+  if (
+    typeof getBeatsPerBarFn !== "function" &&
+    typeof window !== "undefined" &&
+    window.metronome &&
+    typeof window.metronome.getBeatsPerBar === "function"
+  ) {
+    getBeatsPerBarFn = window.metronome.getBeatsPerBar;
+  }
+  if (
+    typeof getBpmFn !== "function" &&
+    typeof window !== "undefined" &&
+    window.metronome &&
+    typeof window.metronome.getBpm === "function"
+  ) {
+    getBpmFn = window.metronome.getBpm;
+  }
 
   // avoid unused variable warnings in environments that run static checks
   // these helpers simply reference assigned functions so static analyzers won't flag them
@@ -59,6 +88,36 @@ export function initUI(deps) {
   const finishingBadgeEl = document.getElementById("finishingBadge");
   const tooltipTrigger = document.getElementById("tooltipTrigger");
   const tooltipDialog = document.getElementById("tooltipDialog");
+
+  // Beats-per-bar input wiring
+  const beatsPerBarEl = document.getElementById("beatsPerBar");
+  if (beatsPerBarEl && typeof setBeatsPerBarFn === "function") {
+    const applyBeatsPerBar = () => {
+      const v = Number(beatsPerBarEl.value);
+      if (Number.isNaN(v)) return;
+      const n = Math.max(1, Math.min(12, Math.round(v)));
+      if (String(n) !== beatsPerBarEl.value) beatsPerBarEl.value = String(n);
+      try {
+        setBeatsPerBarFn(n);
+      } catch (e) {
+        console.error("setBeatsPerBar error:", e);
+      }
+    };
+
+    beatsPerBarEl.addEventListener("change", applyBeatsPerBar);
+    beatsPerBarEl.addEventListener("blur", applyBeatsPerBar);
+    beatsPerBarEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyBeatsPerBar();
+    });
+
+    // initialize input from metronome state if available
+    try {
+      const current =
+        typeof getBeatsPerBarFn === "function" ? getBeatsPerBarFn() : null;
+      if (current != null && String(current) !== beatsPerBarEl.value)
+        beatsPerBarEl.value = String(current);
+    } catch (e) {}
+  }
 
   // read persisted preference; default to false (fixed count-in)
   const stored = localStorage.getItem("tempoSyncedCountIn");

@@ -19,6 +19,9 @@ function ensureContainer(
       dot.className = "beat-dot";
       // helpful dataset for debugging
       dot.dataset.index = String(i);
+      // explicit sizing from BASE_DOT_SIZE to avoid relying solely on CSS
+      dot.style.width = `${BASE_DOT_SIZE}px`;
+      dot.style.height = `${BASE_DOT_SIZE}px`;
       container.appendChild(dot);
     }
   }
@@ -26,14 +29,68 @@ function ensureContainer(
 }
 
 // create and return the callback to register with metronomeCore
+// New signature: callback(tickIndex, isAccent, tickInBeat)
+// This function remains backwards-compatible by also accepting (beat, isAccent)
 export function createVisualCallback(getBeatsPerBar) {
   // getBeatsPerBar is a function we call to check current beatsPerBar
-  return (beat, isAccent) => {
+  return (a, isAccent, tickInBeat) => {
+    // Support legacy call-signature: (beat, isAccent)
+    // If the third argument is undefined, caller used legacy signature
+    if (typeof tickInBeat === "undefined") {
+      const legacyBeat = a;
+      const beats = typeof getBeatsPerBar === "function" ? getBeatsPerBar() : 4;
+      const container = ensureContainer("beat-indicator-container", beats);
+      if (!container) return;
+      const beatIndex = ((legacyBeat % beats) + beats) % beats;
+      const dots = container.children;
+      // Reset all dots
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].style.backgroundColor = "#bfbfbf";
+        dots[i].style.transform = "scale(1)";
+        dots[i].style.opacity = "0.5";
+      }
+      const activeDot = dots[beatIndex];
+      if (!activeDot) return;
+      activeDot.style.backgroundColor = isAccent ? "#b22222" : "#006400";
+      activeDot.style.transform = "scale(1.5)";
+      activeDot.style.opacity = "1";
+      setTimeout(() => {
+        activeDot.style.transform = "scale(1)";
+        activeDot.style.opacity = "0.7";
+        activeDot.style.backgroundColor = "#bfbfbf";
+      }, 120);
+      return;
+    }
+
+    // New-style call: a = tickIndex, isAccent = boolean, tickInBeat = 0..ticksPerBeat-1
+    const tickIndex = a;
     const beats = typeof getBeatsPerBar === "function" ? getBeatsPerBar() : 4;
     const container = ensureContainer("beat-indicator-container", beats);
     if (!container) return;
 
-    const beatIndex = beat % beats;
+    // Determine beat from tickIndex; try to read ticksPerBeat from metronome API if available
+    let ticksPerBeatLocal = 1;
+    try {
+      // Defensive: if window.metronome exists but getter is missing, fall back to 1
+      if (
+        window.metronome &&
+        typeof window.metronome.getTicksPerBeat === "function"
+      ) {
+        ticksPerBeatLocal = window.metronome.getTicksPerBeat();
+        // guard against non-numeric returns
+        ticksPerBeatLocal = Math.max(
+          1,
+          Math.floor(Number(ticksPerBeatLocal) || 1)
+        );
+      } else {
+        ticksPerBeatLocal = 1;
+      }
+    } catch (e) {
+      ticksPerBeatLocal = 1;
+    }
+
+    const beat = Math.floor(tickIndex / Math.max(1, ticksPerBeatLocal));
+    const beatIndex = ((beat % beats) + beats) % beats;
     const dots = container.children;
 
     // Reset all dots quickly (clear previous highlights)
@@ -43,7 +100,6 @@ export function createVisualCallback(getBeatsPerBar) {
       dots[i].style.opacity = "0.5";
     }
 
-    // highlight current
     const activeDot = dots[beatIndex];
     if (!activeDot) return;
 
@@ -56,7 +112,6 @@ export function createVisualCallback(getBeatsPerBar) {
     setTimeout(() => {
       activeDot.style.transform = "scale(1)";
       activeDot.style.opacity = "0.7";
-      // keep the base color as neutral
       activeDot.style.backgroundColor = "#bfbfbf";
     }, 120);
   };

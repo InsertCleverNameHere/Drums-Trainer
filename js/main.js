@@ -5,6 +5,9 @@ import { initUI } from "./uiController.js";
 import * as utils from "./utils.js";
 import { initSessionEngine } from "./sessionEngine.js";
 
+// Expose for visuals and console debugging
+window.metronome = metronome; // <-- add this line (or use Option B)
+
 // set early to fetch from commits.json
 let appVersion;
 let versionColor;
@@ -31,10 +34,39 @@ const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
 
 // === Metronome Setup ===
-// Register beat visualizer with metronome using beats-per-bar getter
-metronome.registerVisualCallback(
-  createVisualCallback(metronome.getBeatsPerBar)
-);
+// Expose metronome module to DevTools for debugging (safe for dev)
+window.metronome = window.metronome || metronome;
+
+// Ensure window.metronome exists and expose safe getters for visuals and debugging
+if (
+  typeof metronome.getTicksPerBeat === "function" &&
+  !window.metronome.getTicksPerBeat
+)
+  window.metronome.getTicksPerBeat = metronome.getTicksPerBeat;
+if (
+  typeof metronome.getBeatsPerBar === "function" &&
+  !window.metronome.getBeatsPerBar
+)
+  window.metronome.getBeatsPerBar = metronome.getBeatsPerBar;
+if (typeof metronome.getBpm === "function" && !window.metronome.getBpm)
+  window.metronome.getBpm = metronome.getBpm;
+if (
+  typeof metronome.getPauseState === "function" &&
+  !window.metronome.getPauseState
+)
+  window.metronome.getPauseState = metronome.getPauseState;
+
+// Create visuals callback (backwards-compatible)
+const visualsCallback = createVisualCallback(metronome.getBeatsPerBar);
+
+// Adapter: translate metronome tick signature to visuals
+metronome.registerVisualCallback((tickIndex, isAccent, tickInBeat) => {
+  try {
+    visualsCallback(tickIndex, isAccent, tickInBeat);
+  } catch (err) {
+    console.error("visuals callback error:", err);
+  }
+});
 
 // === Session Engine Setup ===
 // Wire up session engine with metronome and UI dependencies
@@ -89,9 +121,6 @@ initUI({
 });
 
 // === Version Log ===
-// console version log (update as you bump the version)
-// to be handled dynamically later
-// const appVersion = "v1.1.0"; legacy hardcoding, now handled dynamically via commits.json
 const footerEl = document.getElementById("VersionNumber");
 const versionKey = "lastSeenVersion";
 const colorKey = "versionColor";
@@ -100,7 +129,7 @@ const messageKey = (status) =>
 
 const hashKey = "lastSeenHash";
 
-fetch("./commits.json")
+fetch("./commits.json", { cache: "no-store" })
   .then((res) => res.json())
   .then(({ latestHash, version }) => {
     appVersion = version;
@@ -122,7 +151,7 @@ fetch("./commits.json")
 
     if (hashChanged) {
       localStorage.setItem(hashKey, latestHash);
-      updateFooterMessage("Update Available", true);
+      updateFooterMessage("Update Available");
     } else {
       updateFooterMessage();
     }
@@ -132,24 +161,10 @@ fetch("./commits.json")
     updateFooterMessage(); // fallback
   });
 
-// Get stored values (legacy)
-//const storedVersion = localStorage.getItem(versionKey);
-//const isNewVersion = storedVersion !== appVersion;
-//let versionColor = localStorage.getItem(colorKey);
-
-// Update color and reset counters if version changed
-///if (isNewVersion || !versionColor) {
-//versionColor = utils.generateColorFromVersion(appVersion);
-//localStorage.setItem(colorKey, versionColor);
-//localStorage.setItem(versionKey, appVersion);
-//localStorage.setItem("cachedMsgCount", "0");
-//localStorage.setItem("updateMsgCount", "0");
-//}
-
 // update footer message according to cache state
 function updateFooterMessage(
-  status = "✅ Cached Offline",
-  showRefresh = false
+  status = "✅ Cached Offline"
+  // showRefresh = false
 ) {
   const key = messageKey(status);
   const shownCount = parseInt(localStorage.getItem(key)) || 0;
@@ -177,35 +192,7 @@ function updateFooterMessage(
   footerEl.style.visibility = "visible";
   footerEl.style.opacity = "0.9";
 
-  // ✅ Step 3: Add refresh button if needed
-  if (!suppressMessage && showRefresh) {
-    const refreshBtn = document.createElement("button");
-    refreshBtn.textContent = "🔄 Update";
-    refreshBtn.style.marginLeft = "12px";
-    refreshBtn.style.fontSize = "1em";
-    refreshBtn.style.padding = "2px 6px";
-    refreshBtn.style.border = "none";
-    refreshBtn.style.background = "transparent";
-    refreshBtn.style.color = versionColor;
-    refreshBtn.style.cursor = "pointer";
-    refreshBtn.style.textDecoration = "underline";
-    refreshBtn.style.verticalAlign = "baseline";
-    refreshBtn.style.fontWeight = "bold";
-    refreshBtn.style.transition = "color 0.3s ease";
-
-    const hoverAccent = "#ff4d00";
-    refreshBtn.onmouseover = () => {
-      refreshBtn.style.color = hoverAccent;
-    };
-    refreshBtn.onmouseout = () => {
-      refreshBtn.style.color = versionColor;
-    };
-
-    refreshBtn.onclick = () => location.reload(true);
-    footerEl.appendChild(refreshBtn);
-  }
-
-  // ✅ Step 4: Fade out after 5 seconds
+  // ✅ Step 3: Fade out after 5 seconds
   setTimeout(() => {
     footerEl.style.opacity = "0";
 
@@ -228,7 +215,7 @@ if ("serviceWorker" in navigator) {
       newWorker.addEventListener("statechange", () => {
         if (newWorker.state === "installed") {
           if (navigator.serviceWorker.controller) {
-            updateFooterMessage("Update Available", true);
+            updateFooterMessage("Update Available");
           } else {
             updateFooterMessage("Cached Offline");
           }
@@ -237,3 +224,104 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+// Check for updates button
+const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
+
+document.addEventListener("click", (event) => {
+  const footerEl = document.getElementById("VersionNumber");
+
+  if (!footerEl || footerEl.classList.contains("footer-hidden")) return;
+
+  // Optional: prevent fade-out if the click was on the update button
+  const clickedElement = event.target;
+  if (clickedElement.id === "checkUpdatesBtn") return;
+
+  // Trigger fade-out
+  footerEl.style.opacity = "0";
+
+  setTimeout(() => {
+    footerEl.classList.add("footer-hidden");
+    footerEl.style.visibility = "hidden";
+  }, 600); // match transition duration
+});
+
+checkUpdatesBtn.addEventListener("click", () => {
+  fetch("./commits.json", { cache: "no-store" })
+    .then((res) => res.json())
+    .then(({ latestHash, version }) => {
+      const storedHash = localStorage.getItem("lastSeenHash");
+      const storedVersion = localStorage.getItem("lastSeenVersion");
+
+      const isNewVersion =
+        version !== storedVersion || latestHash !== storedHash;
+
+      if (isNewVersion) {
+        localStorage.setItem("lastSeenVersion", version);
+        localStorage.setItem("lastSeenHash", latestHash);
+
+        footerEl.innerHTML = `⟳ Update available — refreshing shortly...
+        <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
+        // Fade in footer
+        footerEl.style.opacity = "0";
+        footerEl.style.visibility = "hidden";
+        void footerEl.offsetWidth;
+        footerEl.style.visibility = "visible";
+        footerEl.style.opacity = "0.9";
+
+        // Schedule reload
+        const reloadTimeout = setTimeout(() => {
+          location.reload(true);
+        }, 5000);
+
+        // Cancel button logic
+        document
+          .getElementById("cancelReloadBtn")
+          .addEventListener("click", () => {
+            clearTimeout(reloadTimeout);
+
+            footerEl.innerHTML = `⟳ Update available — refresh canceled`;
+
+            setTimeout(() => {
+              footerEl.style.opacity = "0";
+              setTimeout(() => {
+                footerEl.classList.add("footer-hidden");
+                footerEl.style.visibility = "hidden";
+              }, 600);
+            }, 4000);
+          });
+      } else {
+        footerEl.innerHTML = `⟳ You're already on the latest version`;
+        footerEl.style.opacity = "0";
+        footerEl.style.visibility = "hidden";
+        void footerEl.offsetWidth;
+        footerEl.style.visibility = "visible";
+        footerEl.style.opacity = "0.9";
+
+        setTimeout(() => {
+          footerEl.style.opacity = "0";
+          setTimeout(() => {
+            footerEl.classList.add("footer-hidden");
+            footerEl.style.visibility = "hidden";
+          }, 600);
+        }, 5000);
+      }
+    })
+    .catch((err) => {
+      console.warn("Manual update check failed:", err);
+      footerEl.innerHTML = `⟳ Could not check for updates`;
+      footerEl.style.opacity = "0";
+      footerEl.style.visibility = "hidden";
+      void footerEl.offsetWidth;
+      footerEl.style.visibility = "visible";
+      footerEl.style.opacity = "0.9";
+
+      setTimeout(() => {
+        footerEl.style.opacity = "0";
+        setTimeout(() => {
+          footerEl.classList.add("footer-hidden");
+          footerEl.style.visibility = "hidden";
+        }, 600);
+      }, 5000);
+    });
+});
