@@ -7,7 +7,6 @@ import * as visuals from "./visuals.js";
 import { formatTime } from "./utils.js";
 
 // === Internal State ===
-let appMode = "trainer"; // or "metronome"
 let metronome = {};
 let ui = {};
 let sessionConfig = {};
@@ -19,7 +18,6 @@ export function initSessionEngine(deps) {
   // Store injected dependencies
   metronome = deps.metronome;
   ui = deps.ui;
-  ui.appModeEl = document.getElementById("appMode");
 
   // Config options
   sessionConfig = {
@@ -68,58 +66,8 @@ export function initSessionEngine(deps) {
   }
 }
 
-// Mode switch
-ui.appModeEl = document.getElementById("appMode");
-ui.appModeEl.onchange = (e) => {
-  if (flags.sessionActive) {
-    alert("Stop the metronome before switching modes.");
-    e.target.value = appMode; // revert selection
-    return;
-  }
-  appMode = e.target.value;
-  updateUIForMode(appMode);
-};
-
-function updateUIForMode(mode) {
-  const trainerElements = [
-    ui.groovesEl,
-    ui.totalCyclesEl,
-    ui.totalTimeEl,
-    ui.sessionModeEl,
-    ui.cycleDurationEl,
-    ui.cycleUnitEl,
-    ui.cyclesDoneEl,
-    ui.sessionCountdownEl,
-    ui.displayGroove,
-    ui.appModeEl,
-  ];
-
-  trainerElements.forEach((el) => {
-    if (!el) return;
-    const wrapper = el.closest("div");
-    if (wrapper) {
-      wrapper.style.display = mode === "trainer" ? "" : "none";
-    }
-  });
-
-  // Optional: update labels or show a minimal BPM-only display
-}
-
 // === Public API ===
 export function startSession() {
-  ui.appModeEl.disabled = true;
-  if (appMode === "metronome") {
-    const bpmMin = parseInt(ui.bpmMinEl.value);
-    const bpmMax = parseInt(ui.bpmMaxEl.value);
-    const bpm = utils.randomizeBpm(bpmMin, bpmMax); // ✅ new helper
-
-    metronome.startMetronome(bpm);
-    flags.sessionActive = true;
-    ui.startBtn.textContent = "Stop";
-    ui.displayBpm.textContent = `BPM: ${bpm}`;
-    return;
-  }
-
   if (flags.sessionActive) {
     // ⏹️ Stop session if already running
     if (flags.isCountingIn || flags.isFinishingBar) {
@@ -288,7 +236,6 @@ export function nextCycle() {
 }
 
 export function stopSession(message = "") {
-  ui.appModeEl.disabled = false;
   flags.sessionActive = false;
   flags.isPaused = false;
   flags.isCountingIn = false;
