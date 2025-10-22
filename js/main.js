@@ -5,6 +5,9 @@ import { initUI } from "./uiController.js";
 import * as utils from "./utils.js";
 import { initSessionEngine } from "./sessionEngine.js";
 
+// Expose for visuals and console debugging
+window.metronome = metronome; // <-- add this line (or use Option B)
+
 // set early to fetch from commits.json
 let appVersion;
 let versionColor;
@@ -31,10 +34,39 @@ const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
 
 // === Metronome Setup ===
-// Register beat visualizer with metronome using beats-per-bar getter
-metronome.registerVisualCallback(
-  createVisualCallback(metronome.getBeatsPerBar)
-);
+// Expose metronome module to DevTools for debugging (safe for dev)
+window.metronome = window.metronome || metronome;
+
+// Ensure window.metronome exists and expose safe getters for visuals and debugging
+if (
+  typeof metronome.getTicksPerBeat === "function" &&
+  !window.metronome.getTicksPerBeat
+)
+  window.metronome.getTicksPerBeat = metronome.getTicksPerBeat;
+if (
+  typeof metronome.getBeatsPerBar === "function" &&
+  !window.metronome.getBeatsPerBar
+)
+  window.metronome.getBeatsPerBar = metronome.getBeatsPerBar;
+if (typeof metronome.getBpm === "function" && !window.metronome.getBpm)
+  window.metronome.getBpm = metronome.getBpm;
+if (
+  typeof metronome.getPauseState === "function" &&
+  !window.metronome.getPauseState
+)
+  window.metronome.getPauseState = metronome.getPauseState;
+
+// Create visuals callback (backwards-compatible)
+const visualsCallback = createVisualCallback(metronome.getBeatsPerBar);
+
+// Adapter: translate metronome tick signature to visuals
+metronome.registerVisualCallback((tickIndex, isAccent, tickInBeat) => {
+  try {
+    visualsCallback(tickIndex, isAccent, tickInBeat);
+  } catch (err) {
+    console.error("visuals callback error:", err);
+  }
+});
 
 // === Session Engine Setup ===
 // Wire up session engine with metronome and UI dependencies
@@ -97,8 +129,7 @@ const messageKey = (status) =>
 
 const hashKey = "lastSeenHash";
 
-fetch('./commits.json', { cache: 'no-store' })
-
+fetch("./commits.json", { cache: "no-store" })
   .then((res) => res.json())
   .then(({ latestHash, version }) => {
     appVersion = version;
