@@ -97,9 +97,8 @@ const messageKey = (status) =>
 
 const hashKey = "lastSeenHash";
 
-fetch(`./commits.json?ts=${Date.now()}`, {
-  cache: 'no-store'
-})
+fetch('./commits.json', { cache: 'no-store' })
+
   .then((res) => res.json())
   .then(({ latestHash, version }) => {
     appVersion = version;
