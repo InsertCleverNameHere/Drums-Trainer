@@ -33,5 +33,18 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+  const url = new URL(e.request.url);
+
+  if (url.pathname.endsWith("/commits.json")) {
+    // Network-first strategy with cache fallback
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Default cache-first strategy for everything else
+  e.respondWith(
+    caches.match(e.request).then((r) => r || fetch(e.request))
+  );
 });
