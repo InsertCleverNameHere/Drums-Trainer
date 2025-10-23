@@ -121,6 +121,106 @@ initUI({
   performCountIn: metronome.performCountIn,
 });
 
+// Initialize simple metronome with an optional tick visual hook
+simpleMetronome.initSimpleMetronome({
+  initialBpm: 120,
+  // No direct visualTick dependency; emit a small DOM pulse if a dot element exists
+  tickCallback: () => {
+    const dot = document.getElementById("simpleMetronomeDot");
+    if (!dot) return;
+    dot.classList.add("pulse");
+    setTimeout(() => dot.classList.remove("pulse"), 120);
+  },
+});
+
+// Wire simple metronome panel controls
+// Ensure simple metronome wiring runs after DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  const startBtn = document.getElementById("simpleStartBtn");
+  const pauseBtn = document.getElementById("simplePauseBtn");
+  const bpmEl = document.getElementById("simpleBpm");
+  const ownerPanelEventTarget = document;
+
+  function updateSimpleUI() {
+    const running =
+      typeof simpleMetronome.isRunning === "function" &&
+      simpleMetronome.isRunning();
+    const paused =
+      typeof simpleMetronome.isPaused === "function" &&
+      simpleMetronome.isPaused();
+
+    if (startBtn) {
+      startBtn.textContent = running ? "Stop" : "Start";
+      startBtn.disabled = false;
+    }
+    if (pauseBtn) {
+      pauseBtn.disabled = !running;
+      pauseBtn.textContent = paused ? "Resume" : "Pause";
+    }
+  }
+
+  if (!startBtn) {
+    console.warn(
+      "simpleStartBtn not found; check DOM ID or ensure this script runs after the element."
+    );
+    return;
+  }
+
+  startBtn.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    const owner =
+      typeof sessionEngine.getActiveModeOwner === "function"
+        ? sessionEngine.getActiveModeOwner()
+        : null;
+    if (owner && owner !== "simple") {
+      console.warn("Cannot start simple metronome while", owner, "is active");
+      return;
+    }
+
+    const running =
+      typeof simpleMetronome.isRunning === "function" &&
+      simpleMetronome.isRunning();
+    const desiredBpm = bpmEl ? parseInt(bpmEl.value, 10) : null;
+    if (desiredBpm) simpleMetronome.setBpm(desiredBpm);
+
+    if (!running) {
+      try {
+        const result = await simpleMetronome.start();
+      } catch (err) {
+        console.error("simpleMetronome.start() threw:", err);
+      }
+    } else {
+      try {
+        simpleMetronome.stop();
+      } catch (err) {
+        console.error("simpleMetronome.stop() threw:", err);
+      }
+    }
+
+    updateSimpleUI();
+  });
+
+  if (pauseBtn) {
+    pauseBtn.addEventListener("click", () => {
+      if (
+        typeof simpleMetronome.isPaused === "function" &&
+        simpleMetronome.isPaused()
+      ) {
+        simpleMetronome.resume();
+      } else {
+        simpleMetronome.pause();
+      }
+      updateSimpleUI();
+    });
+  }
+
+  ownerPanelEventTarget.addEventListener("metronome:ownerChanged", () => {
+    setTimeout(updateSimpleUI, 0);
+  });
+
+  updateSimpleUI();
+});
+
 // --- Mode tabs with blocking while either metronome is active ---
 const tabGroove = document.getElementById("tab-groove");
 const tabMet = document.getElementById("tab-metronome");
@@ -456,7 +556,4 @@ if (checkUpdatesBtn) {
       });
   });
 } else {
-  console.info(
-    "Check updates button not present; skipping manual update wiring."
-  );
 }
