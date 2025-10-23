@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <link rel="icon" href="./favicon.ico" />
@@ -14,182 +14,253 @@
       instantly. Built-in metronome uses lightweight bundled javascript for
       accuracy.
     </p>
-<div id="tooltipTrigger" title="Help / Hotkeys">❔</div>
-<div id="tooltipDialog">
-  <div class="tooltip-content">
-    <h2>🎵 Random Groove Trainer</h2>
-    <p>This app helps you practice groove transitions by randomly selecting a BPM and groove name. You set a BPM range, enter groove names, and choose session settings. The built-in metronome guides you through each cycle.</p>
+    <div id="tooltipTrigger" title="Help / Hotkeys">❔</div>
+    <div id="tooltipDialog">
+      <div class="tooltip-content">
+        <h2>🎵 Random Groove Trainer</h2>
+        <p>
+          This app helps you practice groove transitions by randomly selecting a
+          BPM and groove name. You set a BPM range, enter groove names, and
+          choose session settings. The built-in metronome guides you through
+          each cycle.
+        </p>
 
-    <p><strong>How to use:</strong></p>
-    <ul>
-      <li>Set your desired BPM range</li>
-      <li>Enter groove names (one per line)</li>
-      <li>Choose session duration or cycle count</li>
-      <li>Click <strong>Start</strong> or press <strong>Space</strong> to begin</li>
-    </ul>
+        <p><strong>How to use:</strong></p>
+        <ul>
+          <li>Set your desired BPM range</li>
+          <li>Enter groove names (one per line)</li>
+          <li>Choose session duration or cycle count</li>
+          <li>
+            Click <strong>Start</strong> or press <strong>Space</strong> to
+            begin
+          </li>
+        </ul>
 
-    <p><strong>Hotkeys:</strong></p>
-    <ul>
-      <li>H = Show this help</li>
-      <li>⎵ Space = ▶️ Start / ⏹️ Stop</li>
-      <li>P = ⏸️ Pause / ▶️ Resume</li>
-      <li>N = ⏭️ Next Groove</li>
-      <li>⬆️ / ⬇️ = Adjust BPM (±5)</li>
-      <li>Shift + ⬆️ / ⬇️ = Fine Tune (±1)</li>
-      <li>← / → = Switch Min/Max</li>
-    </ul>
-  </div>
-</div>
-<button id="checkUpdatesBtn" title="Check for updates">⟳</button>
-
-
-    <label>BPM range (min / max)</label>
-    <div class="row">
-      <div class="col">
-        <input
-          id="bpmMin"
-          type="number"
-          inputmode="numeric"
-          min="5"
-          max="500"
-          value="30"
-          step="5"
-        />
-      </div>
-      <div class="col">
-        <input
-          id="bpmMax"
-          type="number"
-          inputmode="numeric"
-          min="5"
-          max="500"
-          value="60"
-          step="5"
-        />
+        <p><strong>Hotkeys:</strong></p>
+        <ul>
+          <li>H = Show this help</li>
+          <li>⎵ Space = ▶️ Start / ⏹️ Stop</li>
+          <li>P = ⏸️ Pause / ▶️ Resume</li>
+          <li>N = ⏭️ Next Groove</li>
+          <li>⬆️ / ⬇️ = Adjust BPM (±5)</li>
+          <li>Shift + ⬆️ / ⬇️ = Fine Tune (±1)</li>
+          <li>← / → = Switch Min/Max</li>
+        </ul>
       </div>
     </div>
+    <button id="checkUpdatesBtn" title="Check for updates">⟳</button>
 
-    <label>Groove names (one per line)</label>
-    <textarea
-  id="grooves"
-  rows="10"
-  placeholder="Rock 
+    <!-- TABS -->
+    <div class="mode-tabs" role="tablist" aria-label="Mode selector">
+      <button
+        id="tab-groove"
+        class="tab active"
+        role="tab"
+        aria-selected="true"
+      >
+        Groove Randomizer
+      </button>
+      <button id="tab-metronome" class="tab" role="tab" aria-selected="false">
+        Metronome
+      </button>
+    </div>
+
+    <!-- PANELS -->
+    <!-- Groove panel: wrap existing groove UI here -->
+    <div id="panel-groove" class="panel">
+      <!-- BEGIN existing Groove UI -->
+      <label>BPM range (min / max)</label>
+      <div class="row">
+        <div class="col">
+          <input
+            id="bpmMin"
+            type="number"
+            inputmode="numeric"
+            min="5"
+            max="500"
+            value="30"
+            step="5"
+          />
+        </div>
+        <div class="col">
+          <input
+            id="bpmMax"
+            type="number"
+            inputmode="numeric"
+            min="5"
+            max="500"
+            value="60"
+            step="5"
+          />
+        </div>
+      </div>
+
+      <label>Groove names (one per line)</label>
+      <textarea
+        id="grooves"
+        rows="10"
+        placeholder="Rock 
 Funk
 واحدة ونص
 مقسوم
 وحدة كبيرة
 ملفوف"
->Rock
+      >
+Rock
 Funk
 واحدة ونص
 مقسوم
 وحدة كبيرة
-ملفوف</textarea>
+ملفوف</textarea
+      >
 
+      <label>Beats per bar</label>
+      <input
+        id="beatsPerBar"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        max="12"
+        value="4"
+      />
 
-    <label>Beats per bar</label>
-    <input
-      id="beatsPerBar"
-      type="number"
-      inputmode="numeric"
-      min="1"
-      max="12"
-      value="4"
-    />
-
-    <div class="row">
-      <div class="col">
-        <label>Time per cycle</label>
-        <div class="row" style="gap: 6px">
-          <input
-            id="cycleDuration"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            value="60"
-            step="1"
-          />
-          <select id="cycleUnit">
-            <option value="seconds" selected>Seconds</option>
-            <option value="minutes">Minutes</option>
+      <div class="row">
+        <div class="col">
+          <label>Time per cycle</label>
+          <div class="row" style="gap: 6px">
+            <input
+              id="cycleDuration"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              value="60"
+              step="1"
+            />
+            <select id="cycleUnit">
+              <option value="seconds" selected>Seconds</option>
+              <option value="minutes">Minutes</option>
+            </select>
+          </div>
+        </div>
+        <div class="col">
+          <label>Session limit (choose one)</label>
+          <select id="sessionMode">
+            <option value="infinite">Run until Stop</option>
+            <option value="cycles">Total cycles (set below)</option>
+            <option value="time">Total session time</option>
           </select>
         </div>
       </div>
-      <div class="col">
-        <label>Session limit (choose one)</label>
-        <select id="sessionMode">
-          <option value="infinite">Run until Stop</option>
-          <option value="cycles">Total cycles (set below)</option>
-          <option value="time">Total session time</option>
-        </select>
-      </div>
-    </div>
 
-    <div class="row" style="margin-top: 8px">
-      <div class="col">
-        <label id="cyclesLabel">Total cycles</label>
-        <input
-          id="totalCycles"
-          type="number"
-          inputmode="numeric"
-          min="1"
-          value="5"
-          step="1"
-        />
-      </div>
-      <div class="col">
-        <label id="totalTimeLabel">Total session time</label>
-        <div class="row" style="gap: 6px">
+      <div class="row" style="margin-top: 8px">
+        <div class="col">
+          <label id="cyclesLabel">Total cycles</label>
           <input
-            id="totalTime"
+            id="totalCycles"
             type="number"
             inputmode="numeric"
             min="1"
-            value="300"
+            value="5"
             step="1"
           />
-          <select id="totalTimeUnit">
-            <option value="seconds" selected>Seconds</option>
-            <option value="minutes">Minutes</option>
-            <option value="hours">Hours</option>
-          </select>
+        </div>
+        <div class="col">
+          <label id="totalTimeLabel">Total session time</label>
+          <div class="row" style="gap: 6px">
+            <input
+              id="totalTime"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              value="300"
+              step="1"
+            />
+            <select id="totalTimeUnit">
+              <option value="seconds" selected>Seconds</option>
+              <option value="minutes">Minutes</option>
+              <option value="hours">Hours</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn" disabled>Pause</button>
+        <button id="nextBtn" disabled>Next</button>
+        <label class="toggle" style="margin-left: 12px">
+          <input id="tempoSyncedToggle" type="checkbox" />
+          <span id="tempoSyncedLabel">Tempo-synced Count-in</span>
+        </label>
+      </div>
+
+      <div class="status" aria-live="polite">
+        <div class="big" id="displayBpm">BPM: —</div>
+        <div class="big" id="displayGroove">Groove: —</div>
+        <div style="margin-top: 8px">
+          Cycle remaining time: <span id="countdown">—</span>
+        </div>
+
+        <div style="margin-top: 6px">
+          Cycles done: <span id="cyclesDone">0</span>
+        </div>
+
+        <div style="margin-top: 6px">
+          Session remaining time: <span id="sessionCountdown">—</span>
+        </div>
+
+        <div style="margin-top: 8px">
+          <span id="finishingBadge" class="finishing-badge"
+            >Finishing bar…</span
+          >
+        </div>
+        <div id="metronomeVisuals">
+          <div id="countdownBadge" class="countdown-badge"></div>
+          <div id="beat-indicator-container"></div>
+        </div>
+      </div>
+      <!-- END existing Groove UI -->
+    </div>
+
+    <!-- Simple Metronome panel (initially hidden) -->
+    <div id="panel-metronome" class="panel hidden">
+      <label>Metronome BPM</label>
+      <input
+        id="simpleBpm"
+        type="number"
+        inputmode="numeric"
+        min="20"
+        max="400"
+        value="120"
+        step="1"
+      />
+
+      <label>Beats per bar</label>
+      <input
+        id="simpleBeatsPerBar"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        max="12"
+        value="4"
+        step="1"
+      />
+
+      <div class="controls">
+        <button id="simpleStartStopBtn">Start</button>
+        <button id="simplePauseBtn" disabled>Pause</button>
+      </div>
+
+      <div class="status">
+        <div class="big" id="simpleDisplayBpm">BPM: —</div>
+        <div id="metronomeVisualsSimple" style="margin-top: 12px">
+          <div id="countdownBadgeSimple" class="countdown-badge"></div>
+          <div id="beat-indicator-container-simple"></div>
         </div>
       </div>
     </div>
 
-    <div class="controls">
-      <button id="startBtn">Start</button>
-      <button id="pauseBtn" disabled>Pause</button>
-      <button id="nextBtn" disabled>Next</button>
-      <label class="toggle" style="margin-left: 12px">
-        <input id="tempoSyncedToggle" type="checkbox" />
-        <span id="tempoSyncedLabel">Tempo-synced Count-in</span>
-      </label>
-    </div>
-    <div class="status" aria-live="polite">
-      <div class="big" id="displayBpm">BPM: —</div>
-      <div class="big" id="displayGroove">Groove: —</div>
-      <div style="margin-top: 8px">
-        Cycle remaining time: <span id="countdown">—</span>
-      </div>
-
-      <div style="margin-top: 6px">
-        Cycles done: <span id="cyclesDone">0</span>
-      </div>
-
-      <div style="margin-top: 6px">
-        Session remaining time: <span id="sessionCountdown">—</span>
-      </div>
-
-      <div style="margin-top: 8px">
-        <span id="finishingBadge" class="finishing-badge">Finishing bar…</span>
-      </div>
-      <div id="metronomeVisuals">
-  <div id="countdownBadge" class="countdown-badge"></div>
-  <div id="beat-indicator-container"></div>
-</div>
-<footer id="VersionNumber"></footer>
-
+    <footer id="VersionNumber"></footer>
     <!-- JS -->
     <script type="module" src="./js/main.js"></script>
   </body>

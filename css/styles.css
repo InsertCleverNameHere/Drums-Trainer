@@ -394,3 +394,52 @@ button:disabled {
   color: #ff4d00;
   border-color: #ff4d00;
 }
+
+/* Tabs and panels for simple metronome mode */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.tab {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #eee;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  font-weight: 600;
+}
+.tab.active {
+  background: #333;
+  color: #fff;
+}
+.tab.disabled {
+  background: #f3f3f3;
+  color: #999;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.panel {
+  margin-top: 8px;
+}
+.hidden {
+  display: none !important;
+}
+
+/* Simple metronome visuals container and dot */
+#beat-indicator-container-simple {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+.beat-dot-simple {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #bfbfbf;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+}

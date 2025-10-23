@@ -6,7 +6,7 @@ import * as utils from "./utils.js";
 import { initSessionEngine } from "./sessionEngine.js";
 
 // Expose for visuals and console debugging
-window.metronome = metronome; // <-- add this line (or use Option B)
+window.metronome = metronome; //
 
 // set early to fetch from commits.json
 let appVersion;
@@ -119,6 +119,32 @@ initUI({
   requestEndOfCycle: metronome.requestEndOfCycle,
   performCountIn: metronome.performCountIn,
 });
+
+// --- Tab switching (Step 1 wiring) ---
+const tabGroove = document.getElementById("tab-groove");
+const tabMet = document.getElementById("tab-metronome");
+const panelGroove = document.getElementById("panel-groove");
+const panelMet = document.getElementById("panel-metronome");
+
+function setActiveMode(mode) {
+  if (mode === "groove") {
+    tabGroove.classList.add("active");
+    tabMet.classList.remove("active");
+    panelGroove.classList.remove("hidden");
+    panelMet.classList.add("hidden");
+  } else {
+    tabMet.classList.add("active");
+    tabGroove.classList.remove("active");
+    panelMet.classList.remove("hidden");
+    panelGroove.classList.add("hidden");
+  }
+}
+
+tabGroove.addEventListener("click", () => setActiveMode("groove"));
+tabMet.addEventListener("click", () => setActiveMode("metronome"));
+
+// ensure initial state
+setActiveMode("groove");
 
 // === Version Log ===
 const footerEl = document.getElementById("VersionNumber");
@@ -246,52 +272,80 @@ document.addEventListener("click", (event) => {
   }, 600); // match transition duration
 });
 
-checkUpdatesBtn.addEventListener("click", () => {
-  fetch("./commits.json", { cache: "no-store" })
-    .then((res) => res.json())
-    .then(({ latestHash, version }) => {
-      const storedHash = localStorage.getItem("lastSeenHash");
-      const storedVersion = localStorage.getItem("lastSeenVersion");
+if (checkUpdatesBtn) {
+  checkUpdatesBtn.addEventListener("click", () => {
+    const footerEl = document.getElementById("VersionNumber");
+    if (!footerEl) {
+      console.warn("Update check aborted: footer element not found");
+      return;
+    }
 
-      const isNewVersion =
-        version !== storedVersion || latestHash !== storedHash;
+    fetch("./commits.json", { cache: "no-store" })
+      .then((res) => res.json())
+      .then(({ latestHash, version }) => {
+        const storedHash = localStorage.getItem("lastSeenHash");
+        const storedVersion = localStorage.getItem("lastSeenVersion");
 
-      if (isNewVersion) {
-        localStorage.setItem("lastSeenVersion", version);
-        localStorage.setItem("lastSeenHash", latestHash);
+        const isNewVersion =
+          version !== storedVersion || latestHash !== storedHash;
 
-        footerEl.innerHTML = `⟳ Update available — refreshing shortly...
-        <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
-        // Fade in footer
-        footerEl.style.opacity = "0";
-        footerEl.style.visibility = "hidden";
-        void footerEl.offsetWidth;
-        footerEl.style.visibility = "visible";
-        footerEl.style.opacity = "0.9";
+        if (isNewVersion) {
+          localStorage.setItem("lastSeenVersion", version);
+          localStorage.setItem("lastSeenHash", latestHash);
 
-        // Schedule reload
-        const reloadTimeout = setTimeout(() => {
-          location.reload(true);
-        }, 5000);
+          footerEl.innerHTML = `⟳ Update available — refreshing shortly...
+          <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
+          // Fade in footer
+          footerEl.style.opacity = "0";
+          footerEl.style.visibility = "hidden";
+          void footerEl.offsetWidth;
+          footerEl.style.visibility = "visible";
+          footerEl.style.opacity = "0.9";
 
-        // Cancel button logic
-        document
-          .getElementById("cancelReloadBtn")
-          .addEventListener("click", () => {
-            clearTimeout(reloadTimeout);
+          // Schedule reload
+          const reloadTimeout = setTimeout(() => {
+            location.reload(true);
+          }, 5000);
 
-            footerEl.innerHTML = `⟳ Update available — refresh canceled`;
+          // Cancel button logic (guard the cancel button exists before attaching listener)
+          const cancelBtn = document.getElementById("cancelReloadBtn");
+          if (cancelBtn) {
+            cancelBtn.addEventListener("click", () => {
+              clearTimeout(reloadTimeout);
 
-            setTimeout(() => {
-              footerEl.style.opacity = "0";
+              footerEl.innerHTML = `⟳ Update available — refresh canceled`;
+
               setTimeout(() => {
-                footerEl.classList.add("footer-hidden");
-                footerEl.style.visibility = "hidden";
-              }, 600);
-            }, 4000);
-          });
-      } else {
-        footerEl.innerHTML = `⟳ You're already on the latest version`;
+                footerEl.style.opacity = "0";
+                setTimeout(() => {
+                  footerEl.classList.add("footer-hidden");
+                  footerEl.style.visibility = "hidden";
+                }, 600);
+              }, 4000);
+            });
+          }
+        } else {
+          footerEl.innerHTML = `⟳ You're already on the latest version`;
+          footerEl.style.opacity = "0";
+          footerEl.style.visibility = "hidden";
+          void footerEl.offsetWidth;
+          footerEl.style.visibility = "visible";
+          footerEl.style.opacity = "0.9";
+
+          setTimeout(() => {
+            footerEl.style.opacity = "0";
+            setTimeout(() => {
+              footerEl.classList.add("footer-hidden");
+              footerEl.style.visibility = "hidden";
+            }, 600);
+          }, 5000);
+        }
+      })
+      .catch((err) => {
+        console.warn("Manual update check failed:", err);
+        const footerEl = document.getElementById("VersionNumber");
+        if (!footerEl) return;
+        footerEl.innerHTML = `⟳ Could not check for updates`;
         footerEl.style.opacity = "0";
         footerEl.style.visibility = "hidden";
         void footerEl.offsetWidth;
@@ -305,23 +359,10 @@ checkUpdatesBtn.addEventListener("click", () => {
             footerEl.style.visibility = "hidden";
           }, 600);
         }, 5000);
-      }
-    })
-    .catch((err) => {
-      console.warn("Manual update check failed:", err);
-      footerEl.innerHTML = `⟳ Could not check for updates`;
-      footerEl.style.opacity = "0";
-      footerEl.style.visibility = "hidden";
-      void footerEl.offsetWidth;
-      footerEl.style.visibility = "visible";
-      footerEl.style.opacity = "0.9";
-
-      setTimeout(() => {
-        footerEl.style.opacity = "0";
-        setTimeout(() => {
-          footerEl.classList.add("footer-hidden");
-          footerEl.style.visibility = "hidden";
-        }, 600);
-      }, 5000);
-    });
-});
+      });
+  });
+} else {
+  console.info(
+    "Check updates button not present; skipping manual update wiring."
+  );
+}
