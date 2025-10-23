@@ -5,6 +5,21 @@
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
 import { formatTime } from "./utils.js";
+let activeModeOwner = null; // "groove" | "simple" | null
+
+export function setActiveModeOwner(owner) {
+  activeModeOwner = owner || null;
+  // dispatch a DOM event so other code can react immediately
+  document.dispatchEvent(
+    new CustomEvent("metronome:ownerChanged", {
+      detail: { owner: activeModeOwner },
+    })
+  );
+}
+
+export function getActiveModeOwner() {
+  return activeModeOwner;
+}
 
 // === Internal State ===
 let metronome = {};
@@ -246,6 +261,9 @@ export function stopSession(message = "") {
   flags.pausedRemaining = 0;
   flags.sessionRemaining = 0;
 
+  // Release ownership so other modes can start
+  setActiveModeOwner(null);
+
   metronome.stopMetronome();
 
   clearInterval(timers.activeTimer);
@@ -370,6 +388,8 @@ function runCycle() {
 
   let step = 3;
   const interval = sessionConfig.tempoSynced ? 60000 / bpm : 1000;
+  // Claim ownership so UI can block other modes during count-in and playback
+  setActiveModeOwner("groove");
   flags.isCountingIn = true;
   ui.pauseBtn.disabled = true;
   ui.startBtn.disabled = true;
@@ -453,4 +473,8 @@ function showCountdownVisual(step) {
     step,
     fadeIn: true,
   });
+}
+
+export function isSessionActive() {
+  return !!flags.sessionActive;
 }
