@@ -420,6 +420,13 @@ export function initUI(deps) {
   }
 
   document.addEventListener("toggleTooltip", toggleTooltip);
+  // Make the tooltipTrigger button toggle the tooltip reliably
+  if (tooltipTrigger) {
+    tooltipTrigger.addEventListener("click", (ev) => {
+      ev.stopPropagation(); // prevent document click handler from closing it immediately
+      toggleTooltip();
+    });
+  }
 
   // Close tooltip if clicked outside it
   document.addEventListener("click", (event) => {
