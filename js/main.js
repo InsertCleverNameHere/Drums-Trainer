@@ -460,7 +460,12 @@ if ("serviceWorker" in navigator) {
       newWorker.addEventListener("statechange", () => {
         if (newWorker.state === "installed") {
           if (navigator.serviceWorker.controller) {
+            // Update Available, let's notify
             updateFooterMessage("Update Available");
+            // Optionally auto-reload after some time
+            setTimeout(() => {
+              location.reload(true); // force page reload with updated service worker
+            }, 3000);
           } else {
             updateFooterMessage("Cached Offline");
           }
@@ -499,6 +504,13 @@ if (checkUpdatesBtn) {
       return;
     }
 
+    footerEl.innerHTML = `⟳ Checking for updates...`; // Update footer immediately
+    footerEl.style.opacity = "0";
+    footerEl.style.visibility = "hidden";
+    void footerEl.offsetWidth;
+    footerEl.style.visibility = "visible";
+    footerEl.style.opacity = "0.9";
+
     fetch("./commits.json", { cache: "no-store" })
       .then((res) => res.json())
       .then(({ latestHash, version }) => {
@@ -509,15 +521,17 @@ if (checkUpdatesBtn) {
           version !== storedVersion || latestHash !== storedHash;
 
         if (isNewVersion) {
+          // Update stored version and hash
           localStorage.setItem("lastSeenVersion", version);
           localStorage.setItem("lastSeenHash", latestHash);
 
           footerEl.innerHTML = `⟳ Update available — refreshing shortly...
           <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
+
           // Fade in footer
           footerEl.style.opacity = "0";
           footerEl.style.visibility = "hidden";
-          void footerEl.offsetWidth;
+          void footerEl.offsetWidth; // Trigger reflow to ensure visibility transition
           footerEl.style.visibility = "visible";
           footerEl.style.opacity = "0.9";
 
@@ -526,11 +540,11 @@ if (checkUpdatesBtn) {
             location.reload(true);
           }, 5000);
 
-          // Cancel button logic (guard the cancel button exists before attaching listener)
+          // Cancel button logic
           const cancelBtn = document.getElementById("cancelReloadBtn");
           if (cancelBtn) {
             cancelBtn.addEventListener("click", () => {
-              clearTimeout(reloadTimeout);
+              clearTimeout(reloadTimeout); // Cancel the scheduled reload
 
               footerEl.innerHTML = `⟳ Update available — refresh canceled`;
 
@@ -580,5 +594,4 @@ if (checkUpdatesBtn) {
         }, 5000);
       });
   });
-} else {
 }

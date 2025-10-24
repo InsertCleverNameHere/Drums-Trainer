@@ -12,6 +12,8 @@ const FILES_TO_CACHE = [
   "./js/metronomeCore.js",
   "./js/sessionEngine.js",
   "./js/uiController.js",
+  "./js/simpleMetronome.js",
+  "./js/simpleMetronomeCore.js",
 ];
 
 self.addEventListener("install", (e) => {
@@ -32,19 +34,31 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
-  const url = new URL(e.request.url);
+self.addEventListener("fetch", (event) => {
+  if (event.request.url.includes("commits.json")) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        // If the cached version is available, return it.
+        if (cachedResponse) {
+          // Fetch from network in parallel to update the cache
+          fetch(event.request).then((networkResponse) => {
+            // Once the network request is successful, update the cache
+            caches.open("groove-trainer-v1").then((cache) => {
+              cache.put(event.request, networkResponse);
+            });
+          });
+          return cachedResponse;
+        }
 
-  if (url.pathname.endsWith("/commits.json")) {
-    // Network-first strategy with cache fallback
-    e.respondWith(
-      fetch(e.request).catch(() => caches.match(e.request))
+        // If not cached, go ahead and fetch from the network
+        return fetch(event.request).then((networkResponse) => {
+          // Cache the response for future use
+          return caches.open("groove-trainer-v1").then((cache) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+        });
+      })
     );
-    return;
   }
-
-  // Default cache-first strategy for everything else
-  e.respondWith(
-    caches.match(e.request).then((r) => r || fetch(e.request))
-  );
 });
