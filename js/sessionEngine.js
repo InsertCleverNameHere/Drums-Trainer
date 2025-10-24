@@ -5,6 +5,21 @@
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
 import { formatTime } from "./utils.js";
+let activeModeOwner = null; // "groove" | "simple" | null
+
+export function setActiveModeOwner(owner) {
+  activeModeOwner = owner || null;
+  // dispatch a DOM event so other code can react immediately
+  document.dispatchEvent(
+    new CustomEvent("metronome:ownerChanged", {
+      detail: { owner: activeModeOwner },
+    })
+  );
+}
+
+export function getActiveModeOwner() {
+  return activeModeOwner;
+}
 
 // === Internal State ===
 let metronome = {};
@@ -68,6 +83,23 @@ export function initSessionEngine(deps) {
 
 // === Public API ===
 export function startSession() {
+  // Ownership guard: refuse to start groove if another owner is active
+  const currentOwner =
+    typeof getActiveModeOwner === "function" ? getActiveModeOwner() : null;
+  if (currentOwner && currentOwner !== "groove") {
+    console.warn("Cannot start groove session: owner is", currentOwner);
+    return false;
+  }
+
+  // Claim ownership for groove before starting playback
+  if (typeof setActiveModeOwner === "function") {
+    setActiveModeOwner("groove");
+  }
+  // Broadcast canonical owner change so other modules know immediately
+  document.dispatchEvent(
+    new CustomEvent("metronome:ownerChanged", { detail: { owner: "groove" } })
+  );
+
   if (flags.sessionActive) {
     // ⏹️ Stop session if already running
     if (flags.isCountingIn || flags.isFinishingBar) {
@@ -236,6 +268,11 @@ export function nextCycle() {
 }
 
 export function stopSession(message = "") {
+  // Ownership release: clear active mode owner
+  if (typeof setActiveModeOwner === "function") setActiveModeOwner(null);
+  document.dispatchEvent(
+    new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
+  );
   flags.sessionActive = false;
   flags.isPaused = false;
   flags.isCountingIn = false;
@@ -245,6 +282,9 @@ export function stopSession(message = "") {
   flags.remaining = 0;
   flags.pausedRemaining = 0;
   flags.sessionRemaining = 0;
+
+  // Release ownership so other modes can start
+  setActiveModeOwner(null);
 
   metronome.stopMetronome();
 
@@ -370,6 +410,8 @@ function runCycle() {
 
   let step = 3;
   const interval = sessionConfig.tempoSynced ? 60000 / bpm : 1000;
+  // Claim ownership so UI can block other modes during count-in and playback
+  setActiveModeOwner("groove");
   flags.isCountingIn = true;
   ui.pauseBtn.disabled = true;
   ui.startBtn.disabled = true;
@@ -453,4 +495,8 @@ function showCountdownVisual(step) {
     step,
     fadeIn: true,
   });
+}
+
+export function isSessionActive() {
+  return !!flags.sessionActive;
 }

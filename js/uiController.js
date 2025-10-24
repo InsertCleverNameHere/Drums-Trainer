@@ -4,7 +4,199 @@
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import { startSession } from "./sessionEngine.js";
+import * as simpleMetronome from "./simpleMetronome.js";
 
+// Hotkey handling early
+let _hotkeyLock = false;
+window.__adjustingTarget = window.__adjustingTarget || "min";
+let adjustingTarget = "min";
+
+// Global hotkeys: owner-first; arrows repeatable
+window.addEventListener("keydown", (event) => {
+  const active = document.activeElement;
+  if (
+    active &&
+    (active.tagName === "INPUT" ||
+      active.tagName === "TEXTAREA" ||
+      active.isContentEditable)
+  )
+    return;
+
+  const code = event.code;
+  const allowRepeat = code === "ArrowUp" || code === "ArrowDown";
+  if (event.repeat && !allowRepeat) return;
+
+  const relevant = [
+    "Space",
+    "KeyP",
+    "KeyN",
+    "KeyH",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+  ];
+  if (!relevant.includes(code)) return;
+
+  if (!allowRepeat) {
+    if (_hotkeyLock) return;
+    _hotkeyLock = true;
+    setTimeout(() => (_hotkeyLock = false), 120);
+  }
+
+  if (
+    [
+      "Space",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "KeyH",
+    ].includes(code)
+  )
+    event.preventDefault();
+
+  const owner =
+    typeof sessionEngine.getActiveModeOwner === "function"
+      ? sessionEngine.getActiveModeOwner()
+      : null;
+
+  // Decide target: owner wins, then visible panel
+  const groovePanel = document.getElementById("panel-groove");
+  const simplePanel = document.getElementById("panel-metronome");
+  const grooveVisible =
+    groovePanel && !groovePanel.classList.contains("hidden");
+  const simpleVisible =
+    simplePanel && !simplePanel.classList.contains("hidden");
+
+  const decideTarget = () => {
+    if (owner === "groove") return "groove";
+    if (owner === "simple") return "simple";
+    if (grooveVisible && !simpleVisible) return "groove";
+    if (simpleVisible && !grooveVisible) return "simple";
+    return "groove";
+  };
+
+  const target = decideTarget();
+
+  const grooveStartBtn = document.getElementById("startBtn");
+  const grooveNextBtn = document.getElementById("nextBtn");
+
+  const adjustGrooveInput = (delta) => {
+    const bpmMinInput = document.getElementById("bpmMin");
+    const bpmMaxInput = document.getElementById("bpmMax");
+    const adj = window.__adjustingTarget === "max" ? bpmMaxInput : bpmMinInput;
+    if (!adj) return;
+    const step = event.shiftKey ? 1 : 5;
+    const cur = parseInt(adj.value, 10) || 0;
+    const next = Math.max(30, Math.min(300, cur + delta * step));
+    adj.value = next;
+    adj.classList.add("bpm-flash");
+    setTimeout(() => adj.classList.remove("bpm-flash"), 150);
+  };
+
+  const adjustSimpleBpm = (delta) => {
+    const el = document.getElementById("simpleBpm");
+    if (!el) return;
+    const cur =
+      parseInt(el.value || el.getAttribute("value") || 120, 10) || 120;
+    const step = event.shiftKey ? 1 : 5; // default ±5, Shift = ±1
+    const next = Math.max(20, Math.min(400, cur + delta * step));
+    el.value = next;
+    if (
+      typeof window.simpleMetronome !== "undefined" &&
+      typeof window.simpleMetronome.setBpm === "function"
+    ) {
+      window.simpleMetronome.setBpm(next);
+    } else if (
+      typeof simpleMetronome !== "undefined" &&
+      typeof simpleMetronome.setBpm === "function"
+    ) {
+      simpleMetronome.setBpm(next);
+    }
+    el.classList.add("bpm-flash");
+    setTimeout(() => el.classList.remove("bpm-flash"), 150);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
+  switch (code) {
+    case "Space":
+      if (target === "groove") {
+        if (grooveStartBtn && !grooveStartBtn.disabled) grooveStartBtn.click();
+      } else {
+        (async () => {
+          if (
+            typeof simpleMetronome !== "undefined" &&
+            typeof simpleMetronome.isRunning === "function" &&
+            simpleMetronome.isRunning()
+          ) {
+            if (typeof simpleMetronome.stop === "function")
+              simpleMetronome.stop();
+          } else {
+            const bpmEl = document.getElementById("simpleBpm");
+            const bpm = bpmEl ? parseInt(bpmEl.value, 10) : null;
+            if (bpm && typeof simpleMetronome.setBpm === "function")
+              simpleMetronome.setBpm(bpm);
+            if (typeof simpleMetronome.start === "function")
+              await simpleMetronome.start();
+          }
+        })();
+      }
+      break;
+
+    case "KeyP":
+      if (target === "groove") {
+        if (typeof sessionEngine.pauseSession === "function")
+          sessionEngine.pauseSession();
+      } else {
+        if (
+          typeof simpleMetronome !== "undefined" &&
+          typeof simpleMetronome.isPaused === "function" &&
+          simpleMetronome.isPaused()
+        ) {
+          if (typeof simpleMetronome.resume === "function")
+            simpleMetronome.resume();
+        } else {
+          if (
+            typeof simpleMetronome !== "undefined" &&
+            typeof simpleMetronome.pause === "function"
+          )
+            simpleMetronome.pause();
+        }
+      }
+      break;
+
+    case "KeyN":
+      if (grooveNextBtn && !grooveNextBtn.disabled) grooveNextBtn.click();
+      break;
+
+    case "KeyH":
+      document.dispatchEvent(new Event("toggleTooltip"));
+      break;
+
+    case "ArrowRight":
+      window.__adjustingTarget = "max";
+      console.log("🎚️ Adjusting target: MAX BPM");
+      break;
+
+    case "ArrowLeft":
+      window.__adjustingTarget = "min";
+      console.log("🎚️ Adjusting target: MIN BPM");
+      break;
+
+    case "ArrowUp":
+      if (target === "groove") adjustGrooveInput(+1);
+      else adjustSimpleBpm(+1);
+      break;
+
+    case "ArrowDown":
+      if (target === "groove") adjustGrooveInput(-1);
+      else adjustSimpleBpm(-1);
+      break;
+  }
+});
+
+// Control other parts of the UI
 let startMetronomeFn,
   stopMetronomeFn,
   setBeatsPerBarFn,
@@ -89,6 +281,64 @@ export function initUI(deps) {
   const tooltipTrigger = document.getElementById("tooltipTrigger");
   const tooltipDialog = document.getElementById("tooltipDialog");
 
+  // inside initUI, after DOM element setup
+  function updateSimpleUI() {
+    try {
+      const running =
+        typeof simpleMetronome !== "undefined" &&
+        typeof simpleMetronome.isRunning === "function"
+          ? simpleMetronome.isRunning()
+          : false;
+      const paused =
+        typeof simpleMetronome !== "undefined" &&
+        typeof simpleMetronome.isPaused === "function"
+          ? simpleMetronome.isPaused()
+          : false;
+
+      // If your Pause button is the shared pauseBtn or a separate simplePauseBtn, update both safely
+      if (typeof pauseBtn !== "undefined" && pauseBtn !== null) {
+        // If groove owns playback, pauseBtn may be controlled elsewhere; only enable when simple is running and owner is simple
+        const owner =
+          typeof sessionEngine.getActiveModeOwner === "function"
+            ? sessionEngine.getActiveModeOwner()
+            : null;
+        const enableForSimple =
+          running && (owner === "simple" || owner === null);
+        pauseBtn.disabled = !enableForSimple;
+        pauseBtn.textContent = paused ? "Resume" : "Pause";
+      }
+
+      // If you have a dedicated simplePauseBtn element, update it similarly:
+      const simplePauseBtn = document.getElementById("simplePauseBtn");
+      if (simplePauseBtn) {
+        simplePauseBtn.disabled = !running;
+        simplePauseBtn.textContent = paused ? "Resume" : "Pause";
+      }
+
+      // Ensure the Start/Stop button text is also consistent if you have a simplestartbtn
+      const simplestartbtn = document.getElementById("simplestartbtn");
+      if (simplestartbtn) {
+        simplestartbtn.textContent = running ? "Stop" : "Start";
+        simplestartbtn.disabled = false;
+      }
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // Listen for state events from simpleMetronome
+  document.addEventListener("simpleMetronome:state", (ev) => {
+    updateSimpleUI();
+  });
+
+  // Also refresh on owner changes (sessionEngine may emit this elsewhere)
+  document.addEventListener("metronome:ownerChanged", () => {
+    updateSimpleUI();
+  });
+
+  // Ensure initial sync
+  updateSimpleUI();
+
   // Beats-per-bar input wiring
   const beatsPerBarEl = document.getElementById("beatsPerBar");
   if (beatsPerBarEl && typeof setBeatsPerBarFn === "function") {
@@ -100,7 +350,7 @@ export function initUI(deps) {
       try {
         setBeatsPerBarFn(n);
       } catch (e) {
-        console.error("setBeatsPerBar error:", e);
+        throw e;
       }
     };
 
@@ -169,96 +419,18 @@ export function initUI(deps) {
     }
   }
 
+  document.addEventListener("toggleTooltip", toggleTooltip);
+
   // Close tooltip if clicked outside it
   document.addEventListener("click", (event) => {
-    const clickedInsideTooltip = tooltipDialog.contains(event.target);
-    const clickedTrigger = tooltipTrigger.contains(event.target);
-
-    if (!clickedInsideTooltip && !clickedTrigger) {
-      tooltipDialog.classList.remove("visible");
-      clearTimeout(tooltipDialog._hideTimer);
-    }
-  });
-
-  tooltipTrigger.onclick = toggleTooltip;
-
-  // HOTKEYS LOGIC BELOW
-  // --- Simple (Start, Pause, Next) Keyboard hotkeys (layout-independent)  ---
-  document.addEventListener("keydown", (event) => {
-    // Ignore keypresses when focused on text inputs, textareas, or contenteditable elements
-    const active = document.activeElement;
-    const isInputFocused =
-      document.activeElement.tagName === "INPUT" ||
-      document.activeElement.tagName === "TEXTAREA" ||
-      document.activeElement.isContentEditable;
-    if (isInputFocused) return;
-
-    if (event.repeat) return; // Ignore repeated key presses
-
-    switch (event.code) {
-      case "Space": // Start/Stop
-        event.preventDefault();
-        if (!startBtn.disabled) startBtn.click();
-        break;
-
-      case "KeyP": // Pause/Resume
-        if (!pauseBtn.disabled) pauseBtn.click();
-        break;
-
-      case "KeyN": // Next
-        if (!nextBtn.disabled) nextBtn.click();
-        break;
-
-      case "KeyH":
-        event.preventDefault();
-        toggleTooltip();
-        break;
-    }
-  });
-
-  // --- Advanced Hotkeys: BPM adjustment (min/max) (Arrow Keys) ---
-  let adjustingTarget = "min"; // "min" or "max"
-
-  document.addEventListener("keydown", (event) => {
-    // Ignore keypresses while typing or in editable areas
-    const active = document.activeElement;
-    const isInputFocused =
-      active.tagName === "INPUT" ||
-      active.tagName === "TEXTAREA" ||
-      active.isContentEditable;
-    if (isInputFocused) return;
-
-    // Arrow navigation for selecting target BPM
-    if (event.code === "ArrowRight") {
-      adjustingTarget = "max";
-      console.log("🎚️ Adjusting target: MAX BPM");
+    if (!tooltipDialog || !tooltipTrigger) return;
+    if (
+      tooltipDialog.contains(event.target) ||
+      tooltipTrigger.contains(event.target)
+    )
       return;
-    }
-    if (event.code === "ArrowLeft") {
-      adjustingTarget = "min";
-      console.log("🎚️ Adjusting target: MIN BPM");
-      return;
-    }
-
-    // Handle Up/Down for BPM adjustment
-    if (event.code === "ArrowUp" || event.code === "ArrowDown") {
-      event.preventDefault();
-
-      const bpmInput = adjustingTarget === "min" ? bpmMinEl : bpmMaxEl;
-      let current = parseInt(bpmInput.value) || 0;
-
-      // Fine-tune (Shift = ±1), else coarse (±5)
-      const delta = event.shiftKey ? 1 : 5;
-      const direction = event.code === "ArrowUp" ? 1 : -1;
-
-      // Apply change and clamp to reasonable range
-      current = utils.clamp(current + direction * delta, 30, 300);
-      bpmInput.value = current;
-
-      // Optional visual cue (flash input)
-      bpmInput.classList.add("bpm-flash");
-      setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
-    }
+    tooltipDialog.classList.remove("visible");
+    clearTimeout(tooltipDialog._hideTimer);
   });
 
   // expose a small API to check session state if needed later
