@@ -83,6 +83,23 @@ export function initSessionEngine(deps) {
 
 // === Public API ===
 export function startSession() {
+  // Ownership guard: refuse to start groove if another owner is active
+  const currentOwner =
+    typeof getActiveModeOwner === "function" ? getActiveModeOwner() : null;
+  if (currentOwner && currentOwner !== "groove") {
+    console.warn("Cannot start groove session: owner is", currentOwner);
+    return false;
+  }
+
+  // Claim ownership for groove before starting playback
+  if (typeof setActiveModeOwner === "function") {
+    setActiveModeOwner("groove");
+  }
+  // Broadcast canonical owner change so other modules know immediately
+  document.dispatchEvent(
+    new CustomEvent("metronome:ownerChanged", { detail: { owner: "groove" } })
+  );
+
   if (flags.sessionActive) {
     // ⏹️ Stop session if already running
     if (flags.isCountingIn || flags.isFinishingBar) {
@@ -251,6 +268,11 @@ export function nextCycle() {
 }
 
 export function stopSession(message = "") {
+  // Ownership release: clear active mode owner
+  if (typeof setActiveModeOwner === "function") setActiveModeOwner(null);
+  document.dispatchEvent(
+    new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
+  );
   flags.sessionActive = false;
   flags.isPaused = false;
   flags.isCountingIn = false;

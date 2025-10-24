@@ -34,9 +34,34 @@ const cycleUnitEl = document.getElementById("cycleUnit");
 const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
 
+// Prevent UI Start from bypassing ownership checks
+if (startBtn) {
+  startBtn.addEventListener(
+    "click",
+    (ev) => {
+      const owner =
+        typeof sessionEngine.getActiveModeOwner === "function"
+          ? sessionEngine.getActiveModeOwner()
+          : null;
+      if (owner && owner !== "groove") {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        console.warn("Cannot start groove metronome: owner is", owner);
+        return;
+      }
+      // no-op here; allow other handlers to run when no conflicting owner
+    },
+    { capture: true }
+  );
+}
+
 // === Metronome Setup ===
 // Expose metronome module to DevTools for debugging (safe for dev)
 window.metronome = window.metronome || metronome;
+// Protect groove start with explicit ownership checks
+if (typeof metronome.startMetronome === "function") {
+  const _origStartMetronome = metronome.startMetronome.bind(metronome);
+}
 
 // Ensure window.metronome exists and expose safe getters for visuals and debugging
 if (
