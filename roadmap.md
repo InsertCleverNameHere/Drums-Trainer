@@ -120,6 +120,22 @@
 
 ---
 
+## Phase 3 — Visual & UX Improvements
+
+1. **Dark Mode Toggle**
+
+   - Mobile-friendly, persisted via `localStorage`.
+
+2. **Cycle Summary Popup**
+
+   - Show session stats: total cycles, total time, average BPM.
+
+3. **Light Design Polish**
+
+   - Subtle background gradients, hover effects, rounded buttons.
+
+   - Keep lightweight and performant.
+
 ## Phase 4 — Technical Enhancements
 
 ### 1. Performance Profiling & Max-BPM Clamping
