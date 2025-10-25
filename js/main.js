@@ -365,7 +365,9 @@ document.addEventListener("metronome:ownerChanged", (e) => {
   setTabEnabled(tabMet, true);
 });
 
-// === Version Log ===
+// === Version Fetch & App Footer Handling ===
+// Fetch latest commit hash + app version to display in footer
+// and detect if a new version is available for the service worker.
 const footerEl = document.getElementById("VersionNumber");
 const versionKey = "lastSeenVersion";
 const colorKey = "versionColor";
@@ -402,11 +404,11 @@ fetch("./commits.json", { cache: "no-store" })
     }
   })
   .catch((err) => {
-    console.warn("Could not load commits.json:", err);
     updateFooterMessage(); // fallback
   });
 
-// update footer message according to cache state
+// Updates footer version message with smooth fade-in/out transitions.
+// Suppresses repeated notifications after showing a few times.
 function updateFooterMessage(
   status = "✅ Cached Offline"
   // showRefresh = false
@@ -452,26 +454,41 @@ function updateFooterMessage(
   }
 }
 
-// Service worker update detection
+// === Service Worker Integration ===
+// Registers service worker on page load and sends current version/hash
+// so it can update its cache when new versions are released.
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js").then((reg) => {
-    reg.addEventListener("updatefound", () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener("statechange", () => {
-        if (newWorker.state === "installed") {
-          if (navigator.serviceWorker.controller) {
-            // Update Available, let's notify
-            updateFooterMessage("Update Available");
-            // Optionally auto-reload after some time
-            setTimeout(() => {
-              location.reload(true); // force page reload with updated service worker
-            }, 3000);
-          } else {
-            updateFooterMessage("Cached Offline");
-          }
-        }
+  window.addEventListener("load", async () => {
+    // Register service worker and ensure it's aware of the current app version
+
+    const reg = await navigator.serviceWorker.register("./service-worker.js");
+
+    // Send version info to SW on page load
+    try {
+      // Send latest version info (from commits.json) to the active SW instance
+      const response = await fetch("./commits.json", { cache: "no-store" });
+      const { version, latestHash } = await response.json();
+
+      if (reg.active) {
+        reg.active.postMessage({
+          type: "VERSION_INFO",
+          version,
+          hash: latestHash,
+        });
+      }
+    } catch (err) {}
+
+    // === Manual Update Button Logic ===
+    // Checks if a newer version exists and triggers a refresh if found.
+    // Handles “Cancel refresh” gracefully to avoid disruptive reloads.
+
+    // Optional: update manually via checkUpdatesBtn
+    const checkBtn = document.getElementById("checkUpdatesBtn");
+    if (checkBtn) {
+      checkBtn.addEventListener("click", () => {
+        reg.update();
       });
-    });
+    }
   });
 }
 

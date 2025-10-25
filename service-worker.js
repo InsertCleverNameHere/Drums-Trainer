@@ -1,4 +1,17 @@
-const CACHE_NAME = "groove-trainer-v1";
+// =======================================================
+// 🎧 Random Groove Trainer — Service Worker
+// -------------------------------------------------------
+// Handles offline caching, versioned updates via commits.json,
+// and smooth user experience between updates.
+// The cache version is synced with commits.json to ensure users
+// always get the latest release while preserving offline functionality.
+// =======================================================
+
+// Current cache version (updated dynamically by commits.json)
+let CACHE_VERSION = "1.0.0";
+let CACHE_NAME = `groove-trainer-${CACHE_VERSION}`;
+
+// Files to precache at install time for offline availability
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
@@ -16,11 +29,58 @@ const FILES_TO_CACHE = [
   "./js/simpleMetronomeCore.js",
 ];
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(FILES_TO_CACHE)));
-  self.skipWaiting();
+// =======================================================
+// 🔁 VERSIONING HANDLER — triggered by main.js
+// When the app detects a new commits.json version, it sends
+// a message here, prompting a full cache rebuild.
+// =======================================================
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "VERSION_INFO") {
+    const newVersion = event.data.version;
+    if (newVersion && newVersion !== CACHE_VERSION) {
+      CACHE_VERSION = newVersion;
+      CACHE_NAME = `groove-trainer-${CACHE_VERSION}`;
+      rebuildCache();
+    }
+  }
 });
 
+// =======================================================
+// ♻️ rebuildCache()
+// Opens a new versioned cache, stores required files,
+// deletes outdated caches, and notifies open clients.
+// =======================================================
+async function rebuildCache() {
+  // Recreate cache with all required static files for offline mode
+  const cache = await caches.open(CACHE_NAME);
+  await cache.addAll(FILES_TO_CACHE);
+
+  // Remove old caches that don’t match the active version
+  const cacheKeys = await caches.keys();
+  await Promise.all(
+    cacheKeys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+  );
+
+  // Notify open windows (so the app can refresh UI if needed)
+  const clientsArr = await self.clients.matchAll({ type: "window" });
+  clientsArr.forEach((client) => client.postMessage({ type: "SW_UPDATED" }));
+}
+
+// =======================================================
+// ⚙️ INSTALL EVENT
+// Runs once on initial install or when SW changes.
+// Pre-caches essential app files so offline mode works.
+// Skip waiting to immediately activate the new service worker
+// =======================================================
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(FILES_TO_CACHE)));
+  self.skipWaiting(); // Activate immediately without waiting for old SW
+});
+
+// =======================================================
+// 🚀 ACTIVATE EVENT
+// Cleans up outdated caches and claims open pages immediately.
+// =======================================================
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches
@@ -34,31 +94,77 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// =======================================================
+// 🌍 FETCH EVENT — main request handler
+// - Special case for commits.json (updates quietly in background)
+// - Cache-first strategy for everything else
+// =======================================================
 self.addEventListener("fetch", (event) => {
-  if (event.request.url.includes("commits.json")) {
+  const reqUrl = event.request.url;
+
+  // =======================================================
+  // === 🧠 Special Handling for commits.json ===
+  // Always try to serve cached version first, but update in the background
+  // so version info stays fresh without breaking offline availability.
+  // =======================================================
+  if (reqUrl.includes("commits.json")) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
-        // If the cached version is available, return it.
         if (cachedResponse) {
-          // Fetch from network in parallel to update the cache
-          fetch(event.request).then((networkResponse) => {
-            // Once the network request is successful, update the cache
-            caches.open("groove-trainer-v1").then((cache) => {
-              cache.put(event.request, networkResponse);
-            });
-          });
+          // Background update: refresh commits.json quietly
+          fetch(event.request)
+            .then((networkResponse) =>
+              caches
+                .open(CACHE_NAME)
+                .then((cache) =>
+                  cache.put(event.request, networkResponse.clone())
+                )
+            )
+            .catch(() => {});
           return cachedResponse;
         }
 
-        // If not cached, go ahead and fetch from the network
-        return fetch(event.request).then((networkResponse) => {
-          // Cache the response for future use
-          return caches.open("groove-trainer-v1").then((cache) => {
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
-          });
-        });
+        // Not cached yet: fetch fresh, then cache for next time
+        return fetch(event.request)
+          .then((networkResponse) =>
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, networkResponse.clone());
+              return networkResponse;
+            })
+          )
+          .catch(() => caches.match("./commits.json")); // Fallback if even that fails
       })
     );
+    return;
   }
+
+  // =======================================================
+  // === 🌐 Default Cache Strategy ===
+  // For all other requests, use cache-first strategy with network fallback.
+  // Ensures smooth offline use and quick load times.
+  // =======================================================
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        // Serve cached file if available (offline fast path)
+        return cachedResponse;
+      }
+
+      // Otherwise fetch from network and cache result
+      return fetch(event.request)
+        .then((networkResponse) =>
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          })
+        )
+        .catch(() => {
+          // As a last resort, serve index.html for navigation requests
+          if (event.request.destination === "document") {
+            return caches.match("./index.html");
+          }
+        });
+    })
+  );
 });
