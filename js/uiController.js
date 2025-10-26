@@ -5,6 +5,11 @@ import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import { startSession } from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
+import {
+  setActiveProfile,
+  getAvailableProfiles,
+  getActiveProfile,
+} from "./audioProfiles.js";
 
 // Hotkey handling early
 let _hotkeyLock = false;
@@ -444,4 +449,52 @@ export function initUI(deps) {
   return {
     sessionActive: () => sessionActive,
   };
+}
+
+// -----------------------------
+// 🎧 Sound Profile Dropdowns
+// -----------------------------
+
+/**
+ * Initialize sound profile dropdowns for both groove and simple panels.
+ * Populates <select> elements and keeps them synchronized.
+ */
+export function initSoundProfileUI() {
+  const grooveProfileEl = document.getElementById("soundProfileGroove");
+  const simpleProfileEl = document.getElementById("soundProfileSimple");
+
+  if (!grooveProfileEl || !simpleProfileEl) {
+    console.warn("⚠️ Sound profile dropdowns not found in DOM");
+    return;
+  }
+
+  // Populate both dropdowns dynamically
+  const profiles = getAvailableProfiles();
+  for (const p of profiles) {
+    const label = p.charAt(0).toUpperCase() + p.slice(1);
+    grooveProfileEl.appendChild(new Option(label, p));
+    simpleProfileEl.appendChild(new Option(label, p));
+  }
+
+  // Sync both dropdowns + apply profile
+  function syncProfileSelection(profileName) {
+    grooveProfileEl.value = profileName;
+    simpleProfileEl.value = profileName;
+    setActiveProfile(profileName);
+    localStorage.setItem("activeSoundProfile", profileName); // Save to localStorage
+    console.log(`🎚 Sound profile set to: ${profileName}`);
+  }
+
+  // Load persisted profile first
+  const saved = localStorage.getItem("activeSoundProfile");
+  const current = saved || getActiveProfile() || "digital";
+  syncProfileSelection(current);
+
+  // Wire up listeners on both dropdowns
+  grooveProfileEl.addEventListener("change", (e) =>
+    syncProfileSelection(e.target.value)
+  );
+  simpleProfileEl.addEventListener("change", (e) =>
+    syncProfileSelection(e.target.value)
+  );
 }
