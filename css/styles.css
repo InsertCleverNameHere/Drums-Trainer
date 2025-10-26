@@ -453,7 +453,7 @@ button:disabled {
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  gap: 400px;
+  gap: 40px;
   flex-wrap: wrap;
   margin-top: 12px;
 }
