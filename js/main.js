@@ -1,56 +1,14 @@
 // main.js - simple bootstrap that wires modules together
 import * as metronome from "./metronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
-import { initUI } from "./uiController.js";
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
-import { initSoundProfileUI } from "./uiController.js";
-
-// === Sound Profile Handling ===
-// import {
-//   setActiveProfile,
-//   getAvailableProfiles,
-//   getActiveProfile,
-// } from "./audioProfiles.js";
-
-// document.addEventListener("DOMContentLoaded", () => {
-//   const grooveProfileEl = document.getElementById("soundProfileGroove");
-//   const simpleProfileEl = document.getElementById("soundProfileSimple");
-
-//   if (!grooveProfileEl || !simpleProfileEl) {
-//     console.warn("⚠️ Sound profile dropdowns not found in DOM");
-//     return;
-//   }
-
-//   // Populate both dropdowns dynamically
-//   const profiles = getAvailableProfiles();
-//   for (const p of profiles) {
-//     const label = p.charAt(0).toUpperCase() + p.slice(1);
-//     grooveProfileEl.appendChild(new Option(label, p));
-//     simpleProfileEl.appendChild(new Option(label, p));
-//   }
-
-//   // Sync both dropdowns and set active profile
-//   function syncProfileSelection(profileName) {
-//     grooveProfileEl.value = profileName;
-//     simpleProfileEl.value = profileName;
-//     setActiveProfile(profileName);
-//     console.log(`🎚 Sound profile set to: ${profileName}`);
-//   }
-
-//   // Wire change listeners
-//   grooveProfileEl.addEventListener("change", (e) =>
-//     syncProfileSelection(e.target.value)
-//   );
-//   simpleProfileEl.addEventListener("change", (e) =>
-//     syncProfileSelection(e.target.value)
-//   );
-
-//   // Initialize current profile
-//   const current = getActiveProfile() || "digital";
-//   syncProfileSelection(current);
-// });
+import {
+  initSoundProfileUI,
+  initOwnershipGuards,
+  initUI,
+} from "./uiController.js";
 
 // Expose for visuals and console debugging
 window.metronome = metronome; //
@@ -79,27 +37,6 @@ const cycleDurationEl = document.getElementById("cycleDuration");
 const cycleUnitEl = document.getElementById("cycleUnit");
 const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
-
-// Prevent UI Start from bypassing ownership checks
-if (startBtn) {
-  startBtn.addEventListener(
-    "click",
-    (ev) => {
-      const owner =
-        typeof sessionEngine.getActiveModeOwner === "function"
-          ? sessionEngine.getActiveModeOwner()
-          : null;
-      if (owner && owner !== "groove") {
-        ev.preventDefault();
-        ev.stopImmediatePropagation();
-        console.warn("Cannot start groove metronome: owner is", owner);
-        return;
-      }
-      // no-op here; allow other handlers to run when no conflicting owner
-    },
-    { capture: true }
-  );
-}
 
 // === Metronome Setup ===
 // Expose metronome module to DevTools for debugging (safe for dev)
@@ -192,11 +129,15 @@ initUI({
   performCountIn: metronome.performCountIn,
 });
 
-// Initialize sound profile UI safely
+// Initialize sound profile UI and ownership guards safely
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initSoundProfileUI);
+  document.addEventListener("DOMContentLoaded", () => {
+    initSoundProfileUI();
+    initOwnershipGuards();
+  });
 } else {
   initSoundProfileUI();
+  initOwnershipGuards();
 }
 
 // Initialize simple metronome with an optional tick visual hook

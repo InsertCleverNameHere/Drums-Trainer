@@ -3,13 +3,44 @@
 
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
-import { startSession } from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import {
   setActiveProfile,
   getAvailableProfiles,
   getActiveProfile,
 } from "./audioProfiles.js";
+
+// --- Ownership Guards ---
+// Prevents Groove Start button from running when another mode (e.g., Simple Metronome) owns playback
+export function initOwnershipGuards() {
+  const startBtn = document.getElementById("startBtn");
+  if (!startBtn) {
+    console.warn("⚠️ Start button not found for ownership guard");
+    return;
+  }
+
+  startBtn.addEventListener(
+    "click",
+    (ev) => {
+      const owner =
+        typeof sessionEngine.getActiveModeOwner === "function"
+          ? sessionEngine.getActiveModeOwner()
+          : null;
+
+      if (owner && owner !== "groove") {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        console.warn(
+          "🚫 Cannot start Groove metronome — current owner:",
+          owner
+        );
+        return;
+      }
+      // If no conflict, allow other listeners to proceed normally
+    },
+    { capture: true }
+  );
+}
 
 // Hotkey handling early
 let _hotkeyLock = false;
@@ -398,7 +429,7 @@ export function initUI(deps) {
   }
 
   // Wire up session start button
-  startBtn.onclick = () => startSession();
+  startBtn.onclick = () => sessionEngine.startSession();
 
   // Wire up pause and next cycle buttons
   pauseBtn.onclick = () => {
