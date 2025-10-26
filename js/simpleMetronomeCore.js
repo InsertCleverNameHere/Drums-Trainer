@@ -1,6 +1,11 @@
 // js/simpleMetronomeCore.js
 // Lightweight isolated metronome core for the simple metronome panel.
 // API-compatible with the existing metronomeCore functions used by the app.
+import {
+  playTick as playProfileTick,
+  ensureAudio,
+  setNextNoteTime,
+} from "./audioProfiles.js";
 
 let audioCtx = null;
 let nextNoteTime = 0;
@@ -22,29 +27,15 @@ let onBeatVisual = () => {};
 let endOfCycleRequested = false;
 let onCycleComplete = null;
 
-function ensureAudio() {
-  if (!audioCtx)
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-
 export function registerVisualCallback(cb) {
   if (typeof cb === "function") onBeatVisual = cb;
 }
 
 function playTick(isAccent) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const envelope = audioCtx.createGain();
-
-  // Match groove metronome: Accent = higher pitch & louder
-  osc.frequency.value = isAccent ? 2000 : 1000;
-  envelope.gain.value = isAccent ? 0.4 : 0.25;
-
-  osc.connect(envelope);
-  envelope.connect(audioCtx.destination);
-
-  osc.start(nextNoteTime);
-  osc.stop(nextNoteTime + 0.05);
+  // Always ensure the shared audio context exists
+  audioCtx = ensureAudio();
+  setNextNoteTime(nextNoteTime);
+  playProfileTick(isAccent);
 }
 
 function scheduleNote() {
@@ -101,7 +92,7 @@ export function startMetronome(newBpm = 120) {
     console.warn("simpleMetronomeCore: already playing");
     return;
   }
-  ensureAudio();
+  audioCtx = ensureAudio();
   bpm = Math.max(20, Math.min(400, Number(newBpm) || bpm));
   tickIndex = 0;
   nextNoteTime = audioCtx.currentTime + 0.05;

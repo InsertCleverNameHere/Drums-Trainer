@@ -9,29 +9,41 @@
 
 ---
 
-## Project Structure (Text-Based Representation)
+## Project Structure
 
-**index.html** — Main page  
-**manifest.json** — PWA manifest  
-**service-worker.js** — Offline caching  
-**README.md**  
-**ROADMAP.md** — This roadmap file
+📁 .github/
+└── 📁 workflows/
+└── versioning.yml 🔁 Automated version bump workflow
 
-**css/**
+📁 css/
+└── styles.css 🎨 Main stylesheet (layout, theme, dropdowns)
 
-- styles.css — Global styles and responsive rules
+📁 js/
+├── audioProfiles.js 🎧 Procedural sound profiles (Digital, Soft, Ping, Bubble, Clave)
+├── metronomeCore.js 🧠 Groove metronome core logic
+├── sessionEngine.js 🎛 Session lifecycle, timing, and ownership
+├── simpleMetronome.js 🎚 Simple metronome UI controller
+├── simpleMetronomeCore.js 🪘 Lightweight simple metronome audio core
+├── uiController.js 🧩 Global UI binding and event management
+├── utils.js ⚙️ Utility helpers (timing, randomization, formatting)
+├── visuals.js 💡 Beat indicators and visual feedback
+└── main.js 🚀 Entry point — initializes modules, handles profile sync
 
-**js/**
+📄 index.html 🧱 App shell — includes both Simple & Groove metronome panels
+📄 manifest.json 📱 PWA metadata
+📄 service-worker.js ⚡ Offline caching and update logic
+📄 favicon.ico / icon-192.png / icon-512.png 🖼 App icons
 
-- metronomeCore.js — Audio scheduling & Web Audio API logic
-- visuals.js — Beat circle creation, animation, color logic
-- uiController.js — Button events, input sync, countdown, summary
-- utils.js — Helper functions (BPM calculations, timing, random selection)
-- main.js — Imports modules, initializes app (optional)
-
-**assets/**
-
-- icons/ — PWA icons for different resolutions
+📄 README.md 📘 Main documentation
+📄 README-versioning.md 🗒 Versioning and release notes
+📄 roadmap.md 🧭 Development roadmap and milestones
+📄 versioningMode.json ⚙️ Semantic versioning configuration
+📄 bumpVersion.js 🔧 Auto-increment build version script
+📄 commits.json 🕓 Commit history data
+📄 eslint.config.mjs ✅ Linting configuration
+📄 package.json 📦 NPM project metadata
+📄 package-lock.json 🔒 Locked dependency versions
+📄 .gitignore 🚫 Git ignored files
 
 > Notes:
 >
@@ -55,9 +67,9 @@
 
 **Goals:**
 
-- Make the currently disabled Pause button functional.
-- Ensure the current measure plays to the end before pausing or switching cycles.
-- Integrate the 3-2-1 tempo-synced countdown into both start and cycle transitions.
+- ✅ Make the currently disabled Pause button functional.
+- ✅ Ensure the current measure plays to the end before pausing or switching cycles.
+- ✅ Integrate the 3-2-1 tempo-synced countdown into both start and cycle transitions.
 
 ### ✅ 3. Keyboard Shortcuts
 
@@ -98,7 +110,7 @@
 
 ### Phase 2 — Functional Enhancements
 
-1. **Procedural Sound Customization**  
+1. ✅ **Procedural Sound Customization**  
    Accent / normal beats generated via Web Audio API (no WAV/MP3 files).
 
 2. **Tap Tempo**  
@@ -124,17 +136,17 @@
 
 1. **Dark Mode Toggle**
 
-   - Mobile-friendly, persisted via `localStorage`.
+   Mobile-friendly, persisted via `localStorage`.
 
 2. **Cycle Summary Popup**
 
-   - Show session stats: total cycles, total time, average BPM.
+   Show session stats: total cycles, total time, average BPM.
 
 3. **Light Design Polish**
 
-   - Subtle background gradients, hover effects, rounded buttons.
+   Subtle background gradients, hover effects, rounded buttons.
 
-   - Keep lightweight and performant.
+   Keep lightweight and performant.
 
 ## Phase 4 — Technical Enhancements
 

@@ -66,7 +66,7 @@
     </div>
 
     <!-- PANELS -->
-    <!-- Groove panel: wrap existing groove UI here -->
+    <!-- Groove panel -->
     <div id="panel-groove" class="panel">
       <!-- BEGIN existing Groove UI -->
       <label>BPM range (min / max)</label>
@@ -114,15 +114,23 @@ Funk
 ملفوف</textarea
       >
 
-      <label>Beats per bar</label>
-      <input
-        id="beatsPerBar"
-        type="number"
-        inputmode="numeric"
-        min="1"
-        max="12"
-        value="4"
-      />
+      <div class="row beats-and-sound-row">
+        <div class="beats-section">
+          <label for="grooveBeatsPerBar">Beats per bar</label>
+          <input
+            type="number"
+            id="grooveBeatsPerBar"
+            min="1"
+            max="12"
+            value="4"
+          />
+        </div>
+
+        <div class="sound-section">
+          <label for="soundProfileGroove">Sound profile</label>
+          <select id="soundProfileGroove"></select>
+        </div>
+      </div>
 
       <div class="row">
         <div class="col">
@@ -234,17 +242,23 @@ Funk
         value="120"
         step="5"
       />
+      <div class="row beats-and-sound-row">
+        <div class="beats-section">
+          <label for="simpleBeatsPerBar">Beats per bar</label>
+          <input
+            type="number"
+            id="simpleBeatsPerBar"
+            min="1"
+            max="12"
+            value="4"
+          />
+        </div>
 
-      <label>Beats per bar</label>
-      <input
-        id="simpleBeatsPerBar"
-        type="number"
-        inputmode="numeric"
-        min="1"
-        max="12"
-        value="4"
-        step="1"
-      />
+        <div class="sound-section">
+          <label for="soundProfileSimple">Sound profile</label>
+          <select id="soundProfileSimple"></select>
+        </div>
+      </div>
 
       <div class="controls">
         <button id="simpleStartBtn">Start</button>

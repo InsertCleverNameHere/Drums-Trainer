@@ -5,6 +5,50 @@ import { initUI } from "./uiController.js";
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
+// === Sound Profile Handling ===
+import {
+  setActiveProfile,
+  getAvailableProfiles,
+  getActiveProfile,
+} from "./audioProfiles.js";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const grooveProfileEl = document.getElementById("soundProfileGroove");
+  const simpleProfileEl = document.getElementById("soundProfileSimple");
+
+  if (!grooveProfileEl || !simpleProfileEl) {
+    console.warn("⚠️ Sound profile dropdowns not found in DOM");
+    return;
+  }
+
+  // Populate both dropdowns dynamically
+  const profiles = getAvailableProfiles();
+  for (const p of profiles) {
+    const label = p.charAt(0).toUpperCase() + p.slice(1);
+    grooveProfileEl.appendChild(new Option(label, p));
+    simpleProfileEl.appendChild(new Option(label, p));
+  }
+
+  // Sync both dropdowns and set active profile
+  function syncProfileSelection(profileName) {
+    grooveProfileEl.value = profileName;
+    simpleProfileEl.value = profileName;
+    setActiveProfile(profileName);
+    console.log(`🎚 Sound profile set to: ${profileName}`);
+  }
+
+  // Wire change listeners
+  grooveProfileEl.addEventListener("change", (e) =>
+    syncProfileSelection(e.target.value)
+  );
+  simpleProfileEl.addEventListener("change", (e) =>
+    syncProfileSelection(e.target.value)
+  );
+
+  // Initialize current profile
+  const current = getActiveProfile() || "digital";
+  syncProfileSelection(current);
+});
 
 // Expose for visuals and console debugging
 window.metronome = metronome; //

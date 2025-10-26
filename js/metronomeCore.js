@@ -1,5 +1,10 @@
 // metronomeCore.js
 // Audio scheduling and metronome core logic (refactored from metronome.js)
+import {
+  ensureAudio,
+  setNextNoteTime,
+  playTick as playProfileTick,
+} from "./audioProfiles.js";
 
 let audioCtx = null;
 let nextNoteTime = 0.0;
@@ -34,21 +39,10 @@ export function registerVisualCallback(cb) {
   if (typeof cb === "function") onBeatVisual = cb;
 }
 
-// Generates a short audio tick (accented or regular)
+// Delegates tick playback to the shared audioProfiles module
 function playTick(isAccent) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const envelope = audioCtx.createGain();
-
-  // Accent = higher pitch & louder
-  osc.frequency.value = isAccent ? 2000 : 1000;
-  envelope.gain.value = isAccent ? 0.4 : 0.25;
-
-  osc.connect(envelope);
-  envelope.connect(audioCtx.destination);
-
-  osc.start(nextNoteTime);
-  osc.stop(nextNoteTime + 0.05);
+  setNextNoteTime(nextNoteTime);
+  playProfileTick(isAccent);
 }
 
 // Schedule a single beat ahead of time
@@ -126,8 +120,7 @@ export function startMetronome(newBpm = 120) {
     console.warn("⚠️ Metronome already playing — start skipped");
     return;
   }
-  if (!audioCtx)
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  audioCtx = ensureAudio();
 
   bpm = Math.max(20, Math.min(400, newBpm));
   tickIndex = 0;
