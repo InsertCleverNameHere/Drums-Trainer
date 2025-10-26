@@ -10,7 +10,7 @@
 ---
 
 ## Project Structure
-
+```bash
 📁 .github/
 └── 📁 workflows/
 └── versioning.yml 🔁 Automated version bump workflow
@@ -44,16 +44,7 @@
 📄 package.json 📦 NPM project metadata
 📄 package-lock.json 🔒 Locked dependency versions
 📄 .gitignore 🚫 Git ignored files
-
-> Notes:
->
-> - Each JS module is small and cached individually.
-> - `metronomeCore.js` handles audio timing and sound logic.
-> - `visuals.js` manages beat circles and animations.
-> - `uiController.js` handles buttons, keyboard shortcuts, countdown, and summary.
-> - `utils.js` contains helper functions like BPM calculations and groove selection.
-> - `main.js` wires all modules together.
-
+```
 ---
 
 ## Phase 1 — Immediate / High Priority
