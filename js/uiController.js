@@ -351,11 +351,11 @@ export function initUI(deps) {
         simplePauseBtn.textContent = paused ? "Resume" : "Pause";
       }
 
-      // Ensure the Start/Stop button text is also consistent if you have a simplestartbtn
-      const simplestartbtn = document.getElementById("simplestartbtn");
-      if (simplestartbtn) {
-        simplestartbtn.textContent = running ? "Stop" : "Start";
-        simplestartbtn.disabled = false;
+      // Ensure the Start/Stop button text is also consistent if you have a simpleStartBtn
+      const simpleStartBtn = document.getElementById("simpleStartBtn");
+      if (simpleStartBtn) {
+        simpleStartBtn.textContent = running ? "Stop" : "Start";
+        simpleStartBtn.disabled = false;
       }
     } catch (e) {
       throw e;
@@ -485,7 +485,6 @@ export function initUI(deps) {
 // -----------------------------
 // 🎧 Sound Profile Dropdowns
 // -----------------------------
-
 /**
  * Initialize sound profile dropdowns for both groove and simple panels.
  * Populates <select> elements and keeps them synchronized.
@@ -528,4 +527,101 @@ export function initSoundProfileUI() {
   simpleProfileEl.addEventListener("change", (e) =>
     syncProfileSelection(e.target.value)
   );
+}
+
+// -----------------------------------
+// 🥁 Simple Metronome Panel Controls
+// -----------------------------------
+export function initSimplePanelControls() {
+  const startBtn = document.getElementById("simpleStartBtn");
+  const pauseBtn = document.getElementById("simplePauseBtn");
+  const bpmEl = document.getElementById("simpleBpm");
+  const ownerPanelEventTarget = document;
+
+  if (!startBtn) {
+    console.warn(
+      "⚠️ simpleStartBtn not found; check DOM ID or ensure this script runs after the element."
+    );
+    return;
+  }
+
+  function updateSimpleUI() {
+    const running =
+      typeof simpleMetronome.isRunning === "function" &&
+      simpleMetronome.isRunning();
+    const paused =
+      typeof simpleMetronome.isPaused === "function" &&
+      simpleMetronome.isPaused();
+
+    if (startBtn) {
+      startBtn.textContent = running ? "Stop" : "Start";
+      startBtn.disabled = false;
+    }
+    if (pauseBtn) {
+      pauseBtn.disabled = !running;
+      pauseBtn.textContent = paused ? "Resume" : "Pause";
+    }
+  }
+
+  // --- Event wiring ---
+  startBtn.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    const owner =
+      typeof sessionEngine.getActiveModeOwner === "function"
+        ? sessionEngine.getActiveModeOwner()
+        : null;
+    if (owner && owner !== "simple") {
+      console.warn(
+        "🚫 Cannot start simple metronome while",
+        owner,
+        "is active"
+      );
+      return;
+    }
+
+    const running =
+      typeof simpleMetronome.isRunning === "function" &&
+      simpleMetronome.isRunning();
+    const desiredBpm = bpmEl ? parseInt(bpmEl.value, 10) : null;
+    if (desiredBpm) simpleMetronome.setBpm(desiredBpm);
+
+    if (!running) {
+      try {
+        await simpleMetronome.start();
+      } catch (err) {
+        console.error("simpleMetronome.start() threw:", err);
+      }
+    } else {
+      try {
+        simpleMetronome.stop();
+      } catch (err) {
+        console.error("simpleMetronome.stop() threw:", err);
+      }
+    }
+
+    updateSimpleUI();
+  });
+
+  if (pauseBtn) {
+    pauseBtn.addEventListener("click", () => {
+      if (
+        typeof simpleMetronome.isPaused === "function" &&
+        simpleMetronome.isPaused()
+      ) {
+        simpleMetronome.resume();
+      } else {
+        simpleMetronome.pause();
+      }
+      updateSimpleUI();
+    });
+  }
+
+  ownerPanelEventTarget.addEventListener("metronome:ownerChanged", () => {
+    setTimeout(updateSimpleUI, 0);
+  });
+
+  // initialize UI immediately
+  updateSimpleUI();
+
+  console.log("✅ Simple metronome panel initialized");
 }
