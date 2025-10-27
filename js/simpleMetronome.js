@@ -208,6 +208,7 @@ export function start() {
   paused = false;
   updateSimpleDisplayBpm();
   console.log("simpleMetronome started at BPM", bpm);
+  document.dispatchEvent(new CustomEvent("simpleMetronome:state"));
   return Promise.resolve(true);
 }
 
@@ -225,6 +226,7 @@ export function pause() {
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: "simple" } })
   );
+  document.dispatchEvent(new CustomEvent("simpleMetronome:state"));
 }
 
 export function resume() {
@@ -241,6 +243,7 @@ export function resume() {
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: "simple" } })
   );
+  document.dispatchEvent(new CustomEvent("simpleMetronome:state"));
 }
 
 export function stop() {
@@ -263,4 +266,5 @@ export function stop() {
     })
   );
   console.log("simpleMetronome stopped");
+  document.dispatchEvent(new CustomEvent("simpleMetronome:state"));
 }
