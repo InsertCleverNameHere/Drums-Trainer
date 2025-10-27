@@ -633,41 +633,34 @@ export function initSimplePanelControls() {
   // --- Tap Tempo logic ---
   const tapBtn = document.getElementById("tapTempoBtn");
   if (tapBtn) {
-    let tapTimes = [];
-    let tapTimeout = null;
+    tapBtn.classList.remove("tap-pulse");
 
     tapBtn.addEventListener("click", () => {
-      // only active if simple metronome is stopped or paused
-      const isRunning =
-        typeof simpleMetronome.isRunning === "function" &&
-        simpleMetronome.isRunning();
-      const isPaused =
-        typeof simpleMetronome.isPaused === "function" &&
-        simpleMetronome.isPaused();
+      const isRunning = simpleMetronome.isRunning?.();
+      const isPaused = simpleMetronome.isPaused?.();
       if (isRunning && !isPaused) {
         console.warn("🚫 Tap tempo only works when stopped or paused.");
         return;
       }
 
-      const now = performance.now();
-      tapTimes.push(now);
+      // 💡 Animate tap button
+      tapBtn.classList.remove("tap-pulse");
+      void tapBtn.offsetWidth;
+      tapBtn.classList.add("tap-pulse");
 
-      // reset taps if user waits too long
-      clearTimeout(tapTimeout);
-      tapTimeout = setTimeout(() => (tapTimes = []), 2000);
+      // ✅ Call our new internal-state-based util
+      const newBpm = utils.calculateTapTempo();
+      if (newBpm) {
+        const bpmInput = document.getElementById("simpleBpm");
+        bpmInput.value = newBpm;
 
-      // need at least 4 taps to calculate
-      if (tapTimes.length >= 4) {
-        const newBpm = utils.calculateTapTempo(tapTimes);
-        if (newBpm) {
-          const bpmInput = document.getElementById("simpleBpm");
-          bpmInput.value = newBpm;
-          if (typeof simpleMetronome.setBpm === "function") {
-            simpleMetronome.setBpm(newBpm);
-          }
-          console.log(`🎯 Tap Tempo BPM set to ${newBpm}`);
-          tapTimes = []; // reset for new session
+        if (typeof simpleMetronome.setBpm === "function") {
+          simpleMetronome.setBpm(newBpm);
+          bpmInput.classList.add("bpm-flash");
+          setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
         }
+
+        console.log(`🎯 Tap Tempo BPM set to ${newBpm}`);
       }
     });
   }
