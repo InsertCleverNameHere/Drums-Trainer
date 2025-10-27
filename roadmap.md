@@ -10,6 +10,7 @@
 ---
 
 ## Project Structure
+
 ```bash
 📁 .github/
 └── 📁 workflows/
@@ -45,6 +46,7 @@
 📄 package-lock.json 🔒 Locked dependency versions
 📄 .gitignore 🚫 Git ignored files
 ```
+
 ---
 
 ## Phase 1 — Immediate / High Priority
@@ -104,7 +106,7 @@
 1. ✅ **Procedural Sound Customization**  
    Accent / normal beats generated via Web Audio API (no WAV/MP3 files).
 
-2. **Tap Tempo**  
+2. ✅ **Tap Tempo**  
    Minimal implementation: user taps button 3–4 times, BPM calculated from average interval.
 
 3. **Input Validation**  
