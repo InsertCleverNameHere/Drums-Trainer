@@ -170,11 +170,11 @@ fetch("./commits.json", { cache: "no-store" })
 
     const storedVersion = localStorage.getItem(versionKey);
     const isNewVersion = storedVersion !== appVersion;
-    versionColor = localStorage.getItem(colorKey);
 
-    if (isNewVersion || !versionColor) {
-      versionColor = utils.generateColorFromVersion(appVersion);
-      localStorage.setItem(colorKey, versionColor);
+    // Always compute color from version (deterministic)
+    versionColor = utils.generateColorFromVersion(appVersion);
+
+    if (isNewVersion) {
       localStorage.setItem(versionKey, appVersion);
       localStorage.setItem("cachedMsgCount", "0");
       localStorage.setItem("updateMsgCount", "0");
