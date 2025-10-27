@@ -358,6 +358,13 @@ export function initUI(deps) {
         simpleStartBtn.textContent = running ? "Stop" : "Start";
         simpleStartBtn.disabled = false;
       }
+
+      // 🖐️ Tap Tempo button: only active when metronome is fully stopped
+      const tapBtn = document.getElementById("tapTempoBtn");
+      if (tapBtn) {
+        // Disable when the metronome is running or paused
+        tapBtn.disabled = running || paused;
+      }
     } catch (e) {
       console.error("updateSimpleUI failed:", e);
     }
@@ -620,6 +627,48 @@ export function initSimplePanelControls() {
   ownerPanelEventTarget.addEventListener("metronome:ownerChanged", () => {
     setTimeout(updateSimpleUI, 0);
   });
+
+  // --- Tap Tempo logic ---
+  const tapBtn = document.getElementById("tapTempoBtn");
+  if (tapBtn) {
+    let tapTimes = [];
+    let tapTimeout = null;
+
+    tapBtn.addEventListener("click", () => {
+      // only active if simple metronome is stopped or paused
+      const isRunning =
+        typeof simpleMetronome.isRunning === "function" &&
+        simpleMetronome.isRunning();
+      const isPaused =
+        typeof simpleMetronome.isPaused === "function" &&
+        simpleMetronome.isPaused();
+      if (isRunning && !isPaused) {
+        console.warn("🚫 Tap tempo only works when stopped or paused.");
+        return;
+      }
+
+      const now = performance.now();
+      tapTimes.push(now);
+
+      // reset taps if user waits too long
+      clearTimeout(tapTimeout);
+      tapTimeout = setTimeout(() => (tapTimes = []), 2000);
+
+      // need at least 4 taps to calculate
+      if (tapTimes.length >= 4) {
+        const newBpm = utils.calculateTapTempo(tapTimes);
+        if (newBpm) {
+          const bpmInput = document.getElementById("simpleBpm");
+          bpmInput.value = newBpm;
+          if (typeof simpleMetronome.setBpm === "function") {
+            simpleMetronome.setBpm(newBpm);
+          }
+          console.log(`🎯 Tap Tempo BPM set to ${newBpm}`);
+          tapTimes = []; // reset for new session
+        }
+      }
+    });
+  }
 
   // initialize UI immediately
   updateSimpleUI();

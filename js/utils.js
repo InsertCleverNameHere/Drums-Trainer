@@ -104,3 +104,21 @@ export function generateColorFromVersion(version) {
   const index = Math.abs(hash) % palette.length;
   return palette[index];
 }
+
+// === Tap Tempo Helper ===
+// Collects tap timestamps and calculates average BPM, rounded to nearest multiple of 5.
+export function calculateTapTempo(taps, clampTo = 5) {
+  if (!Array.isArray(taps) || taps.length < 2) return null;
+
+  const intervals = [];
+  for (let i = 1; i < taps.length; i++) {
+    const diff = taps[i] - taps[i - 1];
+    if (diff > 0 && diff < 2000) intervals.push(diff); // ignore taps spaced >2s
+  }
+
+  if (intervals.length === 0) return null;
+  const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+  const bpm = 60000 / avgInterval; // convert ms interval to BPM
+  const rounded = Math.round(bpm / clampTo) * clampTo;
+  return Math.max(20, Math.min(400, rounded));
+}
