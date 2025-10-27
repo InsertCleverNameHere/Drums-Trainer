@@ -9,10 +9,12 @@ import {
   initOwnershipGuards,
   initUI,
   initSimplePanelControls,
+  initModeTabs,
 } from "./uiController.js";
 
 // Expose for visuals and console debugging
-window.metronome = metronome; //
+window.metronome = metronome;
+window.sessionEngine = sessionEngine;
 
 // set early to fetch from commits.json
 let appVersion;
@@ -155,124 +157,8 @@ simpleMetronome.initSimpleMetronome({
   },
 });
 
-// --- Mode tabs with blocking while either metronome is active ---
-const tabGroove = document.getElementById("tab-groove");
-const tabMet = document.getElementById("tab-metronome");
-const panelGroove = document.getElementById("panel-groove");
-const panelMet = document.getElementById("panel-metronome");
-
-// helper: visually enable/disable a tab
-function setTabEnabled(tabEl, enabled) {
-  if (!tabEl) return;
-  tabEl.classList.toggle("disabled", !enabled);
-  tabEl.disabled = !enabled;
-}
-
-// central mode switcher that blocks when either metronome is active
-// central mode switcher that respects explicit active-mode ownership
-function setActiveMode(mode) {
-  // Query explicit owner first (set by sessionEngine.setActiveModeOwner)
-  const owner =
-    typeof sessionEngine.getActiveModeOwner === "function"
-      ? sessionEngine.getActiveModeOwner()
-      : null;
-
-  // If an owner exists, force UI to that owner and prevent switching away
-  if (owner === "groove") {
-    tabGroove.classList.add("active");
-    tabMet.classList.remove("active");
-    panelGroove.classList.remove("hidden");
-    panelMet.classList.add("hidden");
-    setTabEnabled(tabGroove, true);
-    setTabEnabled(tabMet, false);
-    return;
-  }
-
-  if (owner === "simple") {
-    tabMet.classList.add("active");
-    tabGroove.classList.remove("active");
-    panelMet.classList.remove("hidden");
-    panelGroove.classList.add("hidden");
-    setTabEnabled(tabMet, true);
-    setTabEnabled(tabGroove, false);
-    return;
-  }
-
-  // No owner: fall back to simple runtime checks (in case simpleMetronome exists)
-  const grooveRunning =
-    typeof sessionEngine.isSessionActive === "function" &&
-    sessionEngine.isSessionActive();
-  const simpleRunning =
-    typeof simpleMetronome.isRunning === "function" &&
-    simpleMetronome.isRunning();
-
-  if (grooveRunning || simpleRunning) {
-    // If runtime flags indicate activity but no explicit owner, keep UI on the running mode
-    if (grooveRunning) {
-      tabGroove.classList.add("active");
-      tabMet.classList.remove("active");
-      panelGroove.classList.remove("hidden");
-      panelMet.classList.add("hidden");
-      setTabEnabled(tabGroove, true);
-      setTabEnabled(tabMet, false);
-    } else {
-      tabMet.classList.add("active");
-      tabGroove.classList.remove("active");
-      panelMet.classList.remove("hidden");
-      panelGroove.classList.add("hidden");
-      setTabEnabled(tabMet, true);
-      setTabEnabled(tabGroove, false);
-    }
-    return;
-  }
-
-  // Normal switching when nothing is active
-  tabGroove.classList.toggle("active", mode === "groove");
-  tabMet.classList.toggle("active", mode === "metronome");
-  panelGroove.classList.toggle("hidden", mode !== "groove");
-  panelMet.classList.toggle("hidden", mode !== "metronome");
-  setTabEnabled(tabGroove, true);
-  setTabEnabled(tabMet, true);
-}
-
-// safe click handlers that ignore clicks when tab is disabled
-tabGroove.addEventListener("click", (e) => {
-  if (tabGroove.classList.contains("disabled")) return;
-  setActiveMode("groove");
-});
-tabMet.addEventListener("click", (e) => {
-  if (tabMet.classList.contains("disabled")) return;
-  setActiveMode("metronome");
-});
-
-// initial mode
-setActiveMode("groove");
-
-// Listen for explicit owner changes from sessionEngine (and other modules)
-document.addEventListener("metronome:ownerChanged", (e) => {
-  const owner = e && e.detail && e.detail.owner;
-  if (owner === "groove") {
-    tabGroove.classList.add("active");
-    panelGroove.classList.remove("hidden");
-    tabMet.classList.remove("active");
-    panelMet.classList.add("hidden");
-    setTabEnabled(tabGroove, true);
-    setTabEnabled(tabMet, false);
-    return;
-  }
-  if (owner === "simple") {
-    tabMet.classList.add("active");
-    panelMet.classList.remove("hidden");
-    tabGroove.classList.remove("active");
-    panelGroove.classList.add("hidden");
-    setTabEnabled(tabMet, true);
-    setTabEnabled(tabGroove, false);
-    return;
-  }
-  // owner === null: enable both tabs and keep current visible panel
-  setTabEnabled(tabGroove, true);
-  setTabEnabled(tabMet, true);
-});
+// // --- Mode tabs with blocking while either metronome is active ---
+initModeTabs(sessionEngine, simpleMetronome);
 
 // === Version Fetch & App Footer Handling ===
 // Fetch latest commit hash + app version to display in footer

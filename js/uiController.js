@@ -158,7 +158,8 @@ window.addEventListener("keydown", (event) => {
   switch (code) {
     case "Space":
       if (target === "groove") {
-        if (grooveStartBtn && !grooveStartBtn.disabled) grooveStartBtn.click();
+        if (!grooveStartBtn || grooveStartBtn.disabled) break;
+        grooveStartBtn.click();
       } else {
         (async () => {
           if (
@@ -358,7 +359,7 @@ export function initUI(deps) {
         simpleStartBtn.disabled = false;
       }
     } catch (e) {
-      throw e;
+      console.error("updateSimpleUI failed:", e);
     }
   }
 
@@ -622,6 +623,124 @@ export function initSimplePanelControls() {
 
   // initialize UI immediately
   updateSimpleUI();
+}
 
-  console.log("✅ Simple metronome panel initialized");
+// -----------------------------------
+// 🧭 Mode Tabs (Groove vs Metronome)
+// -----------------------------------
+export function initModeTabs(sessionEngine, simpleMetronome) {
+  const tabGroove = document.getElementById("tab-groove");
+  const tabMet = document.getElementById("tab-metronome");
+  const panelGroove = document.getElementById("panel-groove");
+  const panelMet = document.getElementById("panel-metronome");
+
+  if (!tabGroove || !tabMet || !panelGroove || !panelMet) {
+    console.warn("⚠️ Mode tab elements not found in DOM");
+    return;
+  }
+
+  function setTabEnabled(tabEl, enabled) {
+    if (!tabEl) return;
+    tabEl.classList.toggle("disabled", !enabled);
+    tabEl.disabled = !enabled;
+  }
+
+  function setActiveMode(mode) {
+    const owner =
+      typeof sessionEngine.getActiveModeOwner === "function"
+        ? sessionEngine.getActiveModeOwner()
+        : null;
+
+    // Enforce explicit ownership first
+    if (owner === "groove") {
+      tabGroove.classList.add("active");
+      tabMet.classList.remove("active");
+      panelGroove.classList.remove("hidden");
+      panelMet.classList.add("hidden");
+      setTabEnabled(tabGroove, true);
+      setTabEnabled(tabMet, false);
+      return;
+    }
+
+    if (owner === "simple") {
+      tabMet.classList.add("active");
+      tabGroove.classList.remove("active");
+      panelMet.classList.remove("hidden");
+      panelGroove.classList.add("hidden");
+      setTabEnabled(tabMet, true);
+      setTabEnabled(tabGroove, false);
+      return;
+    }
+
+    // No owner — fall back to runtime checks
+    const grooveRunning =
+      typeof sessionEngine.isSessionActive === "function" &&
+      sessionEngine.isSessionActive();
+    const simpleRunning =
+      typeof simpleMetronome.isRunning === "function" &&
+      simpleMetronome.isRunning();
+
+    if (grooveRunning || simpleRunning) {
+      if (grooveRunning) {
+        tabGroove.classList.add("active");
+        panelGroove.classList.remove("hidden");
+        tabMet.classList.remove("active");
+        panelMet.classList.add("hidden");
+        setTabEnabled(tabGroove, true);
+        setTabEnabled(tabMet, false);
+      } else {
+        tabMet.classList.add("active");
+        panelMet.classList.remove("hidden");
+        tabGroove.classList.remove("active");
+        panelGroove.classList.add("hidden");
+        setTabEnabled(tabMet, true);
+        setTabEnabled(tabGroove, false);
+      }
+      return;
+    }
+
+    // Normal switching when idle
+    tabGroove.classList.toggle("active", mode === "groove");
+    tabMet.classList.toggle("active", mode === "metronome");
+    panelGroove.classList.toggle("hidden", mode !== "groove");
+    panelMet.classList.toggle("hidden", mode !== "metronome");
+    setTabEnabled(tabGroove, true);
+    setTabEnabled(tabMet, true);
+  }
+
+  // click handlers
+  tabGroove.addEventListener("click", (e) => {
+    if (tabGroove.classList.contains("disabled")) return;
+    setActiveMode("groove");
+  });
+  tabMet.addEventListener("click", (e) => {
+    if (tabMet.classList.contains("disabled")) return;
+    setActiveMode("metronome");
+  });
+
+  // initial mode
+  setActiveMode("groove");
+
+  // respond to owner changes
+  document.addEventListener("metronome:ownerChanged", (e) => {
+    const owner = e?.detail?.owner;
+    if (owner === "groove") {
+      tabGroove.classList.add("active");
+      panelGroove.classList.remove("hidden");
+      tabMet.classList.remove("active");
+      panelMet.classList.add("hidden");
+      setTabEnabled(tabGroove, true);
+      setTabEnabled(tabMet, false);
+    } else if (owner === "simple") {
+      tabMet.classList.add("active");
+      panelMet.classList.remove("hidden");
+      tabGroove.classList.remove("active");
+      panelGroove.classList.add("hidden");
+      setTabEnabled(tabMet, true);
+      setTabEnabled(tabGroove, false);
+    } else {
+      setTabEnabled(tabGroove, true);
+      setTabEnabled(tabMet, true);
+    }
+  });
 }
