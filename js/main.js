@@ -42,13 +42,6 @@ const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
 
 // === Metronome Setup ===
-// Expose metronome module to DevTools for debugging (safe for dev)
-window.metronome = window.metronome || metronome;
-// Protect groove start with explicit ownership checks
-if (typeof metronome.startMetronome === "function") {
-  const _origStartMetronome = metronome.startMetronome.bind(metronome);
-}
-
 // Ensure window.metronome exists and expose safe getters for visuals and debugging
 if (
   typeof metronome.getTicksPerBeat === "function" &&
@@ -157,7 +150,6 @@ simpleMetronome.initSimpleMetronome({
   },
 });
 
-// // --- Mode tabs with blocking while either metronome is active ---
 initModeTabs(sessionEngine, simpleMetronome);
 
 // === Version Fetch & App Footer Handling ===

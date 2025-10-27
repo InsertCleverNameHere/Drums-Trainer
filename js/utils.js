@@ -104,3 +104,68 @@ export function generateColorFromVersion(version) {
   const index = Math.abs(hash) % palette.length;
   return palette[index];
 }
+
+// === Tap tempo logic ===
+export function calculateTapTempo() {
+  const now = performance.now();
+  if (!calculateTapTempo._taps) calculateTapTempo._taps = [];
+  if (!calculateTapTempo._lastTap) calculateTapTempo._lastTap = 0;
+
+  const taps = calculateTapTempo._taps;
+  const TAP_TIMEOUT = 1500;
+  const MAX_WINDOW = 3; // fewer = faster response
+
+  // reset after idle
+  if (
+    calculateTapTempo._lastTap &&
+    now - calculateTapTempo._lastTap > TAP_TIMEOUT
+  )
+    taps.length = 0;
+
+  calculateTapTempo._lastTap = now;
+  taps.push(now);
+  if (taps.length < 2) return null;
+  if (taps.length > MAX_WINDOW) taps.shift();
+
+  const intervals = [];
+  for (let i = 1; i < taps.length; i++) intervals.push(taps[i] - taps[i - 1]);
+
+  // fast decay weighting
+  const decay = 0.18;
+  let w = 1,
+    totalW = 0,
+    weightedSum = 0;
+  for (let i = intervals.length - 1; i >= 0; i--) {
+    weightedSum += intervals[i] * w;
+    totalW += w;
+    w *= decay;
+  }
+
+  let avg = weightedSum / totalW;
+
+  // slight predictive bias toward most recent interval
+  const last = intervals[intervals.length - 1];
+  avg = avg * 0.92 + last * 0.08;
+
+  let bpm = 60000 / avg;
+
+  // quantize + clamp
+  bpm = Math.round(bpm / 5) * 5;
+  bpm = Math.max(40, Math.min(bpm, 400));
+
+  return bpm;
+}
+
+// === Global debug exposure (optional for macros) ===
+if (typeof window !== "undefined") {
+  window.utils = {
+    randomInt,
+    convertToSeconds,
+    clamp,
+    randomizeGroove,
+    pickRandom,
+    formatTime,
+    generateColorFromVersion,
+    calculateTapTempo,
+  };
+}

@@ -358,6 +358,15 @@ export function initUI(deps) {
         simpleStartBtn.textContent = running ? "Stop" : "Start";
         simpleStartBtn.disabled = false;
       }
+
+      // 🖐️ Tap Tempo button: only active when metronome is fully stopped
+      const tapBtn = document.getElementById("tapTempoBtn");
+      if (tapBtn) {
+        const isRunning = simpleMetronome.isRunning?.();
+        const isPaused = simpleMetronome.isPaused?.();
+        // Disable whenever running or paused — only allow tapping when fully stopped
+        tapBtn.disabled = isRunning || isPaused;
+      }
     } catch (e) {
       console.error("updateSimpleUI failed:", e);
     }
@@ -620,6 +629,41 @@ export function initSimplePanelControls() {
   ownerPanelEventTarget.addEventListener("metronome:ownerChanged", () => {
     setTimeout(updateSimpleUI, 0);
   });
+
+  // --- Tap Tempo logic ---
+  const tapBtn = document.getElementById("tapTempoBtn");
+  if (tapBtn) {
+    tapBtn.classList.remove("tap-pulse");
+
+    tapBtn.addEventListener("click", () => {
+      const isRunning = simpleMetronome.isRunning?.();
+      const isPaused = simpleMetronome.isPaused?.();
+      if (isRunning && !isPaused) {
+        console.warn("🚫 Tap tempo only works when stopped or paused.");
+        return;
+      }
+
+      // 💡 Animate tap button
+      tapBtn.classList.remove("tap-pulse");
+      void tapBtn.offsetWidth;
+      tapBtn.classList.add("tap-pulse");
+
+      // ✅ Call our new internal-state-based util
+      const newBpm = utils.calculateTapTempo();
+      if (newBpm) {
+        const bpmInput = document.getElementById("simpleBpm");
+        bpmInput.value = newBpm;
+
+        if (typeof simpleMetronome.setBpm === "function") {
+          simpleMetronome.setBpm(newBpm);
+          bpmInput.classList.add("bpm-flash");
+          setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
+        }
+
+        console.log(`🎯 Tap Tempo BPM set to ${newBpm}`);
+      }
+    });
+  }
 
   // initialize UI immediately
   updateSimpleUI();
