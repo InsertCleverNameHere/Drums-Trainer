@@ -362,8 +362,10 @@ export function initUI(deps) {
       // 🖐️ Tap Tempo button: only active when metronome is fully stopped
       const tapBtn = document.getElementById("tapTempoBtn");
       if (tapBtn) {
-        // Disable when the metronome is running or paused
-        tapBtn.disabled = running || paused;
+        const isRunning = simpleMetronome.isRunning?.();
+        const isPaused = simpleMetronome.isPaused?.();
+        // Disable whenever running or paused — only allow tapping when fully stopped
+        tapBtn.disabled = isRunning || isPaused;
       }
     } catch (e) {
       console.error("updateSimpleUI failed:", e);

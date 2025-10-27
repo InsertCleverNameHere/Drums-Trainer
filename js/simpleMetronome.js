@@ -177,12 +177,6 @@ export function start() {
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: "simple" } })
   );
-  // Preserve simple-specific state event for UI consumers
-  document.dispatchEvent(
-    new CustomEvent("simpleMetronome:state", {
-      detail: { running: true, paused: false },
-    })
-  );
 
   registerVisualIfNeeded();
 
@@ -207,6 +201,12 @@ export function start() {
   running = true;
   paused = false;
   updateSimpleDisplayBpm();
+  // Preserve simple-specific state event for UI consumers (moved below flag updates)
+  document.dispatchEvent(
+    new CustomEvent("simpleMetronome:state", {
+      detail: { running: true, paused: false },
+    })
+  );
   console.log("simpleMetronome started at BPM", bpm);
   return Promise.resolve(true);
 }
