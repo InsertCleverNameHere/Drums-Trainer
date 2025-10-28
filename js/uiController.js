@@ -788,3 +788,165 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
     }
   });
 }
+
+// UI: footer / version display helper
+// footerEl: DOM element for version display (can be obtained by caller or will be looked up internally)
+// appVersion: version string (e.g. "v1.2.3")
+// versionColor: hex color (string) to apply to version text
+// status: optional status text, default "✅ Cached Offline"
+export function updateFooterMessage(
+  footerEl,
+  appVersion,
+  versionColor,
+  status = "✅ Cached Offline"
+) {
+  // If caller didn't pass a footer element, try to find it
+  if (!footerEl) footerEl = document.getElementById("VersionNumber");
+  const messageKey = (s) =>
+    s && s.includes("Update") ? "updateMsgCount" : "cachedMsgCount";
+
+  const key = messageKey(status);
+  const shownCount = parseInt(localStorage.getItem(key)) || 0;
+  const suppressMessage = shownCount >= 3;
+
+  // Defensive: if we don't have an appVersion yet, show a simple placeholder
+  const versionText = appVersion || "";
+
+  if (!footerEl) return;
+
+  const fullText = suppressMessage
+    ? `🎵 Random Groove Trainer <span style="color:${versionColor}">${versionText}</span>`
+    : `🎵 Random Groove Trainer — ${status} <span style="color:${versionColor}">${versionText}</span>`;
+
+  footerEl.innerHTML = fullText;
+
+  // Step 1: Set initial hidden state
+  footerEl.style.opacity = "0";
+  footerEl.style.visibility = "hidden";
+  footerEl.style.transition = "opacity 1.2s ease";
+
+  // Force style flush so transition runs
+  void footerEl.offsetWidth;
+
+  // Step 2: Trigger fade-in
+  footerEl.style.visibility = "visible";
+  footerEl.style.opacity = "0.9";
+
+  // Step 3: Fade out after 5 seconds
+  setTimeout(() => {
+    footerEl.style.opacity = "0";
+
+    setTimeout(() => {
+      footerEl.classList.add("footer-hidden");
+      footerEl.style.visibility = "hidden";
+    }, 600); // match transition duration
+  }, 5000);
+
+  if (!suppressMessage) {
+    localStorage.setItem(key, shownCount + 1);
+  }
+  if (typeof window !== "undefined")
+    window.updateFooterMessage = updateFooterMessage;
+}
+
+export function initUpdateUI() {
+  const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
+  const footerEl = document.getElementById("VersionNumber");
+  if (!footerEl || !checkUpdatesBtn) return;
+
+  // --- Hide footer when clicking outside it ---
+  document.addEventListener("click", (event) => {
+    if (!footerEl || footerEl.classList.contains("footer-hidden")) return;
+    const clickedElement = event.target;
+    if (clickedElement.id === "checkUpdatesBtn") return;
+    footerEl.style.opacity = "0";
+    setTimeout(() => {
+      footerEl.classList.add("footer-hidden");
+      footerEl.style.visibility = "hidden";
+    }, 600);
+  });
+
+  // --- Check updates button (manual fetch + UI) ---
+  checkUpdatesBtn.addEventListener("click", () => {
+    footerEl.innerHTML = `⟳ Checking for updates...`;
+    footerEl.style.opacity = "0";
+    footerEl.style.visibility = "hidden";
+    void footerEl.offsetWidth;
+    footerEl.style.visibility = "visible";
+    footerEl.style.opacity = "0.9";
+
+    fetch("./commits.json", { cache: "no-store" })
+      .then((res) => res.json())
+      .then(({ latestHash, version }) => {
+        const storedHash = localStorage.getItem("lastSeenHash");
+        const storedVersion = localStorage.getItem("lastSeenVersion");
+        const isNewVersion =
+          version !== storedVersion || latestHash !== storedHash;
+
+        if (isNewVersion) {
+          localStorage.setItem("lastSeenVersion", version);
+          localStorage.setItem("lastSeenHash", latestHash);
+
+          footerEl.innerHTML = `⟳ Update available — refreshing shortly...
+            <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
+
+          footerEl.style.opacity = "0";
+          footerEl.style.visibility = "hidden";
+          void footerEl.offsetWidth;
+          footerEl.style.visibility = "visible";
+          footerEl.style.opacity = "0.9";
+
+          const reloadTimeout = setTimeout(() => {
+            location.reload(true);
+          }, 5000);
+
+          const cancelBtn = document.getElementById("cancelReloadBtn");
+          if (cancelBtn) {
+            cancelBtn.addEventListener("click", () => {
+              clearTimeout(reloadTimeout);
+              footerEl.innerHTML = `⟳ Update available — refresh canceled`;
+              setTimeout(() => {
+                footerEl.style.opacity = "0";
+                setTimeout(() => {
+                  footerEl.classList.add("footer-hidden");
+                  footerEl.style.visibility = "hidden";
+                }, 600);
+              }, 4000);
+            });
+          }
+        } else {
+          footerEl.innerHTML = `⟳ You're already on the latest version`;
+          footerEl.style.opacity = "0";
+          footerEl.style.visibility = "hidden";
+          void footerEl.offsetWidth;
+          footerEl.style.visibility = "visible";
+          footerEl.style.opacity = "0.9";
+
+          setTimeout(() => {
+            footerEl.style.opacity = "0";
+            setTimeout(() => {
+              footerEl.classList.add("footer-hidden");
+              footerEl.style.visibility = "hidden";
+            }, 600);
+          }, 5000);
+        }
+      })
+      .catch((err) => {
+        console.warn("Manual update check failed:", err);
+        footerEl.innerHTML = `⟳ Could not check for updates`;
+        footerEl.style.opacity = "0";
+        footerEl.style.visibility = "hidden";
+        void footerEl.offsetWidth;
+        footerEl.style.visibility = "visible";
+        footerEl.style.opacity = "0.9";
+
+        setTimeout(() => {
+          footerEl.style.opacity = "0";
+          setTimeout(() => {
+            footerEl.classList.add("footer-hidden");
+            footerEl.style.visibility = "hidden";
+          }, 600);
+        }, 5000);
+      });
+  });
+}
