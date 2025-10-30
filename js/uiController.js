@@ -868,54 +868,113 @@ export function initUpdateUI() {
 
   // --- Check updates button (manual fetch + UI) ---
   checkUpdatesBtn.addEventListener("click", () => {
-    footerEl.innerHTML = `⟳ Checking for updates...`;
-    footerEl.style.opacity = "0";
-    footerEl.style.visibility = "hidden";
-    void footerEl.offsetWidth;
-    footerEl.style.visibility = "visible";
-    footerEl.style.opacity = "0.9";
+    const start = performance.now();
+    let spinnerShown = false;
+
+    // 🔌 Offline detection
+    if (!navigator.onLine) {
+      footerEl.innerHTML = `⚠️ You're offline — cannot check for updates`;
+      footerEl.style.opacity = "0";
+      footerEl.style.visibility = "hidden";
+      void footerEl.offsetWidth;
+      footerEl.style.visibility = "visible";
+      footerEl.style.opacity = "0.9";
+
+      setTimeout(() => {
+        footerEl.style.opacity = "0";
+        setTimeout(() => {
+          footerEl.classList.add("footer-hidden");
+          footerEl.style.visibility = "hidden";
+        }, 600);
+      }, 5000);
+      return;
+    }
+
+    // Show spinner if fetch takes longer than 300ms
+    const spinnerTimeout = setTimeout(() => {
+      checkUpdatesBtn.classList.add("loading");
+      spinnerShown = true;
+    }, 300);
 
     fetch("./commits.json", { cache: "no-store" })
       .then((res) => res.json())
       .then(({ latestHash, version }) => {
-        const storedHash = localStorage.getItem("lastSeenHash");
-        const storedVersion = localStorage.getItem("lastSeenVersion");
-        const isNewVersion =
-          version !== storedVersion || latestHash !== storedHash;
+        clearTimeout(spinnerTimeout);
+        const elapsed = performance.now() - start;
 
-        if (isNewVersion) {
-          localStorage.setItem("lastSeenVersion", version);
-          localStorage.setItem("lastSeenHash", latestHash);
+        const finish = () => {
+          const storedHash = localStorage.getItem("lastSeenHash");
+          const storedVersion = localStorage.getItem("lastSeenVersion");
+          const isNewVersion =
+            version !== storedVersion || latestHash !== storedHash;
 
-          footerEl.innerHTML = `⟳ Update available — refreshing shortly...
-            <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
+          if (isNewVersion) {
+            localStorage.setItem("lastSeenVersion", version);
+            localStorage.setItem("lastSeenHash", latestHash);
 
-          footerEl.style.opacity = "0";
-          footerEl.style.visibility = "hidden";
-          void footerEl.offsetWidth;
-          footerEl.style.visibility = "visible";
-          footerEl.style.opacity = "0.9";
+            footerEl.innerHTML = `⟳ Update available — refreshing shortly...
+              <button id="cancelReloadBtn" class="update-button">Cancel</button>`;
 
-          const reloadTimeout = setTimeout(() => {
-            location.reload(true);
-          }, 5000);
+            footerEl.style.opacity = "0";
+            footerEl.style.visibility = "hidden";
+            void footerEl.offsetWidth;
+            footerEl.style.visibility = "visible";
+            footerEl.style.opacity = "0.9";
 
-          const cancelBtn = document.getElementById("cancelReloadBtn");
-          if (cancelBtn) {
-            cancelBtn.addEventListener("click", () => {
-              clearTimeout(reloadTimeout);
-              footerEl.innerHTML = `⟳ Update available — refresh canceled`;
-              setTimeout(() => {
-                footerEl.style.opacity = "0";
+            const reloadTimeout = setTimeout(() => {
+              location.reload();
+            }, 5000);
+
+            const cancelBtn = document.getElementById("cancelReloadBtn");
+            if (cancelBtn) {
+              cancelBtn.addEventListener("click", () => {
+                clearTimeout(reloadTimeout);
+                footerEl.innerHTML = `⟳ Update available — refresh canceled`;
                 setTimeout(() => {
-                  footerEl.classList.add("footer-hidden");
-                  footerEl.style.visibility = "hidden";
-                }, 600);
-              }, 4000);
-            });
+                  footerEl.style.opacity = "0";
+                  setTimeout(() => {
+                    footerEl.classList.add("footer-hidden");
+                    footerEl.style.visibility = "hidden";
+                  }, 600);
+                }, 4000);
+              });
+            }
+          } else {
+            footerEl.innerHTML = `⟳ You're already on the latest version`;
+            footerEl.style.opacity = "0";
+            footerEl.style.visibility = "hidden";
+            void footerEl.offsetWidth;
+            footerEl.style.visibility = "visible";
+            footerEl.style.opacity = "0.9";
+
+            setTimeout(() => {
+              footerEl.style.opacity = "0";
+              setTimeout(() => {
+                footerEl.classList.add("footer-hidden");
+                footerEl.style.visibility = "hidden";
+              }, 600);
+            }, 5000);
           }
+
+          if (spinnerShown) {
+            setTimeout(() => {
+              checkUpdatesBtn.classList.remove("loading");
+            }, 300); // keep spinner visible briefly
+          }
+        };
+
+        if (spinnerShown) {
+          setTimeout(finish, 300); // ensure spinner stays visible
         } else {
-          footerEl.innerHTML = `⟳ You're already on the latest version`;
+          finish();
+        }
+      })
+      .catch((err) => {
+        clearTimeout(spinnerTimeout);
+        console.warn("Manual update check failed:", err);
+
+        const showError = () => {
+          footerEl.innerHTML = `⚠️ Could not check for updates — network error`;
           footerEl.style.opacity = "0";
           footerEl.style.visibility = "hidden";
           void footerEl.offsetWidth;
@@ -929,24 +988,19 @@ export function initUpdateUI() {
               footerEl.style.visibility = "hidden";
             }, 600);
           }, 5000);
-        }
-      })
-      .catch((err) => {
-        console.warn("Manual update check failed:", err);
-        footerEl.innerHTML = `⟳ Could not check for updates`;
-        footerEl.style.opacity = "0";
-        footerEl.style.visibility = "hidden";
-        void footerEl.offsetWidth;
-        footerEl.style.visibility = "visible";
-        footerEl.style.opacity = "0.9";
 
-        setTimeout(() => {
-          footerEl.style.opacity = "0";
-          setTimeout(() => {
-            footerEl.classList.add("footer-hidden");
-            footerEl.style.visibility = "hidden";
-          }, 600);
-        }, 5000);
+          if (spinnerShown) {
+            setTimeout(() => {
+              checkUpdatesBtn.classList.remove("loading");
+            }, 300);
+          }
+        };
+
+        if (spinnerShown) {
+          setTimeout(showError, 300);
+        } else {
+          showError();
+        }
       });
   });
 }
