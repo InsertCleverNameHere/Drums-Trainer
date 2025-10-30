@@ -1,19 +1,35 @@
+/*
+============================================
+🎨 CSS Structure
+1. Layout & Typography
+2. Controls & Toggles
+3. Groove Mode Visuals
+4. Simple Metronome Mode
+5. Mode Tabs & Panels
+6. Footer & Version Display
+7. Update Button & Spinner
+8. Tooltip Dialog
+9. Animations & Effects
+10. Responsive Media Queries
+============================================
+*/
+
+/* ============================================
+🎨 1. Layout & Typography
+============================================ */
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
   margin: 18px;
   max-width: 900px;
 }
-
 h1 {
   margin-bottom: 4px;
 }
-
 label {
   display: block;
   margin-top: 10px;
   font-weight: 600;
 }
-
 input,
 textarea,
 select {
@@ -22,8 +38,6 @@ select {
   margin-top: 6px;
   box-sizing: border-box;
 }
-
-/* Compact sizing for numeric and dropdown inputs */
 input[type="number"] {
   width: 90px;
 }
@@ -52,10 +66,19 @@ button {
   margin-top: 10px;
   font-size: 1rem;
 }
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #e0e0e0;
+  border: 1px solid #ccc;
+}
 .big {
   font-size: 1.4rem;
   font-weight: 700;
   margin-top: 12px;
+}
+.small {
+  font-size: 0.92rem;
 }
 .status {
   margin-top: 12px;
@@ -63,6 +86,10 @@ button {
   background: #f3f3f3;
   border-radius: 8px;
 }
+
+/* ============================================
+🎛 2. Controls & Toggles
+============================================ */
 .controls {
   display: flex;
   gap: 8px;
@@ -74,10 +101,7 @@ button {
   gap: 8px;
   margin-left: 6px;
 }
-
-/* Toggle switch appearance */
 .toggle input[type="checkbox"] {
-  /* visually hide the native checkbox but keep it accessible */
   appearance: none;
   -webkit-appearance: none;
   width: 42px;
@@ -112,11 +136,18 @@ button {
   font-weight: 600;
   font-size: 0.95rem;
 }
-.small {
-  font-size: 0.92rem;
-}
 
-/* Multiple-circle metronome display */
+/* ============================================
+🥁 3. Groove Mode Visuals
+============================================ */
+#metronomeVisuals {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-height: 160px;
+  padding-top: 12px;
+}
 #beat-indicator-container {
   display: flex;
   justify-content: center;
@@ -124,8 +155,8 @@ button {
   gap: 14px;
   margin-top: 14px;
 }
-
-.beat-dot {
+.beat-dot,
+.beat-dot-simple {
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -134,7 +165,6 @@ button {
   transition: all 0.15s ease;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
 }
-/* finishing badge (plain text) — shown during final bar of session */
 .finishing-badge {
   display: none;
   color: #8a6d00;
@@ -146,30 +176,6 @@ button {
   transition: opacity 180ms ease;
   opacity: 1;
 }
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.4);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-}
-
-#metronomeVisuals {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  min-height: 160px; /* enough space for countdown + beat dots */
-  padding-top: 12px;
-}
-
 .countdown-badge {
   font-size: 2.5rem;
   font-weight: bold;
@@ -180,47 +186,92 @@ button {
   margin-top: -24px;
   min-height: 3rem;
 }
-
 .countdown-badge.pulse {
   animation: pulse 0.5s ease;
 }
 
-button:disabled {
-  opacity: 0.5;
+/* ============================================
+🥁 4. Simple Metronome Mode
+============================================ */
+#beat-indicator-container-simple {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+#simpleMetronomeDot.pulse {
+  transform: scale(1.25);
+  transition: transform 120ms ease;
+}
+.beats-and-sound-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.beats-section,
+.sound-section {
+  display: flex;
+  flex-direction: column;
+}
+.beats-section label,
+.sound-section label {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+#soundProfileGroove,
+#soundProfileSimple {
+  width: 90px;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 8px;
+  appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
+}
+
+/* ============================================
+🧭 5. Mode Tabs & Panels
+============================================ */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.tab {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #eee;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  font-weight: 600;
+}
+.tab.active {
+  background: #333;
+  color: #fff;
+}
+.tab.disabled {
+  background: #f3f3f3;
+  color: #999;
   cursor: not-allowed;
-  background-color: #e0e0e0;
-  border: 1px solid #ccc;
+  opacity: 0.6;
+}
+.panel {
+  margin-top: 8px;
+}
+.hidden {
+  display: none !important;
 }
 
-.fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-.fade-out {
-  animation: fadeOut 0.5s ease forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-}
-
+/* ============================================
+🎯 6. Footer & Version Display
+============================================ */
 #VersionNumber {
   position: fixed;
   bottom: 10px;
@@ -237,35 +288,89 @@ button:disabled {
   z-index: 9999;
   opacity: 0.9;
 }
-
 #VersionNumber:hover {
   opacity: 1;
 }
-
-@media (max-width: 600px) {
-  #VersionNumber {
-    font-size: 0.8rem;
-    padding: 6px 10px;
-  }
-}
-
 #VersionNumber:empty {
   display: none;
 }
-
-@keyframes bpmFlash {
-  0% {
-    background-color: #f5e8b0;
-  }
-  100% {
-    background-color: inherit;
-  }
+.footer-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.6s ease;
+}
+.footer-visible {
+  opacity: 0.9;
+  visibility: visible;
+  transition: opacity 0.6s ease;
 }
 
-.bpm-flash {
-  animation: bpmFlash 0.15s ease-in-out;
+/* ============================================
+🆕 7. Update Button & Spinner
+============================================ */
+#checkUpdatesBtn {
+  position: fixed;
+  top: 60px;
+  right: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background-color: #333;
+  color: #fff;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+#checkUpdatesBtn:hover {
+  background-color: #555;
 }
 
+.update-button {
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  margin-left: 10px;
+  border: 1px solid currentColor;
+  background-color: transparent;
+  color: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.update-button:hover {
+  color: #ff4d00;
+  border-color: #ff4d00;
+}
+
+.update-button.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.update-button.loading::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ============================================
+💬 8. Tooltip Dialog
+============================================ */
 #tooltipTrigger {
   position: fixed;
   top: 12px;
@@ -320,178 +425,67 @@ button:disabled {
   margin-bottom: 4px;
 }
 
-@media (max-width: 600px) {
-  #tooltipDialog {
-    max-width: 90%;
-    right: 5%;
-    top: 60px;
+/* ============================================
+🎞️ 9. Animations & Effects
+============================================ */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
   }
 }
 
-.footer-hidden {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.6s ease;
-}
-
-.footer-visible {
-  opacity: 0.9;
-  visibility: visible;
-  transition: opacity 0.6s ease;
-}
-
-.fade-in-footer {
-  opacity: 0;
-  animation: fadeInFooter 0.6s ease forwards;
-}
-
-@keyframes fadeInFooter {
+@keyframes fadeIn {
   from {
     opacity: 0;
+    transform: scale(0.9);
   }
   to {
-    opacity: 0.9; /* match your default opacity */
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-#checkUpdatesBtn {
-  position: fixed;
-  top: 60px; /* below the help button */
-  right: 12px;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: none;
-  background-color: #333;
-  color: #fff;
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10000;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-
-#checkUpdatesBtn:hover {
-  background-color: #555;
-}
-
-.update-button {
-  font-size: 0.9rem;
-  padding: 4px 8px;
-  margin-left: 10px;
-  border: 1px solid currentColor;
-  background-color: transparent;
-  color: inherit;
-  font-weight: bold;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-}
-
-.update-button:hover {
-  color: #ff4d00;
-  border-color: #ff4d00;
-}
-
-/* Tabs and panels for simple metronome mode */
-.mode-tabs {
-  display: flex;
-  gap: 8px;
-  margin: 12px 0;
-}
-.tab {
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #eee;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  font-weight: 600;
-}
-.tab.active {
-  background: #333;
-  color: #fff;
-}
-.tab.disabled {
-  background: #f3f3f3;
-  color: #999;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-.panel {
-  margin-top: 8px;
-}
-.hidden {
-  display: none !important;
-}
-
-/* Simple metronome visuals container and dot */
-#beat-indicator-container-simple {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
-}
-.beat-dot-simple {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background-color: #bfbfbf;
-  opacity: 0.6;
-  transition: all 0.15s ease;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
-}
-
-#simpleMetronomeDot.pulse {
-  transform: scale(1.25);
-  transition: transform 120ms ease;
-}
-
-.beats-and-sound-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  gap: 40px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.beats-section,
-.sound-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.beats-section label,
-.sound-section label {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-#soundProfileGroove,
-#soundProfileSimple {
-  width: 90px;
-  padding: 4px 8px;
-  font-size: 14px;
-  border-radius: 8px;
-  appearance: none;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 10px;
-}
-
-@media (max-width: 500px) {
-  .beats-and-sound-row {
-    flex-direction: column;
-    align-items: stretch;
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
   }
 }
 
-/* === Tap Tempo Pulse Feedback === */
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.fade-out {
+  animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes bpmFlash {
+  0% {
+    background-color: #f5e8b0;
+  }
+  100% {
+    background-color: inherit;
+  }
+}
+
+.bpm-flash {
+  animation: bpmFlash 0.15s ease-in-out;
+}
+
 @keyframes tapPulse {
   0% {
     transform: scale(1);
@@ -512,4 +506,33 @@ button:disabled {
 
 #tapTempoBtn.tap-pulse {
   animation: tapPulse 0.25s ease-out;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+📱 10. Responsive Media Queries
+============================================ */
+@media (max-width: 600px) {
+  #VersionNumber {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  #tooltipDialog {
+    max-width: 90%;
+    right: 5%;
+    top: 60px;
+  }
+}
+
+@media (max-width: 500px) {
+  .beats-and-sound-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
