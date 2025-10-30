@@ -513,3 +513,16 @@ button:disabled {
 #tapTempoBtn.tap-pulse {
   animation: tapPulse 0.25s ease-out;
 }
+
+button#installBtn.utility-button {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  background-color: #4e4e4e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  z-index: 1000;
+}

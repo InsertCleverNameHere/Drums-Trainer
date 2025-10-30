@@ -149,7 +149,7 @@
 
 ### 2. Enhanced PWA Features
 
-- Fullscreen launch on mobile.
+- ✅ Stanndalone launch on mobile.
 - ✅ Auto-update service worker.
 - Optional banner suppression.
 - ✅ Add “update available” and “updated” footer messages with version color-coding.
