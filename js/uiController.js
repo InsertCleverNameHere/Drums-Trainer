@@ -4,11 +4,7 @@
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
-import {
-  setActiveProfile,
-  getAvailableProfiles,
-  getActiveProfile,
-} from "./audioProfiles.js";
+import * as audioProfiles from "./audioProfiles.js";
 
 // =============================================================
 // 🔒 Safe Quantization Helper
@@ -41,8 +37,6 @@ export function initQuantization() {
     );
     window.QUANTIZATION.groove = safeGroove;
   }
-
-  console.log(`✅ Quantization initialized:`, window.QUANTIZATION);
 }
 
 // --- Quantization Safety Wrapper ---
@@ -446,33 +440,34 @@ export function initUI(deps) {
   // Ensure initial sync
   updateSimpleUI();
 
-  // Beats-per-bar input wiring
-  const beatsPerBarEl = document.getElementById("beatsPerBar");
-  if (beatsPerBarEl && typeof setBeatsPerBarFn === "function") {
-    const applyBeatsPerBar = () => {
-      const v = Number(beatsPerBarEl.value);
+  // Groove Beats-per-bar input wiring (was previously targeting non-existent "beatsPerBar")
+  const grooveBeatsPerBarEl = document.getElementById("grooveBeatsPerBar");
+  if (grooveBeatsPerBarEl && typeof setBeatsPerBarFn === "function") {
+    const applyGrooveBeatsPerBar = () => {
+      const v = Number(grooveBeatsPerBarEl.value);
       if (Number.isNaN(v)) return;
       const n = Math.max(1, Math.min(12, Math.round(v)));
-      if (String(n) !== beatsPerBarEl.value) beatsPerBarEl.value = String(n);
+      if (String(n) !== grooveBeatsPerBarEl.value)
+        grooveBeatsPerBarEl.value = String(n);
       try {
-        setBeatsPerBarFn(n);
+        setBeatsPerBarFn(n); // calls metronomeCore.setBeatsPerBar
       } catch (e) {
-        throw e;
+        console.error("Error setting groove beats per bar:", e);
       }
     };
 
-    beatsPerBarEl.addEventListener("change", applyBeatsPerBar);
-    beatsPerBarEl.addEventListener("blur", applyBeatsPerBar);
-    beatsPerBarEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") applyBeatsPerBar();
+    grooveBeatsPerBarEl.addEventListener("change", applyGrooveBeatsPerBar);
+    grooveBeatsPerBarEl.addEventListener("blur", applyGrooveBeatsPerBar);
+    grooveBeatsPerBarEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyGrooveBeatsPerBar();
     });
 
     // initialize input from metronome state if available
     try {
       const current =
         typeof getBeatsPerBarFn === "function" ? getBeatsPerBarFn() : null;
-      if (current != null && String(current) !== beatsPerBarEl.value)
-        beatsPerBarEl.value = String(current);
+      if (current != null && String(current) !== grooveBeatsPerBarEl.value)
+        grooveBeatsPerBarEl.value = String(current);
     } catch (e) {}
   }
 
@@ -570,7 +565,7 @@ export function initSoundProfileUI() {
   }
 
   // Populate both dropdowns dynamically
-  const profiles = getAvailableProfiles();
+  const profiles = audioProfiles.getAvailableProfiles();
   for (const p of profiles) {
     const label = p.charAt(0).toUpperCase() + p.slice(1);
     grooveProfileEl.appendChild(new Option(label, p));
@@ -581,14 +576,14 @@ export function initSoundProfileUI() {
   function syncProfileSelection(profileName) {
     grooveProfileEl.value = profileName;
     simpleProfileEl.value = profileName;
-    setActiveProfile(profileName);
+    audioProfiles.setActiveProfile(profileName);
     localStorage.setItem("activeSoundProfile", profileName); // Save to localStorage
     console.log(`🎚 Sound profile set to: ${profileName}`);
   }
 
   // Load persisted profile first
   const saved = localStorage.getItem("activeSoundProfile");
-  const current = saved || getActiveProfile() || "digital";
+  const current = saved || audioProfiles.getActiveProfile() || "digital";
   syncProfileSelection(current);
 
   // Wire up listeners on both dropdowns
