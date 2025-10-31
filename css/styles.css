@@ -536,3 +536,90 @@ button:disabled {
     align-items: stretch;
   }
 }
+
+/* ============================================================
+   Subtle invalid input feedback
+   ============================================================ */
+
+.invalid-flash {
+  animation: flashInvalid 0.3s ease;
+  border-color: #f55 !important;
+}
+
+@keyframes flashInvalid {
+  from {
+    box-shadow: 0 0 6px #f55;
+  }
+  to {
+    box-shadow: none;
+  }
+}
+
+.info-flash {
+  animation: flashInfo 1.2s ease;
+}
+
+@keyframes flashInfo {
+  from {
+    color: #00b3ff;
+  }
+  to {
+    color: inherit;
+  }
+}
+
+/* ============================================================
+📢 Floating UI Notice (BPM Adjust / Info Messages)
+============================================================ */
+.ui-notice {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  background: rgba(150, 130, 180, 0.9); /* 🌸 muted lavender */
+  color: #fff;
+  font-size: 15px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* When shown */
+.ui-notice.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(5px);
+}
+
+/* When hidden */
+.ui-notice.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+/* Optional: shorter display window */
+@keyframes autoFadeOut {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(5px);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Auto fade helper (1.8s total) */
+.ui-notice.auto {
+  animation: autoFadeOut 1.8s ease forwards;
+}
