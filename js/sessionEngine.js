@@ -4,7 +4,8 @@
 // === Imports ===
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
-import { formatTime } from "./utils.js";
+import { showNotice } from "./uiController.js";
+
 let activeModeOwner = null; // "groove" | "simple" | null
 
 export function setActiveModeOwner(owner) {
@@ -351,15 +352,47 @@ function runCycle() {
     return;
   }
 
-  const bpmMin = parseInt(ui.bpmMinEl.value);
-  const bpmMax = parseInt(ui.bpmMaxEl.value);
+  // ✅ Sanitize BPM range before randomization
+  const originalMin = parseInt(ui.bpmMinEl.value);
+  const originalMax = parseInt(ui.bpmMaxEl.value);
+
+  const {
+    bpmMin,
+    bpmMax,
+    step: quantStep,
+  } = utils.sanitizeBpmRange(
+    ui.bpmMinEl.value,
+    ui.bpmMaxEl.value,
+    utils.QUANTIZATION.groove
+  );
+
+  // reflect sanitized values in the UI so user sees auto-correction
+  ui.bpmMinEl.value = bpmMin;
+  ui.bpmMaxEl.value = bpmMax;
+
+  // ✅ Notify user if the range was changed by quantization or clamping
+  if (bpmMin !== originalMin || bpmMax !== originalMax) {
+    if (typeof showNotice === "function") {
+      showNotice(
+        `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
+      );
+    } else {
+      console.info(
+        `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
+      );
+    }
+  }
+
+  // Use the sanitized range + existing groove text to get random groove & BPM
   const { bpm, groove } = utils.randomizeGroove(
     ui.groovesEl.value,
     bpmMin,
     bpmMax
   );
 
+  // update the UI to reflect current groove and BPM
   ui.displayGroove.textContent = `Groove: ${groove}`;
+  ui.displayBpm.textContent = `BPM: ${bpm}`;
 
   const durationValue = parseInt(ui.cycleDurationEl.value);
   const durationUnit = ui.cycleUnitEl.value;

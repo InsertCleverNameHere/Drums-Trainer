@@ -7,6 +7,25 @@ export function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+export function quantizeToStep(value, step = 5) {
+  return Math.round(value / step) * step;
+}
+
+export function sanitizeQuantizationStep(value) {
+  // Step must be 1–100, default to 5
+  const step = sanitizePositiveInteger(value, {
+    min: 1,
+    max: 100,
+    defaultValue: 5,
+  });
+  return Math.min(step, 100);
+}
+
+// Quantization defaults (groove uses this; tap tempo stays hardcoded to 5)
+export const QUANTIZATION = {
+  groove: 5,
+};
+
 // Converts unit user chooses (minutes or hours) to seconds for internal logic
 export function convertToSeconds(value, unit) {
   const n = parseInt(value);
@@ -35,13 +54,44 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
   if (isNaN(bpmMax)) bpmMax = 60;
   if (bpmMin > bpmMax) [bpmMin, bpmMax] = [bpmMax, bpmMin];
 
-  const randomBpm =
-    Math.floor((Math.random() * (bpmMax - bpmMin + 5)) / 5) * 5 + bpmMin;
+  const step = sanitizeQuantizationStep(QUANTIZATION.groove);
+
+  // Quantize bpmMin and bpmMax to nearest valid multiples of step
+  bpmMin = Math.ceil(bpmMin / step) * step;
+  bpmMax = Math.floor(bpmMax / step) * step;
+
+  // SAFETY NET — fixes empty BPM edge case near upper limit
+  if (bpmMin > bpmMax) {
+    bpmMin = Math.max(0, bpmMax - step);
+  }
+
+  // Ensure at least one quantization step difference
+  if (bpmMax - bpmMin < step) {
+    bpmMax = bpmMin + step;
+    console.warn(
+      `Adjusted BPM range to maintain at least one quantization step: ${bpmMin}-${bpmMax}`
+    );
+  }
+
+  // Prevent exceeding hard max limit
+  bpmMax = Math.min(bpmMax, 500);
+
+  // Choose random BPM from valid quantized values
+  const possibleBPMs = [];
+  for (let bpm = bpmMin; bpm <= bpmMax; bpm += step) {
+    possibleBPMs.push(bpm);
+  }
+
+  const randomBpm = pickRandom(possibleBPMs);
+
   const randomGroove =
     grooves.length > 0
       ? grooves[Math.floor(Math.random() * grooves.length)]
       : "No groove selected";
 
+  console.log(
+    `🎲 Groove randomizer → BPM: ${randomBpm}, Range: ${bpmMin}-${bpmMax}, Step: ${step}`
+  );
   return { bpm: randomBpm, groove: randomGroove };
 }
 
@@ -49,6 +99,22 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
 export function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Extracts a groove name from a multiline grooves text
+export function getGrooveNameFromText(groovesText) {
+  if (!groovesText) return "No groove selected";
+
+  // Split and sanitize
+  const grooves = groovesText
+    .split("\n")
+    .map((g) => g.trim())
+    .filter(Boolean);
+
+  // Pick one at random
+  const grooveName = pickRandom(grooves);
+
+  return grooveName || "No groove selected";
 }
 
 // Time unit helpers
@@ -167,5 +233,71 @@ if (typeof window !== "undefined") {
     formatTime,
     generateColorFromVersion,
     calculateTapTempo,
+    sanitizeQuantizationStep,
+    sanitizeBpmRange,
+    getGrooveNameFromText,
+    QUANTIZATION,
   };
+
+  // Explicit shortcuts (for quick console access)
+  window.randomizeGroove = randomizeGroove;
+  window.sanitizeQuantizationStep = sanitizeQuantizationStep;
+}
+
+// =============================================================
+// Input Sanitization Helpers
+// =============================================================
+
+/**
+ * Sanitize a value to be a whole, positive, non-zero integer.
+ * Clamps to min/max and falls back to defaultValue if invalid.
+ */
+export function sanitizePositiveInteger(
+  value,
+  { min = 1, max = Infinity, defaultValue = min } = {}
+) {
+  if (typeof value === "string") value = value.trim();
+  if (value === "" || value === null || value === undefined)
+    return defaultValue;
+
+  // Accept only whole nonzero positive numbers
+  const regex = /^[1-9]\d*$/;
+  if (!regex.test(value)) return defaultValue;
+
+  let num = Number(value);
+  if (Number.isNaN(num)) return defaultValue;
+  if (num < min) return min;
+  if (num > max) return max;
+  return num;
+}
+
+export function sanitizeBpmRange(
+  bpmMin,
+  bpmMax,
+  quantizationStep = QUANTIZATION.groove
+) {
+  bpmMin = parseInt(bpmMin);
+  bpmMax = parseInt(bpmMax);
+
+  if (isNaN(bpmMin)) bpmMin = 30;
+  if (isNaN(bpmMax)) bpmMax = 60;
+  if (bpmMin > bpmMax) [bpmMin, bpmMax] = [bpmMax, bpmMin];
+
+  const step = sanitizeQuantizationStep(quantizationStep);
+
+  bpmMin = Math.ceil(bpmMin / step) * step;
+  bpmMax = Math.floor(bpmMax / step) * step;
+
+  if (bpmMin > bpmMax) bpmMin = Math.max(0, bpmMax - step);
+
+  if (bpmMax - bpmMin < step) {
+    bpmMax = bpmMin + step;
+    console.warn(
+      `Adjusted BPM range to maintain at least one quantization step: ${bpmMin}-${bpmMax}`
+    );
+  }
+
+  bpmMax = Math.min(bpmMax, 500);
+
+  return { bpmMin, bpmMax, step };
 }
