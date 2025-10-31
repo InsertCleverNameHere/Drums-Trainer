@@ -220,14 +220,6 @@ if ("serviceWorker" in navigator) {
     // === Manual Update Button Logic ===
     // Checks if a newer version exists and triggers a refresh if found.
     // Handles “Cancel refresh” gracefully to avoid disruptive reloads.
-
-    // Update manually via checkUpdatesBtn
-    const checkBtn = document.getElementById("checkUpdatesBtn");
-    if (checkBtn) {
-      checkBtn.addEventListener("click", () => {
-        reg.update();
-      });
-    }
   });
 }
 
