@@ -10,6 +10,67 @@ import {
   getActiveProfile,
 } from "./audioProfiles.js";
 
+// =============================================================
+// 🔒 Safe Quantization Helper
+// =============================================================
+
+export function getQuantizationLevel() {
+  const q = window?.utils?.QUANTIZATION;
+  if (!q || typeof q.groove !== "number" || q.groove <= 0) return 5;
+  return q.groove;
+}
+
+// ============================
+// 🎚️ Quantization Initializer
+// ============================
+
+// Ensure QUANTIZATION object exists globally
+if (typeof window.QUANTIZATION === "undefined") {
+  window.QUANTIZATION = { groove: 5 }; // default to a safe mid value
+}
+
+// Initialization function to sanitize and set defaults
+export function initQuantization() {
+  if (!window.QUANTIZATION) window.QUANTIZATION = {};
+
+  // Auto-correct using utils.sanitizeQuantizationStep
+  const safeGroove = utils.sanitizeQuantizationStep(window.QUANTIZATION.groove);
+  if (safeGroove !== window.QUANTIZATION.groove) {
+    console.warn(
+      `⚠️ Corrected invalid QUANTIZATION.groove from ${window.QUANTIZATION.groove} → ${safeGroove}`
+    );
+    window.QUANTIZATION.groove = safeGroove;
+  }
+
+  console.log(`✅ Quantization initialized:`, window.QUANTIZATION);
+}
+
+// --- Quantization Safety Wrapper ---
+export function getSafeQuantization() {
+  // Re-initialize if the global object doesn’t exist
+  if (!window.QUANTIZATION) initQuantization();
+
+  // Always sanitize and enforce the valid range
+  const safeGroove = utils.sanitizeQuantizationStep(window.QUANTIZATION.groove);
+
+  // If the sanitized value differs, fix it in place
+  if (safeGroove !== window.QUANTIZATION.groove) {
+    window.QUANTIZATION.groove = safeGroove;
+    console.warn(
+      `💡 Quantization groove corrected to safe value: ${safeGroove}`
+    );
+  }
+
+  return window.QUANTIZATION;
+}
+
+// Auto-run after DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initQuantization);
+} else {
+  initQuantization();
+}
+
 // --- Ownership Guards ---
 // Prevents Groove Start button from running when another mode (e.g., Simple Metronome) owns playback
 export function initOwnershipGuards() {
@@ -1003,4 +1064,140 @@ export function initUpdateUI() {
         }
       });
   });
+}
+
+// =============================================================
+// Input Validation Logic (strict numeric enforcement)
+// =============================================================
+
+// Define input constraints per field (from index.html)
+const INPUT_LIMITS = {
+  bpmMin: { min: 5, max: 500, defaultValue: 30 },
+  bpmMax: { min: 5, max: 500, defaultValue: 60 },
+  grooveBeatsPerBar: { min: 1, max: 12, defaultValue: 4 },
+  cycleDuration: { min: 1, max: 9999, defaultValue: 60 },
+  totalCycles: { min: 1, max: 9999, defaultValue: 5 },
+  totalTime: { min: 1, max: 9999, defaultValue: 300 },
+  simpleBpm: { min: 20, max: 400, defaultValue: 120 },
+  simpleBeatsPerBar: { min: 1, max: 12, defaultValue: 4 },
+};
+
+// Validate and sanitize numeric input
+function validateNumericInput(input) {
+  const id = input.id;
+  if (!(id in INPUT_LIMITS)) return;
+  const limits = INPUT_LIMITS[id];
+  const sanitized = utils.sanitizePositiveInteger(input.value, limits);
+  input.value = sanitized;
+  input.dataset.lastValidValue = sanitized;
+}
+
+// Attach validation for all relevant inputs
+function attachInputValidation() {
+  Object.keys(INPUT_LIMITS).forEach((id) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+
+    input.addEventListener("keydown", (e) => {
+      if (
+        e.ctrlKey ||
+        e.metaKey ||
+        [
+          "Backspace",
+          "Delete",
+          "Tab",
+          "ArrowLeft",
+          "ArrowRight",
+          "Enter",
+        ].includes(e.key)
+      )
+        return;
+      if (!/[0-9]/.test(e.key)) e.preventDefault();
+    });
+
+    input.addEventListener("paste", (e) => {
+      const text = (e.clipboardData || window.clipboardData).getData("text");
+      const limits = INPUT_LIMITS[id];
+      const cleaned = utils.sanitizePositiveInteger(text, limits);
+      if (cleaned === limits.defaultValue && !/^[1-9]\\d*$/.test(text)) {
+        e.preventDefault();
+        input.classList.add("invalid-flash");
+        setTimeout(() => input.classList.remove("invalid-flash"), 400);
+      } else {
+        e.preventDefault();
+        input.value = cleaned;
+        input.dataset.lastValidValue = cleaned;
+      }
+    });
+
+    // Only block invalid characters while typing, do NOT sanitize on every keystroke
+    input.addEventListener("input", (e) => {
+      // Remember last valid numeric characters but don't sanitize/clamp yet
+      if (!/^\d*$/.test(input.value)) {
+        input.value = input.value.replace(/\D+/g, "");
+      }
+    });
+
+    // Sanitize fully only after user finishes typing
+    input.addEventListener("blur", () => validateNumericInput(input));
+
+    // Initialize
+    validateNumericInput(input);
+  });
+
+  // Groove BPM cross-check
+  const minInput = document.getElementById("bpmMin");
+  const maxInput = document.getElementById("bpmMax");
+  if (minInput && maxInput) {
+    const adjustGrooveBpm = () => {
+      const minVal = Number(minInput.value);
+      const maxVal = Number(maxInput.value);
+      if (minVal >= maxVal) {
+        minInput.value = INPUT_LIMITS.bpmMin.defaultValue;
+        maxInput.value = INPUT_LIMITS.bpmMax.defaultValue;
+
+        // Quiet footer feedback if available
+        const footer = document.getElementById("footerMessage");
+        if (footer) {
+          footer.textContent = "Adjusted BPM range to valid defaults.";
+          footer.classList.add("info-flash");
+          setTimeout(() => footer.classList.remove("info-flash"), 1500);
+        }
+      }
+    };
+    minInput.addEventListener("change", adjustGrooveBpm);
+    maxInput.addEventListener("change", adjustGrooveBpm);
+  }
+}
+
+// Ensure validation is attached after DOM ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", attachInputValidation);
+} else {
+  attachInputValidation();
+}
+
+// Show a notice message for BPM quantization correction
+export function showNotice(message, duration = 2000) {
+  let notice = document.querySelector(".ui-notice");
+  if (!notice) {
+    notice = document.createElement("div");
+    notice.className = "ui-notice";
+    document.body.appendChild(notice);
+  }
+
+  // Reset and apply fade-in
+  notice.textContent = message;
+  notice.classList.remove("hidden", "fade-out");
+  notice.classList.add("show", "fade-in");
+
+  // Auto-hide with fade-out
+  setTimeout(() => {
+    notice.classList.remove("fade-in");
+    notice.classList.add("fade-out");
+    setTimeout(() => {
+      notice.classList.remove("show");
+      notice.classList.add("hidden");
+    }, 500); // matches fade-out animation duration
+  }, duration);
 }
