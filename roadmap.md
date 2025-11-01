@@ -109,7 +109,7 @@
 2. ✅ **Tap Tempo**  
    Minimal implementation: user taps button 3–4 times, BPM calculated from average interval.
 
-3. **Input Validation**  
+3. ✅ **Input Validation**  
    Enforce `minBPM < maxBPM`, revert or correct gracefully.
 
 4. **Dual-Point BPM Slider**  
