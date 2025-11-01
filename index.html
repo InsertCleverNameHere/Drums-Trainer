@@ -248,6 +248,24 @@ Funk
         value="120"
         step="5"
       />
+      <!-- Simple Metronome Slider -->
+      <div class="bpm-slider-wrapper">
+        <input
+          type="range"
+          id="simpleMetronomeSlider"
+          min="20"
+          max="300"
+          step="5"
+          value="120"
+        />
+        <!-- programmatically populated marks go here -->
+        <div
+          id="simpleBpmMarks"
+          class="bpm-slider-marks"
+          aria-hidden="true"
+        ></div>
+      </div>
+
       <div class="row beats-and-sound-row">
         <div class="beats-section">
           <label for="simpleBeatsPerBar">Beats per bar</label>

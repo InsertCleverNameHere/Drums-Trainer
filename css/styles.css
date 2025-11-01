@@ -623,3 +623,104 @@ button:disabled {
 .ui-notice.auto {
   animation: autoFadeOut 1.8s ease forwards;
 }
+
+/* === Simple Metronome Slider + Ruler Marks === */
+.bpm-slider-wrapper {
+  width: 80%;
+  max-width: 600px;
+  margin: 0.75rem auto 0;
+  position: relative; /* marks are absolutely positioned inside */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+/* Slider track and thumb */
+#simpleMetronomeSlider {
+  width: 100%;
+  height: 8px;
+  background: var(--accent-light, #888);
+  border-radius: 5px;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+#simpleMetronomeSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent, #b22222);
+  cursor: pointer;
+  transition: transform 0.15s ease-in-out;
+}
+
+#simpleMetronomeSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+#simpleMetronomeSlider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent, #b22222);
+  cursor: pointer;
+}
+
+/* Marks container (absolute ruler under slider) */
+.bpm-slider-marks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  height: 20px;
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+
+  /* allow marks inside to receive pointer events */
+  pointer-events: auto;
+  user-select: none;
+}
+
+/* tick line connecting label to slider track */
+.bpm-slider-marks .tick {
+  position: absolute;
+  top: -8px; /* above the label, just below the slider */
+  width: 1px;
+  height: 8px;
+  background: var(--text-secondary, #666);
+  transform: translateX(-50%);
+  opacity: 0.7;
+  transition: background 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.bpm-slider-marks .tick.active {
+  background: var(--accent, #b22222);
+  height: 14px;
+  opacity: 1;
+}
+
+/* adjust label vertical offset so they don't overlap the tick */
+.bpm-slider-marks .mark {
+  cursor: pointer;
+  transition: color 0.15s ease-in-out;
+  position: absolute;
+  top: 6px; /* slightly below the tick */
+  transform: translateX(-50%);
+  white-space: nowrap;
+
+  /* allow clicks on labels */
+  pointer-events: auto;
+
+  font-size: 0.72rem;
+  color: var(--text-secondary, #666);
+}
+
+.bpm-slider-marks .mark:hover {
+  color: var(--accent, #8b0000);
+}
