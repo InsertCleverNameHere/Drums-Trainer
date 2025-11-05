@@ -4,11 +4,50 @@
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
+import * as utils from "./utils.js";
 
 let running = false;
 let paused = false;
 let bpm = 120;
 let visualRegistered = false;
+
+// Animate slider changes when the BPM is adjusted via text input
+function triggerSimpleSliderAnimation() {
+  const slider = document.getElementById("simpleMetronomeSlider");
+  if (slider) {
+    slider.classList.add("program-update");
+    setTimeout(() => slider.classList.remove("program-update"), 200);
+  }
+}
+
+// Smooth animation for simple slider
+function animateSimpleSliderToValue(targetValue, duration = 200) {
+  const slider = document.getElementById("simpleMetronomeSlider");
+  if (!slider) return;
+
+  const startValue = parseInt(slider.value);
+  const startTime = performance.now();
+
+  function animate(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Ease-out function for smooth deceleration
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+    const currentValue = startValue + (targetValue - startValue) * easeProgress;
+    slider.value = Math.round(currentValue);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // Ensure final value is exact
+      slider.value = targetValue;
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
 
 // Helper for disabling the slider whenn the metronome is runnning
 function toggleSliderDisabled(disabled) {
@@ -121,11 +160,11 @@ export function initSimpleMetronome(opts = {}) {
     // Sync slider whenever BPM input changes (manual or programmatic)
     const syncSliderToInput = () => {
       const newBpm = utils.clamp(Number(bpmInput.value), 20, 300);
-      sliderEl.value = newBpm;
+      animateSimpleSliderToValue(newBpm);
       updateActiveTick(newBpm);
+      triggerSimpleSliderAnimation();
     };
     bpmInput.addEventListener("change", syncSliderToInput);
-    bpmInput.addEventListener("input", syncSliderToInput);
 
     // 🎯 Click to jump on slider
     const sliderWrapper = document.querySelector(".bpm-slider-wrapper");
@@ -143,11 +182,12 @@ export function initSimpleMetronome(opts = {}) {
         const percent = utils.clamp(clickX / rect.width, 0, 1);
         const newBpm = Math.round(20 + percent * (300 - 20));
 
-        sliderEl.value = newBpm;
+        animateSimpleSliderToValue(newBpm);
         bpmInput.value = newBpm;
         setBpm(newBpm);
         updateSimpleDisplayBpm(newBpm);
         updateActiveTick(newBpm);
+        triggerSimpleSliderAnimation();
       });
 
       // 🎵 Click directly on a label mark to snap to its BPM
@@ -155,11 +195,12 @@ export function initSimpleMetronome(opts = {}) {
         const mark = e.target.closest(".mark");
         if (mark && mark.dataset.bpm) {
           const newBpm = Number(mark.dataset.bpm);
-          sliderEl.value = newBpm;
+          animateSimpleSliderToValue(newBpm);
           bpmInput.value = newBpm;
           setBpm(newBpm);
           updateSimpleDisplayBpm(newBpm);
           updateActiveTick(newBpm);
+          triggerSimpleSliderAnimation();
           e.stopPropagation(); // prevent double-triggering the wrapper click
         }
       });
@@ -255,72 +296,40 @@ export function initSimpleMetronome(opts = {}) {
     if (closestTick) closestTick.classList.add("active");
   }
 
-  // initial render + keep it responsive
-  renderSliderMarks();
-  updateActiveTick(bpm);
-  window.addEventListener("resize", () => {
-    renderSliderMarks();
-    updateActiveTick(bpm);
-  });
-
-  window.addEventListener("load", () => {
-    renderSliderMarks();
-    updateActiveTick(bpm);
-  });
-
-  // Watch for panel visibility and render once it becomes visible
-  (function watchPanelVisibilityAndRenderOnce() {
+  // Helper function to safely render marks after the panel is visible
+  function requestRenderOfMarks() {
     const metronomePanel = document.getElementById("panel-metronome");
     if (!metronomePanel) return;
 
-    // Helper to check if panel is visible and usable for measurements
-    const panelIsVisible = (el) =>
-      el &&
-      el.offsetParent !== null &&
-      getComputedStyle(el).display !== "none" &&
-      el.getBoundingClientRect().width > 0;
-
-    // If already visible now, just render and return
-    if (panelIsVisible(metronomePanel)) {
-      requestAnimationFrame(() => {
+    // Use requestAnimationFrame to ensure the DOM has been painted after becoming visible.
+    requestAnimationFrame(() => {
+      // As a final safety check, ensure the panel is truly visible before measuring.
+      if (metronomePanel.offsetParent !== null) {
         renderSliderMarks();
         updateActiveTick(bpm);
-      });
-      return;
-    }
-
-    // Observe class/style attribute changes on the panel itself
-    const observer = new MutationObserver((mutations) => {
-      // one shot: when panel becomes visible, render and disconnect
-      if (panelIsVisible(metronomePanel)) {
-        // ensure layout paints before measuring
-        requestAnimationFrame(() => {
-          renderSliderMarks();
-          updateActiveTick(bpm);
-        });
-        observer.disconnect();
       }
     });
+  }
 
-    observer.observe(metronomePanel, {
-      attributes: true,
-      attributeFilter: ["class", "style"],
-    });
+  // initial render + keep it responsive
+  updateActiveTick(bpm);
+  window.addEventListener("resize", () => {
+    const metronomePanel = document.getElementById("panel-metronome");
+    if (metronomePanel && !metronomePanel.classList.contains("hidden")) {
+      renderSliderMarks();
+      updateActiveTick(bpm);
+    }
+  });
 
-    // As a robust fallback, also listen for clicks that may toggle the panel.
-    // This avoids edge-cases where an outer controller swaps DOM nodes instead of toggling attributes.
-    const clickFallback = () => {
-      setTimeout(() => {
-        if (panelIsVisible(metronomePanel)) {
-          renderSliderMarks();
-          updateActiveTick(bpm);
-          document.removeEventListener("click", clickFallback, true);
-          observer.disconnect();
-        }
-      }, 20); // allow UI toggling to complete
-    };
-    document.addEventListener("click", clickFallback, true);
-  })();
+  // Listen for the tab becoming active and re-render then.
+  // This is more reliable than a one-shot MutationObserver.
+  // NEW, MORE ROBUST LISTENER:
+  document.addEventListener("metronome:ownerChanged", (e) => {
+    if (e.detail && e.detail.owner === "simple") {
+      requestRenderOfMarks();
+    }
+  });
+  document.addEventListener("renderSimpleSliderMarks", requestRenderOfMarks);
 
   // Expose for console/debugging
   window.simpleMetronome = window.simpleMetronome || {};
@@ -362,7 +371,7 @@ export function getBpm() {
 
 export function setBpm(newBpm) {
   const n = Number(newBpm);
-  if (Number.isFinite(n) && n >= 20 && n <= 400) bpm = n;
+  if (Number.isFinite(n) && n >= 20 && n <= 300) bpm = n;
   // Update display badge
   updateSimpleDisplayBpm();
 

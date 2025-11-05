@@ -177,11 +177,32 @@ window.addEventListener("keydown", (event) => {
     const bpmMinInput = document.getElementById("bpmMin");
     const bpmMaxInput = document.getElementById("bpmMax");
     const adj = window.__adjustingTarget === "max" ? bpmMaxInput : bpmMinInput;
-    if (!adj) return;
-    const step = event.shiftKey ? 1 : 5;
+    const other =
+      window.__adjustingTarget === "max" ? bpmMinInput : bpmMaxInput;
+
+    if (!adj || !other) return;
+
+    const step = 5; // Always 5, no fine-tuning
     const cur = parseInt(adj.value, 10) || 0;
+    const otherVal = parseInt(other.value, 10) || 0;
     const next = Math.max(30, Math.min(300, cur + delta * step));
+
+    // Check if this change would violate the margin (5 BPM minimum)
+    const margin = 5;
+    if (window.__adjustingTarget === "min" && next >= otherVal - margin + 1) {
+      return;
+    }
+    if (window.__adjustingTarget === "max" && next <= otherVal + margin - 1) {
+      return;
+    }
+
+    // Apply validation and update the input
     adj.value = next;
+    validateNumericInput(adj);
+
+    // Trigger a change event to update the slider
+    adj.dispatchEvent(new Event("change", { bubbles: true }));
+
     adj.classList.add("bpm-flash");
     setTimeout(() => adj.classList.remove("bpm-flash"), 150);
   };
@@ -191,8 +212,9 @@ window.addEventListener("keydown", (event) => {
     if (!el) return;
     const cur =
       parseInt(el.value || el.getAttribute("value") || 120, 10) || 120;
-    const step = event.shiftKey ? 1 : 5; // default ±5, Shift = ±1
-    const next = Math.max(20, Math.min(400, cur + delta * step));
+    const step = 5; // Always 5, no fine-tuning
+    const limits = INPUT_LIMITS[el.id];
+    const next = Math.max(limits.min, Math.min(limits.max, cur + delta * step));
     el.value = next;
     if (
       typeof window.simpleMetronome !== "undefined" &&
@@ -207,7 +229,7 @@ window.addEventListener("keydown", (event) => {
     }
     el.classList.add("bpm-flash");
     setTimeout(() => el.classList.remove("bpm-flash"), 150);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
   };
 
   switch (code) {
@@ -806,6 +828,19 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
     panelMet.classList.toggle("hidden", mode !== "metronome");
     setTabEnabled(tabGroove, true);
     setTabEnabled(tabMet, true);
+
+    // If we are switching to the groove panel, trigger a re-render of the slider marks
+    if (mode === "groove") {
+      setTimeout(() => {
+        renderGrooveSliderMarks();
+        const currentValues = grooveSlider.noUiSlider.get().map(Number);
+        updateGrooveActiveTicks(currentValues[0], currentValues[1]);
+      }, 0);
+    }
+    if (mode === "metronome") {
+      // Dispatch a custom event that simpleMetronone.js can listen for
+      document.dispatchEvent(new Event("renderSimpleSliderMarks"));
+    }
   }
 
   // click handlers
@@ -1067,13 +1102,13 @@ export function initUpdateUI() {
 
 // Define input constraints per field (from index.html)
 const INPUT_LIMITS = {
-  bpmMin: { min: 5, max: 500, defaultValue: 30 },
-  bpmMax: { min: 5, max: 500, defaultValue: 60 },
+  bpmMin: { min: 5, max: 300, defaultValue: 30 },
+  bpmMax: { min: 5, max: 300, defaultValue: 60 },
   grooveBeatsPerBar: { min: 1, max: 12, defaultValue: 4 },
   cycleDuration: { min: 1, max: 9999, defaultValue: 60 },
   totalCycles: { min: 1, max: 9999, defaultValue: 5 },
   totalTime: { min: 1, max: 9999, defaultValue: 300 },
-  simpleBpm: { min: 20, max: 400, defaultValue: 120 },
+  simpleBpm: { min: 20, max: 300, defaultValue: 120 },
   simpleBeatsPerBar: { min: 1, max: 12, defaultValue: 4 },
 };
 
@@ -1147,17 +1182,21 @@ function attachInputValidation() {
     const adjustGrooveBpm = () => {
       const minVal = Number(minInput.value);
       const maxVal = Number(maxInput.value);
-      if (minVal >= maxVal) {
-        minInput.value = INPUT_LIMITS.bpmMin.defaultValue;
-        maxInput.value = INPUT_LIMITS.bpmMax.defaultValue;
+      const margin = 5;
 
-        // Quiet footer feedback if available
-        const footer = document.getElementById("footerMessage");
-        if (footer) {
-          footer.textContent = "Adjusted BPM range to valid defaults.";
-          footer.classList.add("info-flash");
-          setTimeout(() => footer.classList.remove("info-flash"), 1500);
-        }
+      if (minVal >= maxVal - margin + 1) {
+        // Values violate margin - revert to last valid values
+        minInput.value =
+          minInput.dataset.lastValidValue || INPUT_LIMITS.bpmMin.defaultValue;
+        maxInput.value =
+          maxInput.dataset.lastValidValue || INPUT_LIMITS.bpmMax.defaultValue;
+
+        // Show notice to user
+        showNotice("BPM range must be at least 5 apart");
+      } else {
+        // Values are valid - update last valid values
+        minInput.dataset.lastValidValue = minVal;
+        maxInput.dataset.lastValidValue = maxVal;
       }
     };
     minInput.addEventListener("change", adjustGrooveBpm);
@@ -1196,3 +1235,212 @@ export function showNotice(message, duration = 2000) {
     }, 500); // matches fade-out animation duration
   }, duration);
 }
+
+// =============================================================
+// Groove Metronome Dual-thumb Slider
+// =============================================================
+
+// Define renderSliderMarks in the module scope so it can be called by other functions
+let grooveSlider; // Declare slider in module scope too
+let bpmMinInput, bpmMaxInput; // And inputs
+let ignoreSliderUpdate = false;
+
+function renderGrooveSliderMarks() {
+  const marksContainer = document.getElementById("slider-numbers");
+  const ticksContainer = document.getElementById("groove-ticks-container");
+
+  if (!grooveSlider || !marksContainer || !ticksContainer) return;
+
+  const sliderMin = 30;
+  const sliderMax = 300;
+  const marks = [];
+  for (let i = sliderMin; i <= sliderMax; i += 30) marks.push(i);
+
+  // Clear previous content
+  marksContainer.innerHTML = "";
+  ticksContainer.innerHTML = "";
+
+  const sliderRect = grooveSlider.getBoundingClientRect();
+  const containerRect = grooveSlider.parentElement.getBoundingClientRect();
+  const computed = window.getComputedStyle(grooveSlider);
+  const padLeft = parseFloat(computed.paddingLeft) || 7;
+  const padRight = parseFloat(computed.paddingRight) || padLeft;
+
+  // Calculate the slider's position within its container
+  const sliderLeftOffset = sliderRect.left - containerRect.left;
+  const innerWidth = Math.max(0, sliderRect.width - padLeft - padRight);
+
+  // Position containers relative to the slider's actual position
+  const relativeOffset = sliderRect.width * 0.0029; // 0.29% of slider width
+  marksContainer.style.left = `${
+    sliderLeftOffset + padLeft + relativeOffset
+  }px`;
+  marksContainer.style.width = `${innerWidth}px`;
+  ticksContainer.style.left = `${
+    sliderLeftOffset + padLeft + relativeOffset
+  }px`;
+  ticksContainer.style.width = `${innerWidth}px`;
+
+  const range = sliderMax - sliderMin;
+
+  marks.forEach((value) => {
+    const ratio = (value - sliderMin) / range;
+    const percent = ratio * 100;
+
+    // Create the number mark
+    const span = document.createElement("span");
+    span.textContent = value;
+    span.className = "slider-mark";
+    span.style.position = "absolute";
+    span.style.left = `${percent}%`;
+    span.style.transform = "translateX(-50%)";
+
+    span.addEventListener("click", () => {
+      const current = grooveSlider.noUiSlider.get().map(Number);
+      const d0 = Math.abs(current[0] - value);
+      const d1 = Math.abs(current[1] - value);
+      const idx = d0 <= d1 ? 0 : 1;
+      const newVals = [...current];
+      newVals[idx] = value;
+      grooveSlider.noUiSlider.set(newVals);
+    });
+
+    marksContainer.appendChild(span);
+
+    // Create separate tick element
+    const tick = document.createElement("div");
+    tick.className = "groove-tick";
+    tick.style.left = `${percent}%`;
+    tick.style.transform = "translateX(-50%)";
+    ticksContainer.appendChild(tick);
+  });
+}
+
+function updateGrooveActiveTicks(minVal, maxVal) {
+  const ticks = document.querySelectorAll(".groove-tick");
+  const marks = document.querySelectorAll(".slider-mark");
+
+  // Remove active class from all
+  ticks.forEach((tick) => tick.classList.remove("active"));
+  marks.forEach((mark) => mark.classList.remove("active"));
+
+  // If no marks, return
+  if (marks.length === 0) return;
+
+  // Find closest mark to min value
+  let minClosest = null;
+  let minDistance = Infinity;
+
+  // Find closest mark to max value
+  let maxClosest = null;
+  let maxDistance = Infinity;
+
+  marks.forEach((mark, index) => {
+    const markValue = parseInt(mark.textContent);
+    const tick = ticks[index];
+
+    // Calculate distance to min thumb
+    const distToMin = Math.abs(markValue - minVal);
+    if (distToMin < minDistance) {
+      minDistance = distToMin;
+      minClosest = { mark, tick, index };
+    }
+
+    // Calculate distance to max thumb
+    const distToMax = Math.abs(markValue - maxVal);
+    if (distToMax < maxDistance) {
+      maxDistance = distToMax; // FIXED: Was maxDistance = maxDistance (typo)
+      maxClosest = { mark, tick, index };
+    }
+  });
+
+  // Highlight closest to min (if found)
+  if (minClosest) {
+    minClosest.tick.classList.add("active");
+    minClosest.mark.classList.add("active");
+  }
+
+  // Highlight closest to max (if found and different from min)
+  if (maxClosest && maxClosest.index !== minClosest?.index) {
+    maxClosest.tick.classList.add("active");
+    maxClosest.mark.classList.add("active");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  bpmMinInput = document.getElementById("bpmMin");
+  bpmMaxInput = document.getElementById("bpmMax");
+  grooveSlider = document.getElementById("groove-slider");
+
+  const quantizeToStep = (value, step = 5) =>
+    Math.round(Number(value) / step) * step;
+
+  const defaultMin = parseInt(bpmMinInput.value) || 30;
+  const defaultMax = parseInt(bpmMaxInput.value) || 60;
+
+  noUiSlider.create(grooveSlider, {
+    start: [defaultMin, defaultMax],
+    connect: true,
+    range: { min: 30, max: 300 },
+    step: 5,
+    margin: 5,
+    tooltips: false,
+    orientation: "horizontal",
+  });
+
+  grooveSlider.noUiSlider.on("update", (values, handle) => {
+    // Skip update if we're in the middle of a hotkey adjustment
+    if (ignoreSliderUpdate) return;
+
+    const [minVal, maxVal] = values.map((v) => quantizeToStep(v));
+    bpmMinInput.value = minVal;
+    bpmMaxInput.value = maxVal;
+
+    // Update active ticks
+    updateGrooveActiveTicks(minVal, maxVal);
+  });
+
+  // Sync slider values to input fields
+  function syncSliderToInputs() {
+    const minVal = Math.max(
+      5,
+      Math.min(300, parseInt(bpmMinInput.value) || 30)
+    );
+    const maxVal = Math.max(
+      5,
+      Math.min(300, parseInt(bpmMaxInput.value) || 60)
+    );
+
+    grooveSlider.noUiSlider.set([minVal, maxVal]);
+
+    // Visual feedback
+    const handles = document.querySelectorAll(".noUi-handle");
+    handles.forEach((handle) => {
+      handle.classList.add("slider-update");
+      setTimeout(() => handle.classList.remove("slider-update"), 300);
+    });
+  }
+
+  // Listen for changes on both BPM input fields
+  bpmMinInput.addEventListener("change", syncSliderToInputs);
+  bpmMaxInput.addEventListener("change", syncSliderToInputs);
+
+  // Optional: Also sync on input for real-time feedback (but might be too frequent)
+  // bpmMinInput.addEventListener('input', syncSliderToInputs);
+  // bpmMaxInput.addEventListener('input', syncSliderToInputs);
+
+  // Initial render
+  renderGrooveSliderMarks();
+  updateGrooveActiveTicks(defaultMin, defaultMax);
+
+  // Guarded resize listener
+  window.addEventListener("resize", () => {
+    const groovePanel = document.getElementById("panel-groove");
+    if (groovePanel && !groovePanel.classList.contains("hidden")) {
+      renderGrooveSliderMarks();
+      // Also update active ticks on resize
+      const currentValues = grooveSlider.noUiSlider.get().map(Number);
+      updateGrooveActiveTicks(currentValues[0], currentValues[1]);
+    }
+  });
+});
