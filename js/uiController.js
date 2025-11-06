@@ -1497,7 +1497,7 @@ function updateGrooveActiveTicks(minVal, maxVal) {
     // Calculate distance to max thumb
     const distToMax = Math.abs(markValue - maxVal);
     if (distToMax < maxDistance) {
-      maxDistance = distToMax; // FIXED: Was maxDistance = maxDistance (typo)
+      maxDistance = distToMax;
       maxClosest = { mark, tick, index };
     }
   });

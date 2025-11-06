@@ -8,11 +8,18 @@
 5. Mode Tabs & Panels
 6. Footer & Version Display
 7. Update Button & Spinner
-8. Tooltip Dialog
+8. Tooltip Dialog & Notices
 9. Animations & Effects
 10. Responsive Media Queries
+11. Subtle invalid input feedback
+12. Floating UI Notice (BPM Adjust / Info Messages)
+13. Groove Metronome Slider
+14. Simple Metronome Slider
+15. Consistent Disable States for Both Sliders
 ============================================
 */
+
+/* Added missing section comments throughout the file */
 
 /* ============================================
 🎨 1. Layout & Typography
@@ -525,9 +532,9 @@ button:disabled {
   }
 }
 
-/* ============================================
+/* =============================
 📱 10. Responsive Media Queries
-============================================ */
+================================ */
 @media (max-width: 600px) {
   #VersionNumber {
     font-size: 0.8rem;
@@ -548,9 +555,9 @@ button:disabled {
   }
 }
 
-/* ============================================================
-   Subtle invalid input feedback
-   ============================================================ */
+/* ===================================
+   11. Subtle invalid input feedback
+   =================================== */
 
 .invalid-flash {
   animation: flashInvalid 0.3s ease;
@@ -580,7 +587,7 @@ button:disabled {
 }
 
 /* ============================================================
-📢 Floating UI Notice (BPM Adjust / Info Messages)
+📢 12. Floating UI Notice (BPM Adjust / Info Messages)
 ============================================================ */
 .ui-notice {
   position: fixed;
@@ -635,9 +642,9 @@ button:disabled {
   animation: autoFadeOut 1.8s ease forwards;
 }
 
-/* ========================
-   Groove Metronome Slider
-   ======================== */
+/* ============================
+   13. Groove Metronome Slider
+   ============================ */
 /* Groove slider container */
 #groove-slider-container {
   position: relative;
@@ -784,9 +791,9 @@ button:disabled {
   font-weight: 700;
 }
 
-/* ============================================================
-   Simple Metronome Slider (using groove slider styles)
-   ============================================================ */
+/* ==============================
+   14. Simple Metronome Slider
+   ============================== */
 
 /* Reuse groove slider container styles */
 #simple-slider-container {
@@ -888,7 +895,7 @@ button:disabled {
 }
 
 /* ============================================================
-   Consistent Disable States for Both Sliders
+   15. Consistent Disable States for Both Sliders
    ============================================================ */
 
 /* Groove slider disable states */
