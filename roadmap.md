@@ -112,7 +112,7 @@
 3. ✅ **Input Validation**  
    Enforce `minBPM < maxBPM`, revert or correct gracefully.
 
-4. **Dual-Point BPM Slider**  
+4. ✅ **Dual-Point BPM Slider**  
    Sync with numeric min/max BPM inputs.
 
 5. **Note Type & Time Signature Customization**
