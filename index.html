@@ -254,27 +254,16 @@ Funk
         id="simpleBpm"
         type="number"
         inputmode="numeric"
-        min="20"
+        min="30"
         max="300"
         value="120"
         step="5"
       />
       <!-- Simple Metronome Slider -->
-      <div class="bpm-slider-wrapper" style="margin-bottom: 45px">
-        <input
-          type="range"
-          id="simpleMetronomeSlider"
-          min="20"
-          max="300"
-          step="5"
-          value="120"
-        />
-        <!-- programmatically populated marks go here -->
-        <div
-          id="simpleBpmMarks"
-          class="bpm-slider-marks"
-          aria-hidden="true"
-        ></div>
+      <div id="simple-slider-container" class="groove-slider-container">
+        <div id="simpleMetronomeSlider"></div>
+        <div id="simple-ticks-container" class="groove-ticks-container"></div>
+        <div id="simple-slider-numbers"></div>
       </div>
 
       <div class="row beats-and-sound-row">

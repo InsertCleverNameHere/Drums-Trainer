@@ -635,128 +635,9 @@ button:disabled {
   animation: autoFadeOut 1.8s ease forwards;
 }
 
-/* === Simple Metronome Slider + Ruler Marks === */
-.bpm-slider-wrapper {
-  width: 80%;
-  max-width: 600px;
-  margin: 0.75rem auto 0;
-  position: relative; /* marks are absolutely positioned inside */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-}
-
-/* Slider track and thumb */
-#simpleMetronomeSlider {
-  width: 100%;
-  height: 8px;
-  background: var(--accent-light, #888);
-  border-radius: 5px;
-  appearance: none;
-  outline: none;
-  cursor: pointer;
-  transition: background 0.2s ease-in-out;
-}
-
-#simpleMetronomeSlider::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent, #b22222);
-  cursor: pointer;
-  transition: transform 0.15s ease-in-out;
-}
-
-#simpleMetronomeSlider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
-#simpleMetronomeSlider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent, #b22222);
-  cursor: pointer;
-}
-
-/* Simple metronome slider thumb animation */
-#simpleMetronomeSlider.program-update::-webkit-slider-thumb {
-  animation: simpleThumbPulse 0.3s ease;
-}
-
-#simpleMetronomeSlider.program-update::-moz-range-thumb {
-  animation: simpleThumbPulse 0.3s ease;
-}
-
-@keyframes simpleThumbPulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.3);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Marks container (absolute ruler under slider) */
-.bpm-slider-marks {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 8px);
-  height: 20px;
-  width: 100%;
-  font-size: 0.75rem;
-  color: var(--text-secondary, #666);
-
-  /* allow marks inside to receive pointer events */
-  pointer-events: auto;
-  user-select: none;
-}
-
-/* tick line connecting label to slider track */
-.bpm-slider-marks .tick {
-  position: absolute;
-  top: -8px; /* above the label, just below the slider */
-  width: 1px;
-  height: 8px;
-  background: var(--text-secondary, #666);
-  transform: translateX(-50%);
-  opacity: 0.7;
-  transition: background 0.25s ease, height 0.25s ease, opacity 0.25s ease;
-  pointer-events: none;
-}
-
-.bpm-slider-marks .tick.active {
-  background: var(--accent, #b22222);
-  height: 14px;
-  opacity: 1;
-}
-
-/* adjust label vertical offset so they don't overlap the tick */
-.bpm-slider-marks .mark {
-  cursor: pointer;
-  transition: color 0.15s ease-in-out;
-  position: absolute;
-  top: 6px; /* slightly below the tick */
-  transform: translateX(-50%);
-  white-space: nowrap;
-
-  /* allow clicks on labels */
-  pointer-events: auto;
-
-  font-size: 0.72rem;
-  color: var(--text-secondary, #666);
-}
-
-.bpm-slider-marks .mark:hover {
-  color: var(--accent, #8b0000);
-}
-
+/* ========================
+   Groove Metronome Slider
+   ======================== */
 /* Groove slider container */
 #groove-slider-container {
   position: relative;
@@ -901,4 +782,171 @@ button:disabled {
 #slider-numbers .slider-mark.active {
   color: #b22222;
   font-weight: 700;
+}
+
+/* ============================================================
+   Simple Metronome Slider (using groove slider styles)
+   ============================================================ */
+
+/* Reuse groove slider container styles */
+#simple-slider-container {
+  position: relative;
+  margin-bottom: 45px;
+  margin-top: 30px;
+}
+
+/* Reuse the main slider styles */
+#simpleMetronomeSlider {
+  margin: 10px 0 8px 0;
+  height: 12px;
+  width: 67%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Reuse ticks container - these styles are already defined for .groove-ticks-container */
+/* No additional styles needed - we're using the same class */
+
+/* Reuse slider numbers container */
+#simple-slider-numbers {
+  position: absolute;
+  top: 28px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #333;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Ensure simple slider marks and ticks have the same hover behavior as groove slider */
+#simple-slider-numbers .slider-mark {
+  position: relative;
+  bottom: -15px;
+  transform: translateX(-50%);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.25s ease;
+  font-size: 0.72rem;
+  color: #666;
+}
+
+#simple-slider-numbers .slider-mark:hover {
+  color: #b22222;
+}
+
+#simple-slider-numbers .slider-mark.active {
+  color: #b22222;
+  font-weight: 700;
+}
+
+/* Ensure ticks container has proper pointer events */
+#simple-ticks-container.groove-ticks-container {
+  position: absolute;
+  top: 14px;
+  height: 20px;
+  pointer-events: none;
+}
+
+/* Ensure individual ticks have hover effects */
+#simple-ticks-container .groove-tick {
+  position: absolute;
+  width: 1px;
+  height: 8px;
+  background: #666;
+  transform: translateX(-50%);
+  opacity: 0.7;
+  transition: background 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Add hover effect for simple slider ticks */
+#simple-ticks-container .groove-tick:hover {
+  background: #b22222;
+  height: 16px;
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(178, 34, 34, 0.6);
+}
+
+/* Active state for simple slider ticks */
+#simple-ticks-container .groove-tick.active {
+  background: #b22222;
+  height: 14px;
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(178, 34, 34, 0.8);
+}
+
+/* Ensure the wrapper opacity is applied correctly */
+.bpm-slider-wrapper {
+  transition: opacity 0.2s ease;
+}
+
+.bpm-slider-wrapper.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Consistent Disable States for Both Sliders
+   ============================================================ */
+
+/* Groove slider disable states */
+#groove-slider-container.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#groove-slider-container.disabled .noUi-handle {
+  cursor: not-allowed;
+  background: #999 !important; /* Grey out the thumb */
+}
+
+#groove-slider-container.disabled .noUi-connect {
+  background: #999 !important; /* Grey out the connect bar */
+}
+
+#groove-slider-container.disabled .slider-mark,
+#groove-slider-container.disabled .groove-tick {
+  pointer-events: none;
+  opacity: 0.5;
+  color: #999 !important; /* Grey out marks */
+}
+
+#groove-slider-container.disabled .slider-mark:hover,
+#groove-slider-container.disabled .groove-tick:hover {
+  color: #999 !important; /* Remove hover effects */
+  background: transparent !important;
+  height: 8px !important; /* Reset hover height */
+  box-shadow: none !important; /* Remove hover glow */
+}
+
+/* Simple slider disable states (same as above) */
+#simple-slider-container.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#simple-slider-container.disabled .noUi-handle {
+  cursor: not-allowed;
+  background: #999 !important;
+}
+
+#simple-slider-container.disabled .noUi-connect {
+  background: #999 !important;
+}
+
+#simple-slider-container.disabled .slider-mark,
+#simple-slider-container.disabled .groove-tick {
+  pointer-events: none;
+  opacity: 0.5;
+  color: #999 !important;
+}
+
+#simple-slider-container.disabled .slider-mark:hover,
+#simple-slider-container.disabled .groove-tick:hover {
+  color: #999 !important;
+  background: transparent !important;
+  height: 8px !important;
+  box-shadow: none !important;
 }
