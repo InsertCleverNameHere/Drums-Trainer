@@ -198,6 +198,86 @@ button:disabled {
 }
 
 /* ============================================
+🎵 Beat Dot Size Variants (Phase 1)
+============================================ */
+.beat-dot,
+.beat-dot-simple {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #bfbfbf;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Subdivision size variants */
+.beat-dot-quarter,
+.beat-dot-simple-quarter {
+  width: 64px;
+  height: 64px;
+}
+
+.beat-dot-eighth,
+.beat-dot-simple-eighth {
+  width: 48px;
+  height: 48px;
+}
+
+.beat-dot-sixteenth,
+.beat-dot-simple-sixteenth {
+  width: 36px;
+  height: 36px;
+}
+
+/* Phonation labels below dots */
+.beat-label {
+  position: absolute;
+  bottom: -54px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #999; /* Default inactive color */
+  user-select: none;
+  white-space: nowrap;
+  text-align: center;
+  width: 100%;
+  transition: all 0.15s ease; /* Smooth color transitions */
+}
+
+/* Active state colors based on subdivision position */
+.beat-label.active-primary {
+  color: #b22222; /* Downbeat/primary (1, 2, 3, 4) - firebrick red */
+  font-weight: 700;
+}
+
+.beat-label.active-and {
+  color: #1e90ff; /* "&" beats - dodger blue */
+  font-weight: 700;
+}
+
+.beat-label.active-e {
+  color: #ff8c00; /* "e" beats - dark orange */
+  font-weight: 700;
+}
+
+.beat-label.active-a {
+  color: #ff8c00; /* "a" beats - dark orange */
+  font-weight: 700;
+}
+
+/* Wrapper for dot + label */
+.beat-wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Added for vertical centering */
+  margin: 0 7px;
+}
+
+/* ============================================
 🥁 4. Simple Metronome Mode
 ============================================ */
 #beat-indicator-container-simple {
