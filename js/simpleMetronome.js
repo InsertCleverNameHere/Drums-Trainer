@@ -4,6 +4,7 @@
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
+import * as utils from "./utils.js";
 
 let running = false;
 let paused = false;
@@ -11,6 +12,14 @@ let bpm = 120;
 let visualRegistered = false;
 
 // DOM helpers
+
+// Helper for disabling the slider when the metronome is running
+function toggleSliderDisabled(disabled) {
+  if (typeof window.toggleSimpleSliderDisabled === "function") {
+    window.toggleSimpleSliderDisabled(disabled);
+  }
+}
+
 function getBeatsInputValue() {
   const el = document.getElementById("simpleBeatsPerBar");
   if (!el) return 4;
@@ -132,7 +141,7 @@ export function getBpm() {
 
 export function setBpm(newBpm) {
   const n = Number(newBpm);
-  if (Number.isFinite(n) && n >= 20 && n <= 400) bpm = n;
+  if (Number.isFinite(n) && n >= 20 && n <= 300) bpm = n;
   // Update display badge
   updateSimpleDisplayBpm();
 
@@ -207,6 +216,7 @@ export function start() {
       detail: { running: true, paused: false },
     })
   );
+  toggleSliderDisabled(true);
   console.log("simpleMetronome started at BPM", bpm);
   return Promise.resolve(true);
 }
@@ -263,4 +273,5 @@ export function stop() {
     })
   );
   console.log("simpleMetronome stopped");
+  toggleSliderDisabled(false);
 }

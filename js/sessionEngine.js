@@ -192,6 +192,10 @@ export function startSession() {
       }
     }, 1000);
   }
+  // Disable groove slider when session is running
+  if (typeof window.toggleGrooveSliderDisabled === "function") {
+    window.toggleGrooveSliderDisabled(true);
+  }
 }
 
 export function pauseSession() {
@@ -321,6 +325,10 @@ export function stopSession(message = "") {
   });
 
   console.log(message || "Session stopped");
+  // Re-enable groove slider when session stops
+  if (typeof window.toggleGrooveSliderDisabled === "function") {
+    window.toggleGrooveSliderDisabled(false);
+  }
 }
 
 // === Internal Helpers ===

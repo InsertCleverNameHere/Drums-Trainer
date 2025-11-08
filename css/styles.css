@@ -8,11 +8,18 @@
 5. Mode Tabs & Panels
 6. Footer & Version Display
 7. Update Button & Spinner
-8. Tooltip Dialog
+8. Tooltip Dialog & Notices
 9. Animations & Effects
 10. Responsive Media Queries
+11. Subtle invalid input feedback
+12. Floating UI Notice (BPM Adjust / Info Messages)
+13. Groove Metronome Slider
+14. Simple Metronome Slider
+15. Consistent Disable States for Both Sliders
 ============================================
 */
+
+/* Added missing section comments throughout the file */
 
 /* ============================================
 🎨 1. Layout & Typography
@@ -482,8 +489,19 @@ button:disabled {
   }
 }
 
+@keyframes bpmFlash {
+  0% {
+    background-color: #f5e8b0;
+    box-shadow: 0 0 8px rgba(245, 232, 176, 0.8);
+  }
+  100% {
+    background-color: #fff;
+    box-shadow: none;
+  }
+}
+
 .bpm-flash {
-  animation: bpmFlash 0.15s ease-in-out;
+  animation: bpmFlash 0.3s ease-in-out;
 }
 
 @keyframes tapPulse {
@@ -526,9 +544,9 @@ button#installBtn.utility-button {
   }
 }
 
-/* ============================================
+/* =============================
 📱 10. Responsive Media Queries
-============================================ */
+================================ */
 @media (max-width: 600px) {
   #VersionNumber {
     font-size: 0.8rem;
@@ -549,9 +567,9 @@ button#installBtn.utility-button {
   }
 }
 
-/* ============================================================
-   Subtle invalid input feedback
-   ============================================================ */
+/* ===================================
+   11. Subtle invalid input feedback
+   =================================== */
 
 .invalid-flash {
   animation: flashInvalid 0.3s ease;
@@ -581,7 +599,7 @@ button#installBtn.utility-button {
 }
 
 /* ============================================================
-📢 Floating UI Notice (BPM Adjust / Info Messages)
+📢 12. Floating UI Notice (BPM Adjust / Info Messages)
 ============================================================ */
 .ui-notice {
   position: fixed;
@@ -634,4 +652,320 @@ button#installBtn.utility-button {
 /* Auto fade helper (1.8s total) */
 .ui-notice.auto {
   animation: autoFadeOut 1.8s ease forwards;
+}
+
+/* ============================
+   13. Groove Metronome Slider
+   ============================ */
+/* Groove slider container */
+#groove-slider-container {
+  position: relative;
+  margin-bottom: 45px;
+  margin-top: 30px;
+}
+
+#groove-slider {
+  margin: 10px 0 8px 0;
+  height: 12px;
+  width: 67%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* noUiSlider base styles */
+.noUi-target,
+.noUi-target * {
+  box-sizing: border-box;
+}
+
+.noUi-target {
+  position: relative;
+  background: #888;
+  border: none;
+  border-radius: 5px;
+  height: 8px; /* Let's match the simple slider height */
+  padding: 0 7px;
+  box-sizing: border-box;
+}
+
+/* Connected portion of the track */
+.noUi-connect {
+  background: #4caf50;
+}
+
+/* Thumb styling: keep horizontal safety while adjusting vertical appearance */
+.noUi-horizontal .noUi-handle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #b22222;
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+
+  /* Improved centering */
+  top: -3px; /* Keep this for now */
+  transform: translateX(-50%);
+  transform-origin: center center;
+  transition: transform 0.15s ease-in-out;
+}
+
+.noUi-horizontal .noUi-handle:hover {
+  transform: translateX(-50%) scale(1.2); /* Scale from current position */
+}
+
+/* Remove default extra handle text */
+.noUi-horizontal .noUi-handle::after,
+.noUi-horizontal .noUi-handle::before {
+  content: none;
+}
+
+.noUi-handle.slider-update {
+  animation: sliderPulse 0.3s ease;
+}
+
+@keyframes sliderPulse {
+  0% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.3);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* Styling for the marks container */
+#slider-numbers {
+  position: absolute;
+  top: 28px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #333;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Styling for each individual mark */
+#slider-numbers .slider-mark {
+  position: relative;
+  bottom: -15px;
+  transform: translateX(-50%);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.25s ease; /* Just color transition like simple metronome */
+  font-size: 0.72rem; /* Match the simple metronome font size */
+  color: #666; /* Default color */
+}
+
+#slider-numbers .slider-mark:hover {
+  color: #b22222; /* Change to accent color on hover */
+}
+
+.groove-ticks-container {
+  position: absolute;
+  top: 14px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.groove-tick {
+  position: absolute;
+  width: 1px;
+  height: 8px;
+  background: #666;
+  transform: translateX(-50%);
+  opacity: 0.7;
+  transition: background 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+  pointer-events: auto; /* Allow hover events on ticks */
+  cursor: pointer; /* Show pointer cursor on hover */
+}
+/* Add hover effect for ticks */
+.groove-tick:hover {
+  background: #b22222;
+  height: 16px; /* Expand downward more */
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(178, 34, 34, 0.6); /* Add glow effect */
+}
+
+/* Active state for ticks near current slider values */
+.groove-tick.active {
+  background: #b22222;
+  height: 14px;
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(178, 34, 34, 0.8);
+}
+
+#slider-numbers .slider-mark.active {
+  color: #b22222;
+  font-weight: 700;
+}
+
+/* ==============================
+   14. Simple Metronome Slider
+   ============================== */
+
+/* Reuse groove slider container styles */
+#simple-slider-container {
+  position: relative;
+  margin-bottom: 45px;
+  margin-top: 30px;
+}
+
+/* Reuse the main slider styles */
+#simpleMetronomeSlider {
+  margin: 10px 0 8px 0;
+  height: 12px;
+  width: 67%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Reuse ticks container - these styles are already defined for .groove-ticks-container */
+/* No additional styles needed - we're using the same class */
+
+/* Reuse slider numbers container */
+#simple-slider-numbers {
+  position: absolute;
+  top: 28px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #333;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Ensure simple slider marks and ticks have the same hover behavior as groove slider */
+#simple-slider-numbers .slider-mark {
+  position: relative;
+  bottom: -15px;
+  transform: translateX(-50%);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.25s ease;
+  font-size: 0.72rem;
+  color: #666;
+}
+
+#simple-slider-numbers .slider-mark:hover {
+  color: #b22222;
+}
+
+#simple-slider-numbers .slider-mark.active {
+  color: #b22222;
+  font-weight: 700;
+}
+
+/* Ensure ticks container has proper pointer events */
+#simple-ticks-container.groove-ticks-container {
+  position: absolute;
+  top: 14px;
+  height: 20px;
+  pointer-events: none;
+}
+
+/* Ensure individual ticks have hover effects */
+#simple-ticks-container .groove-tick {
+  position: absolute;
+  width: 1px;
+  height: 8px;
+  background: #666;
+  transform: translateX(-50%);
+  opacity: 0.7;
+  transition: background 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Add hover effect for simple slider ticks */
+#simple-ticks-container .groove-tick:hover {
+  background: #b22222;
+  height: 16px;
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(178, 34, 34, 0.6);
+}
+
+/* Active state for simple slider ticks */
+#simple-ticks-container .groove-tick.active {
+  background: #b22222;
+  height: 14px;
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(178, 34, 34, 0.8);
+}
+
+/* Ensure the wrapper opacity is applied correctly */
+.bpm-slider-wrapper {
+  transition: opacity 0.2s ease;
+}
+
+.bpm-slider-wrapper.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   15. Consistent Disable States for Both Sliders
+   ============================================================ */
+
+/* Groove slider disable states */
+#groove-slider-container.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#groove-slider-container.disabled .noUi-handle {
+  cursor: not-allowed;
+  background: #999 !important; /* Grey out the thumb */
+}
+
+#groove-slider-container.disabled .noUi-connect {
+  background: #999 !important; /* Grey out the connect bar */
+}
+
+#groove-slider-container.disabled .slider-mark,
+#groove-slider-container.disabled .groove-tick {
+  pointer-events: none;
+  opacity: 0.5;
+  color: #999 !important; /* Grey out marks */
+}
+
+#groove-slider-container.disabled .slider-mark:hover,
+#groove-slider-container.disabled .groove-tick:hover {
+  color: #999 !important; /* Remove hover effects */
+  background: transparent !important;
+  height: 8px !important; /* Reset hover height */
+  box-shadow: none !important; /* Remove hover glow */
+}
+
+/* Simple slider disable states (same as above) */
+#simple-slider-container.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#simple-slider-container.disabled .noUi-handle {
+  cursor: not-allowed;
+  background: #999 !important;
+}
+
+#simple-slider-container.disabled .noUi-connect {
+  background: #999 !important;
+}
+
+#simple-slider-container.disabled .slider-mark,
+#simple-slider-container.disabled .groove-tick {
+  pointer-events: none;
+  opacity: 0.5;
+  color: #999 !important;
+}
+
+#simple-slider-container.disabled .slider-mark:hover,
+#simple-slider-container.disabled .groove-tick:hover {
+  color: #999 !important;
+  background: transparent !important;
+  height: 8px !important;
+  box-shadow: none !important;
 }

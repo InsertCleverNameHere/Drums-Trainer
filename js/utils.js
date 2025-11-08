@@ -74,7 +74,7 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
   }
 
   // Prevent exceeding hard max limit
-  bpmMax = Math.min(bpmMax, 500);
+  bpmMax = Math.min(bpmMax, 300);
 
   // Choose random BPM from valid quantized values
   const possibleBPMs = [];
@@ -297,7 +297,7 @@ export function sanitizeBpmRange(
     );
   }
 
-  bpmMax = Math.min(bpmMax, 500);
+  bpmMax = Math.min(bpmMax, 300);
 
   return { bpmMin, bpmMax, step };
 }
