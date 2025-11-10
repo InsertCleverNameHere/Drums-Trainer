@@ -9,21 +9,20 @@ import {
 let audioCtx = null;
 let nextNoteTime = 0.0;
 let tickIndex = 0; // continuous tick counter (0-based)
-// let currentBeat = 0;
 let isMetronomePlaying = false;
 let schedulerTimer = null;
 let endOfCycleRequested = false;
 let onCycleComplete = null;
 
 let bpm = 120;
-let beatsPerBar = 4; // configurable beats-per-bar
+// NEW: timeSignature object replaces beatsPerBar
+let timeSignature = { beats: 4, value: 4 };
 let ticksPerBeat = 1; // subdivisions per beat (1 = one tick per beat)
 
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
 
 // short adjustment pause (ms) to wait after a cycle ends before notifying UI
-// increased to 1700ms per request
 const adjustmentPauseMs = 1700;
 
 // visual callback that can be registered by visuals.js
@@ -47,33 +46,41 @@ function playTick(isAccent) {
 
 // Schedule a single beat ahead of time
 function scheduleNote() {
-  // Compute beat and tick positions
-  const beatNumber = Math.floor(tickIndex / ticksPerBeat); // 0-based beat number
-  const tickInBeat = tickIndex % ticksPerBeat;
+  const totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
+  const tickInMeasure = tickIndex % totalTicksInMeasure;
 
-  // Accent occurs on first tick of first beat in a bar
-  const isAccent = tickInBeat === 0 && beatNumber % beatsPerBar === 0;
+  // Determine if this tick is a main beat (1, 2, 3...)
+  const isMainBeat = tickInMeasure % ticksPerBeat === 0;
 
-  // Play audio only on primary beat ticks (tickInBeat === 0) for now
-  if (tickInBeat === 0) {
-    playTick(isAccent);
-  }
+  // The primary accent is ALWAYS the very first tick of the measure.
+  const isPrimaryAccent = tickInMeasure === 0;
 
-  // Safe visual callback: provide tickIndex, isAccent, tickInBeat
+  // --- CORRECTED LOGIC ---
+  // We play a sound for EVERY tick.
+  // The accent is only passed if it's a main beat.
+  // This produces a strong DOWNBEAT, weaker main beats, and quietest subdivisions.
+  playTick(isMainBeat ? isPrimaryAccent : false);
+
+  // Safe visual callback with more detailed info
   try {
-    onBeatVisual(tickIndex, isAccent, tickInBeat);
+    onBeatVisual(tickIndex, isPrimaryAccent, isMainBeat);
   } catch (e) {
     console.error("Visual callback error:", e);
   }
 
   // Advance tick and schedule next tick
   tickIndex++;
-  const secondsPerTick = 60.0 / (bpm * ticksPerBeat);
+  const durationOfOneBeat = (60.0 / bpm) * (4 / timeSignature.value);
+  const secondsPerTick = durationOfOneBeat / ticksPerBeat;
   nextNoteTime += secondsPerTick;
 
-  // If end-of-cycle requested, stop at the next bar boundary (when nextBeat % beatsPerBar === 0)
-  const nextBeat = Math.floor(tickIndex / ticksPerBeat);
-  if (endOfCycleRequested && nextBeat % beatsPerBar === 0) {
+  // If end-of-cycle requested, stop at the next bar boundary
+  const nextMainBeatIndex = Math.floor(tickIndex / ticksPerBeat);
+  if (
+    endOfCycleRequested &&
+    nextMainBeatIndex % timeSignature.beats === 0 &&
+    tickIndex % ticksPerBeat === 0
+  ) {
     endOfCycleRequested = false;
     isMetronomePlaying = false;
 
@@ -124,8 +131,12 @@ export function startMetronome(newBpm = 120) {
 
   bpm = Math.max(20, Math.min(400, newBpm));
   tickIndex = 0;
-  const secondsPerTick = 60.0 / (bpm * ticksPerBeat);
-  nextNoteTime = audioCtx.currentTime + 0.1;
+
+  // UPDATED: Use the new formula for the initial tick scheduling
+  const durationOfOneBeat = (60.0 / bpm) * (4 / timeSignature.value);
+  const secondsPerTick = durationOfOneBeat / ticksPerBeat;
+  nextNoteTime = audioCtx.currentTime + secondsPerTick;
+
   isMetronomePlaying = true;
   isPaused = false;
   scheduler();
@@ -186,39 +197,48 @@ export function resetPlaybackFlag() {
   isMetronomePlaying = false;
 }
 
-// --- beats-per-bar and subdivision config
-export function setBeatsPerBar(n) {
-  const newBeats = Math.max(1, Math.round(n));
+// --- NEW time signature and subdivision config ---
 
-  // preserve current position: compute current beat and tick-in-beat
-  const currentBeat = Math.floor(tickIndex / Math.max(1, ticksPerBeat));
-  const tickInBeat = tickIndex % Math.max(1, ticksPerBeat);
+export function setTimeSignature(beats, value) {
+  const newBeats = Math.max(1, Math.round(beats));
+  const newValue = [2, 4, 8, 16].includes(value) ? value : 4; // Sanitize value
 
-  // compute new tickIndex so we remain at the same relative tick within the new bar
-  const newBeatIndex = currentBeat % newBeats;
-  tickIndex = newBeatIndex * Math.max(1, ticksPerBeat) + tickInBeat;
+  // Preserve relative position in the new measure
+  const currentTotalTicks = timeSignature.beats * ticksPerBeat;
+  const newTotalTicks = newBeats * 1; // Subdivisions are reset
 
-  beatsPerBar = newBeats;
-  console.log(`Beats per bar set to ${beatsPerBar}`);
+  // Find where we are in the old measure and apply to new one
+  const tickInOldMeasure = tickIndex % currentTotalTicks || 0;
+  const progress = tickInOldMeasure / currentTotalTicks;
 
-  // If visuals are registered, trigger a refresh immediately (safe no-op if not)
+  tickIndex = Math.round(progress * newTotalTicks);
+
+  timeSignature = { beats: newBeats, value: newValue };
+  // CRUCIAL: Reset subdivisions whenever the time signature changes
+  setTicksPerBeat(1);
+
+  console.log(
+    `Time signature set to ${timeSignature.beats}/${timeSignature.value}`
+  );
+
+  // Trigger immediate visual refresh
   try {
-    // invoke visual callback with current tickIndex and accent state for immediate update
-    const isAccent = tickInBeat === 0 && currentBeat % beatsPerBar === 0;
-    onBeatVisual(tickIndex, isAccent, tickInBeat);
-  } catch (e) {
-    // swallow errors to avoid disrupting metronome logic
-  }
+    const isPrimaryAccent =
+      tickIndex % (timeSignature.beats * ticksPerBeat) === 0;
+    const isMainBeat = tickIndex % ticksPerBeat === 0;
+    onBeatVisual(tickIndex, isPrimaryAccent, isMainBeat);
+  } catch (e) {}
 }
 
-export function getBeatsPerBar() {
-  return beatsPerBar;
+export function getTimeSignature() {
+  return { ...timeSignature }; // Return a copy
 }
 
 export function setTicksPerBeat(n) {
   ticksPerBeat = Math.max(1, Math.round(n));
   console.log(`Ticks per beat set to ${ticksPerBeat}`);
 }
+
 export function getTicksPerBeat() {
   return ticksPerBeat;
 }
@@ -268,5 +288,4 @@ export function requestEndOfCycle(callback) {
 
   console.log(`⏳ End-of-cycle requested — will stop at next bar boundary`);
 }
-
 // keep the module lightweight
