@@ -111,6 +111,7 @@ export function initSimpleMetronome(opts = {}) {
   window.simpleMetronome.pause = pause;
   window.simpleMetronome.resume = resume;
   window.simpleMetronome.stop = stop;
+  window.simpleMetronome.core = simpleCore;
 }
 
 // Listen for explicit owner changes and stop if we lose ownership

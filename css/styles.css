@@ -16,6 +16,7 @@
 13. Groove Metronome Slider
 14. Simple Metronome Slider
 15. Consistent Disable States for Both Sliders
+16. Time Signature Controls
 ============================================
 */
 
@@ -1048,4 +1049,40 @@ button#installBtn.utility-button {
   background: transparent !important;
   height: 8px !important;
   box-shadow: none !important;
+}
+
+/* ============================================
+🎼 16. Time Signature Controls
+============================================ */
+.beats-section {
+  /* Use flexbox to align our new controls */
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.time-signature-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Width fix for all dropdowns in this section */
+#groovePresetSelect,
+#simplePresetSelect,
+#grooveSubdivisionSelect,
+#simpleSubdivisionSelect {
+  width: 100px;
+}
+
+.custom-time-signature-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.custom-time-signature-inputs input[type="number"] {
+  width: 60px;
 }

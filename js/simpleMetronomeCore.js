@@ -229,12 +229,12 @@ export function setTimeSignature(beats, value) {
   );
 
   // Trigger immediate visual refresh
-  try {
-    const isPrimaryAccent =
-      tickIndex % (timeSignature.beats * ticksPerBeat) === 0;
-    const isMainBeat = tickIndex % ticksPerBeat === 0;
-    onBeatVisual(tickIndex, isPrimaryAccent, isMainBeat);
-  } catch (e) {}
+  // try {
+  //   const isPrimaryAccent =
+  //     tickIndex % (timeSignature.beats * ticksPerBeat) === 0;
+  //   const isMainBeat = tickIndex % ticksPerBeat === 0;
+  //   onBeatVisual(tickIndex, isPrimaryAccent, isMainBeat);
+  // } catch (e) {}
 }
 
 export function getTimeSignature() {

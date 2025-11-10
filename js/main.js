@@ -119,23 +119,9 @@ uiController.initUI({
   performCountIn: metronome.performCountIn,
 });
 
-// Initialize sound profile UI, ownership guards, and simple panel safely
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    uiController.initSoundProfileUI();
-    uiController.initOwnershipGuards();
-    uiController.initSimplePanelControls();
-  });
-} else {
-  uiController.initSoundProfileUI();
-  uiController.initOwnershipGuards();
-  uiController.initSimplePanelControls();
-}
-
-// Initialize simple metronome core (UI handled separately)
+// 1. Initialize the Simple Metronome first, which creates window.simpleMetronome
 simpleMetronome.initSimpleMetronome({
   initialBpm: 120,
-  // No direct visualTick dependency; emit a small DOM pulse if a dot element exists
   tickCallback: () => {
     const dot = document.getElementById("simpleMetronomeDot");
     if (!dot) return;
@@ -144,6 +130,23 @@ simpleMetronome.initSimpleMetronome({
   },
 });
 
+// 2. Now that both window.metronome and window.simpleMetronome.core exist,
+//    we can safely initialize all UI components that depend on them.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    uiController.initSoundProfileUI();
+    uiController.initOwnershipGuards();
+    uiController.initSimplePanelControls();
+    uiController.initTimeSignatureUI(); // Our new function is here
+  });
+} else {
+  uiController.initSoundProfileUI();
+  uiController.initOwnershipGuards();
+  uiController.initSimplePanelControls();
+  uiController.initTimeSignatureUI(); // And here
+}
+
+// 3. Finally, initialize the mode tabs, which depend on the engines.
 uiController.initModeTabs(sessionEngine, simpleMetronome);
 
 // === Version Fetch & App Footer Handling ===
