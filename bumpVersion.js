@@ -59,3 +59,23 @@ fs.writeFileSync(
   JSON.stringify({ latestHash, version: newVersion }, null, 2)
 );
 console.log(`🔄 Version bumped to ${newVersion} using mode '${mode}'`);
+
+// Step 8: Read the service worker template
+const swTemplatePath = "./service-worker-template.js";
+const finalSwPath = "./service-worker.js"; // This is the file your app will actually use
+
+try {
+  const swTemplate = fs.readFileSync(swTemplatePath, "utf8");
+
+  // Step 9: Inject the new version into the template
+  const finalSwContent = swTemplate.replace("__APP_VERSION__", newVersion);
+
+  // Step 10: Write the final service-worker.js file
+  fs.writeFileSync(finalSwPath, finalSwContent);
+  console.log(
+    `✅ Successfully generated ${finalSwPath} with version ${newVersion}`
+  );
+} catch (err) {
+  console.error(`❌ Error generating service worker: ${err.message}`);
+  process.exit(1); // Exit with an error code so the workflow fails
+}

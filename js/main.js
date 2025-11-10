@@ -175,9 +175,13 @@ fetch("./commits.json", { cache: "no-store" })
     }
 
     const lastSeenHash = localStorage.getItem(hashKey);
-    const hashChanged = latestHash !== lastSeenHash;
+    // Define an "actual update" as a scenario where a user has been here before
+    //    (lastSeenHash is not null) AND the hash has changed.
+    const isActualUpdate = lastSeenHash && latestHash !== lastSeenHash;
 
-    if (hashChanged) {
+    // Use this new, smarter condition to decide which message to show.
+    if (isActualUpdate) {
+      // This block now ONLY runs for returning users with an outdated version.
       localStorage.setItem(hashKey, latestHash);
       uiController.updateFooterMessage(
         footerEl,
@@ -186,6 +190,11 @@ fetch("./commits.json", { cache: "no-store" })
         "Update Available"
       );
     } else {
+      // This block now correctly runs on the first visit, or if the user is up-to-date.
+      // We still update the hash here for the first visit so the *next* check works.
+      if (!lastSeenHash) {
+        localStorage.setItem(hashKey, latestHash);
+      }
       uiController.updateFooterMessage(footerEl, appVersion, versionColor);
     }
   })
