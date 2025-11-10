@@ -234,5 +234,26 @@ if ("serviceWorker" in navigator) {
 
 // Check for updates button
 const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
+// === PWA Install Prompt Handling ===
+const installBtn = document.getElementById("installBtn");
+let deferredPrompt = null;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  // Prevent the default mini-infobar
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // Show the install button
+  if (installBtn) {
+    installBtn.style.display = "inline-block";
+    installBtn.addEventListener("click", async () => {
+      installBtn.style.display = "none"; // hide button after click
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to install prompt: ${outcome}`);
+      deferredPrompt = null;
+    });
+  }
+});
 
 uiController.initUpdateUI();
