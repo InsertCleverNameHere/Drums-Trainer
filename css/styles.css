@@ -16,6 +16,8 @@
 13. Groove Metronome Slider
 14. Simple Metronome Slider
 15. Consistent Disable States for Both Sliders
+16. Time Signature Controls
+17. Hierarchical Beat Visuals
 ============================================
 */
 
@@ -89,7 +91,7 @@ button:disabled {
 }
 .status {
   margin-top: 12px;
-  padding: 12px;
+  padding: 12px 12px 30px 12px;
   background: #f3f3f3;
   border-radius: 8px;
 }
@@ -198,88 +200,16 @@ button:disabled {
 }
 
 /* ============================================
-🎵 Beat Dot Size Variants (Phase 1)
-============================================ */
-.beat-dot,
-.beat-dot-simple {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background-color: #bfbfbf;
-  opacity: 0.6;
-  transition: all 0.15s ease;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
-}
-
-/* Subdivision size variants */
-.beat-dot-quarter,
-.beat-dot-simple-quarter {
-  width: 64px;
-  height: 64px;
-}
-
-.beat-dot-eighth,
-.beat-dot-simple-eighth {
-  width: 48px;
-  height: 48px;
-}
-
-.beat-dot-sixteenth,
-.beat-dot-simple-sixteenth {
-  width: 36px;
-  height: 36px;
-}
-
-/* Phonation labels below dots */
-.beat-label {
-  position: absolute;
-  bottom: -54px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #999; /* Default inactive color */
-  user-select: none;
-  white-space: nowrap;
-  text-align: center;
-  width: 100%;
-  transition: all 0.15s ease; /* Smooth color transitions */
-}
-
-/* Active state colors based on subdivision position */
-.beat-label.active-primary {
-  color: #b22222; /* Downbeat/primary (1, 2, 3, 4) - firebrick red */
-  font-weight: 700;
-}
-
-.beat-label.active-and {
-  color: #1e90ff; /* "&" beats - dodger blue */
-  font-weight: 700;
-}
-
-.beat-label.active-e {
-  color: #ff8c00; /* "e" beats - dark orange */
-  font-weight: 700;
-}
-
-.beat-label.active-a {
-  color: #ff8c00; /* "a" beats - dark orange */
-  font-weight: 700;
-}
-
-/* Wrapper for dot + label */
-.beat-wrapper {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* Added for vertical centering */
-  margin: 0 7px;
-}
-
-/* ============================================
 🥁 4. Simple Metronome Mode
 ============================================ */
+
+#metronomeVisualsSimple {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 #beat-indicator-container-simple {
   display: flex;
   justify-content: center;
@@ -1048,4 +978,129 @@ button#installBtn.utility-button {
   background: transparent !important;
   height: 8px !important;
   box-shadow: none !important;
+}
+
+/* ============================================
+🎼 16. Time Signature Controls
+============================================ */
+.beats-section {
+  /* Use flexbox to align our new controls */
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.time-signature-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Width fix for all dropdowns in this section */
+#groovePresetSelect,
+#simplePresetSelect,
+#grooveSubdivisionSelect,
+#simpleSubdivisionSelect {
+  width: 100px;
+}
+
+.custom-time-signature-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.custom-time-signature-inputs input[type="number"] {
+  width: 60px;
+}
+
+/* ============================================
+🎵 17. Hierarchical Beat Visuals (Corrected)
+============================================ */
+
+/* --- Container Alignment Fix --- */
+#beat-indicator-container,
+#beat-indicator-container-simple {
+  /* This will center all rows of dots, fixing the wrapping issue */
+  justify-content: center;
+  flex-wrap: wrap; /* Ensure wrapping is enabled */
+  padding: 0 10px;
+}
+
+/* --- Wrapper & Text Alignment Fix --- */
+.beat-wrapper {
+  position: relative; /* Establishes a positioning context for the text */
+  display: flex;
+  /* Center the dot horizontally and vertically */
+  justify-content: center;
+  align-items: center;
+  margin: 0 7px;
+  /* Set a fixed height that can contain the LARGEST dot + text */
+  height: 100px;
+}
+
+.phonation-text {
+  position: absolute;
+  bottom: -22px; /* Pins the text to the absolute bottom of the wrapper */
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #aaa;
+  transition: color 0.1s ease-out;
+  user-select: none;
+}
+
+/* --- Dot Size Hierarchy (Unchanged) --- */
+.beat-dot.primary {
+  width: 64px;
+  height: 64px;
+}
+.beat-dot.secondary {
+  width: 48px;
+  height: 48px;
+}
+.beat-dot.tertiary {
+  width: 36px;
+  height: 36px;
+}
+
+/* --- Restored Flashing & Accent Logic --- */
+.beat-dot {
+  /* Keep the smooth transition */
+  transition: all 0.15s ease;
+}
+
+/* Base flashing effect: scale and shadow */
+.beat-dot.flashing {
+  transform: scale(1.4);
+  opacity: 1;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);
+}
+
+/* COLOR for Accent Beats (Downbeat) - RESTORED */
+.beat-dot.flashing.accent-flash {
+  background-color: #b22222; /* Red */
+}
+
+/* COLOR for Normal Beats - RESTORED */
+.beat-dot.flashing.normal-flash {
+  background-color: #006400; /* Green */
+}
+
+/* The downbeat accent is now handled entirely by the flashing color. */
+/* This class is still useful as a CSS hook, but needs no static styles. */
+/* .beat-dot.accent { */
+/* No static styles needed. */
+/* } */
+
+/* --- Flashing Text Colors (Unchanged) --- */
+.phonation-text.flash-primary {
+  color: #b22222;
+}
+.phonation-text.flash-secondary {
+  color: #1e90ff;
+}
+.phonation-text.flash-tertiary {
+  color: #ff8c00;
 }

@@ -943,6 +943,87 @@ export function updateFooterMessage(
     window.updateFooterMessage = updateFooterMessage;
 }
 
+// =====================================
+// Time Signature UI Initialization
+// =====================================
+
+export function initTimeSignatureUI() {
+  // --- Helper function to wire up one set of controls ---
+  const setupControls = (panelPrefix) => {
+    const presetSelect = document.getElementById(`${panelPrefix}PresetSelect`);
+    const customContainer = document.getElementById(
+      `${panelPrefix}CustomTimeSignature`
+    );
+    const customNumerator = document.getElementById(
+      `${panelPrefix}CustomNumerator`
+    );
+    const customDenominator = document.getElementById(
+      `${panelPrefix}CustomDenominator`
+    );
+    const subdivisionContainer = document.getElementById(
+      `${panelPrefix}SubdivisionContainer`
+    );
+    const subdivisionSelect = document.getElementById(
+      `${panelPrefix}SubdivisionSelect`
+    );
+
+    // Determine which metronome core to control
+    const core =
+      panelPrefix === "groove" ? window.metronome : simpleMetronome.core;
+    if (!core) {
+      console.error(`Metronome core not found for prefix: ${panelPrefix}`);
+      return;
+    }
+
+    // --- Main handler to update the metronome state ---
+    const updateMetronomeState = () => {
+      let beats, value;
+      const presetValue = presetSelect.value;
+
+      if (presetValue === "custom") {
+        customContainer.classList.remove("hidden");
+        beats = parseInt(customNumerator.value, 10);
+        value = parseInt(customDenominator.value, 10);
+      } else {
+        customContainer.classList.add("hidden");
+        [beats, value] = presetValue.split("/").map(Number);
+      }
+
+      core.setTimeSignature(beats, value);
+
+      const updatedSignature = core.getTimeSignature();
+
+      // Show/hide subdivision dropdown based on denominator
+      if (updatedSignature.value === 4) {
+        subdivisionContainer.classList.remove("hidden");
+      } else {
+        subdivisionContainer.classList.add("hidden");
+        subdivisionSelect.value = "1";
+        core.setTicksPerBeat(1);
+      }
+    };
+
+    // --- Subdivision handler ---
+    const updateSubdivision = () => {
+      const multiplier = parseInt(subdivisionSelect.value, 10);
+      core.setTicksPerBeat(multiplier);
+    };
+
+    // --- Attach Event Listeners ---
+    presetSelect.addEventListener("change", updateMetronomeState);
+    customNumerator.addEventListener("change", updateMetronomeState);
+    customDenominator.addEventListener("change", updateMetronomeState);
+    subdivisionSelect.addEventListener("change", updateSubdivision);
+
+    // --- Initial setup call on load ---
+    updateMetronomeState();
+  };
+
+  // --- Initialize both sets of controls ---
+  setupControls("groove");
+  setupControls("simple");
+}
+
 export function initUpdateUI() {
   const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
   const footerEl = document.getElementById("VersionNumber");
@@ -1107,20 +1188,47 @@ export function initUpdateUI() {
 const INPUT_LIMITS = {
   bpmMin: { min: 5, max: 300, defaultValue: 30 },
   bpmMax: { min: 5, max: 300, defaultValue: 60 },
-  grooveBeatsPerBar: { min: 1, max: 12, defaultValue: 4 },
   cycleDuration: { min: 1, max: 9999, defaultValue: 60 },
   totalCycles: { min: 1, max: 9999, defaultValue: 5 },
   totalTime: { min: 1, max: 9999, defaultValue: 300 },
   simpleBpm: { min: 20, max: 300, defaultValue: 120 },
-  simpleBeatsPerBar: { min: 1, max: 12, defaultValue: 4 },
+
+  // --- NEW VALIDATION RULES ---
+  grooveCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
+  grooveCustomDenominator: {
+    min: 2,
+    max: 16,
+    defaultValue: 4,
+    allowed: [2, 4, 8, 16],
+  },
+  simpleCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
+  simpleCustomDenominator: {
+    min: 2,
+    max: 16,
+    defaultValue: 4,
+    allowed: [2, 4, 8, 16],
+  },
 };
 
 // Validate and sanitize numeric input
 function validateNumericInput(input) {
   const id = input.id;
   if (!(id in INPUT_LIMITS)) return;
+
   const limits = INPUT_LIMITS[id];
-  const sanitized = utils.sanitizePositiveInteger(input.value, limits);
+  let sanitized = utils.sanitizePositiveInteger(input.value, limits);
+
+  // --- NEW: Custom validation for allowed denominator values ---
+  if (limits.allowed && !limits.allowed.includes(sanitized)) {
+    // Find the closest allowed value
+    sanitized = limits.allowed.reduce((prev, curr) => {
+      return Math.abs(curr - sanitized) < Math.abs(prev - sanitized)
+        ? curr
+        : prev;
+    });
+    showNotice(`Beat unit must be 2, 4, 8, or 16. Corrected to ${sanitized}.`);
+  }
+
   input.value = sanitized;
   input.dataset.lastValidValue = sanitized;
 }

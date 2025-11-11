@@ -6,6 +6,8 @@ import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
 import * as utils from "./utils.js";
 
+export const core = simpleCore;
+
 let running = false;
 let paused = false;
 let bpm = 120;
@@ -20,13 +22,6 @@ function toggleSliderDisabled(disabled) {
   }
 }
 
-function getBeatsInputValue() {
-  const el = document.getElementById("simpleBeatsPerBar");
-  if (!el) return 4;
-  const n = Number(el.value);
-  return Number.isFinite(n) && n >= 1 ? Math.round(n) : 4;
-}
-
 function getSimpleDisplayBpmEl() {
   return document.getElementById("simpleDisplayBpm");
 }
@@ -38,68 +33,8 @@ function updateSimpleDisplayBpm() {
   el.textContent = `BPM: ${bpm || "—"}`;
 }
 
-function ensureSimpleDots() {
-  const beats = getBeatsInputValue();
-  // visuals.createVisualCallback uses default container id; we will register a small adapter below
-  const container = document.getElementById("beat-indicator-container-simple");
-  if (!container) return;
-  if (container.childElementCount !== beats) {
-    container.innerHTML = "";
-    for (let i = 0; i < beats; i++) {
-      const dot = document.createElement("div");
-      dot.className = "beat-dot-simple";
-      dot.dataset.index = String(i);
-      container.appendChild(dot);
-    }
-  }
-}
-
-// Visual adapter for the simple panel (uses the same signature as core emits)
-function simpleVisualAdapter(tickIndex, isAccent, tickInBeat) {
-  const beats = getBeatsInputValue();
-  ensureSimpleDots();
-  updateSimpleDisplayBpm();
-  const ticksPerBeatLocal =
-    typeof simpleCore.getTicksPerBeat === "function"
-      ? Math.max(1, Number(simpleCore.getTicksPerBeat()) || 1)
-      : 1;
-  const beat = Math.floor(tickIndex / Math.max(1, ticksPerBeatLocal));
-  const beatIndex = ((beat % beats) + beats) % beats;
-  const container = document.getElementById("beat-indicator-container-simple");
-  if (!container) return;
-  const dots = container.children;
-  for (let i = 0; i < dots.length; i++) {
-    dots[i].style.backgroundColor = "#bfbfbf";
-    dots[i].style.transform = "scale(1)";
-    dots[i].style.opacity = "0.6";
-  }
-  const active = dots[beatIndex];
-  if (!active) return;
-  active.style.backgroundColor = isAccent ? "#b22222" : "#006400";
-  active.style.transform = "scale(1.25)";
-  active.style.opacity = "1";
-  setTimeout(() => {
-    active.style.transform = "scale(1)";
-    active.style.opacity = "0.7";
-    active.style.backgroundColor = "#bfbfbf";
-  }, 120);
-}
-
 export function initSimpleMetronome(opts = {}) {
   if (opts.initialBpm) bpm = Number(opts.initialBpm) || bpm;
-  // ensure dots reflect initial beats input
-  ensureSimpleDots();
-
-  // wire input change to update beatsPerBar on the core
-  const beatsEl = document.getElementById("simpleBeatsPerBar");
-  if (beatsEl) {
-    beatsEl.addEventListener("change", () => {
-      const n = getBeatsInputValue();
-      if (typeof simpleCore.setBeatsPerBar === "function")
-        simpleCore.setBeatsPerBar(n);
-      ensureSimpleDots();
-    });
-  }
 
   // Expose for console/debugging
   window.simpleMetronome = window.simpleMetronome || {};
@@ -111,6 +46,7 @@ export function initSimpleMetronome(opts = {}) {
   window.simpleMetronome.pause = pause;
   window.simpleMetronome.resume = resume;
   window.simpleMetronome.stop = stop;
+  window.simpleMetronome.core = simpleCore;
 }
 
 // Listen for explicit owner changes and stop if we lose ownership
@@ -159,14 +95,6 @@ export function setBpm(newBpm) {
   return bpm;
 }
 
-function registerVisualIfNeeded() {
-  if (visualRegistered) return;
-  if (typeof simpleCore.registerVisualCallback === "function") {
-    simpleCore.registerVisualCallback(simpleVisualAdapter);
-    visualRegistered = true;
-  }
-}
-
 export function start() {
   const owner =
     typeof sessionEngine.getActiveModeOwner === "function"
@@ -186,13 +114,6 @@ export function start() {
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: "simple" } })
   );
-
-  registerVisualIfNeeded();
-
-  // Ensure core beats-per-bar reflects UI
-  const beats = getBeatsInputValue();
-  if (typeof simpleCore.setBeatsPerBar === "function")
-    simpleCore.setBeatsPerBar(beats);
 
   // Start audio core
   try {
@@ -217,6 +138,12 @@ export function start() {
     })
   );
   toggleSliderDisabled(true);
+  document.getElementById("simpleBpm").disabled = true;
+  document.getElementById("simplePresetSelect").disabled = true;
+  document.getElementById("simpleCustomNumerator").disabled = true;
+  document.getElementById("simpleCustomDenominator").disabled = true;
+  document.getElementById("simpleSubdivisionSelect").disabled = true;
+
   console.log("simpleMetronome started at BPM", bpm);
   return Promise.resolve(true);
 }
@@ -274,4 +201,9 @@ export function stop() {
   );
   console.log("simpleMetronome stopped");
   toggleSliderDisabled(false);
+  document.getElementById("simpleBpm").disabled = false;
+  document.getElementById("simplePresetSelect").disabled = false;
+  document.getElementById("simpleCustomNumerator").disabled = false;
+  document.getElementById("simpleCustomDenominator").disabled = false;
+  document.getElementById("simpleSubdivisionSelect").disabled = false;
 }

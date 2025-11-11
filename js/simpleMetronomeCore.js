@@ -16,7 +16,8 @@ let isPaused = false;
 let pauseAudioOffset = 0;
 
 let bpm = 120;
-let beatsPerBar = 4;
+// NEW: timeSignature object replaces beatsPerBar
+let timeSignature = { beats: 4, value: 4 };
 let ticksPerBeat = 1;
 
 const scheduleAheadTime = 0.1;
@@ -39,34 +40,66 @@ function playTick(isAccent) {
 }
 
 function scheduleNote() {
-  const beatNumber = Math.floor(tickIndex / ticksPerBeat);
-  const tickInBeat = tickIndex % ticksPerBeat;
-  const isAccent = tickInBeat === 0 && beatNumber % beatsPerBar === 0;
+  const totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
+  const tickInMeasure = tickIndex % totalTicksInMeasure;
 
-  if (tickInBeat === 0) playTick(isAccent);
+  // Determine if this tick is a main beat (1, 2, 3...)
+  const isMainBeat = tickInMeasure % ticksPerBeat === 0;
 
+  // The primary accent is ALWAYS the very first tick of the measure.
+  const isPrimaryAccent = tickInMeasure === 0;
+
+  // --- CORRECTED LOGIC ---
+  // We play a sound for EVERY tick.
+  // The accent is only passed if it's a main beat.
+  // This produces a strong DOWNBEAT, weaker main beats, and quietest subdivisions.
+  playTick(isMainBeat ? isPrimaryAccent : false);
+
+  // Safe visual callback with more detailed info
   try {
-    onBeatVisual(tickIndex, isAccent, tickInBeat);
+    onBeatVisual(tickIndex, isPrimaryAccent, isMainBeat);
   } catch (e) {
-    console.error("simpleMetronomeCore visual callback error:", e);
+    console.error("Visual callback error:", e);
   }
 
+  // Advance tick and schedule next tick
   tickIndex++;
-  const secondsPerTick = 60.0 / (bpm * ticksPerBeat);
+  const durationOfOneBeat = (60.0 / bpm) * (4 / timeSignature.value);
+  const secondsPerTick = durationOfOneBeat / ticksPerBeat;
   nextNoteTime += secondsPerTick;
 
-  const nextBeat = Math.floor(tickIndex / ticksPerBeat);
-  if (endOfCycleRequested && nextBeat % beatsPerBar === 0) {
+  // If end-of-cycle requested, stop at the next bar boundary
+  const nextMainBeatIndex = Math.floor(tickIndex / ticksPerBeat);
+  if (
+    endOfCycleRequested &&
+    nextMainBeatIndex % timeSignature.beats === 0 &&
+    tickIndex % ticksPerBeat === 0
+  ) {
     endOfCycleRequested = false;
-    stopInternalScheduling();
+    isMetronomePlaying = false;
+
+    if (schedulerTimer) {
+      clearTimeout(schedulerTimer);
+      schedulerTimer = null;
+    }
+
+    console.log("🟢 Cycle finished cleanly at bar boundary.");
+
     if (typeof onCycleComplete === "function") {
-      setTimeout(() => {
-        try {
-          onCycleComplete();
-        } catch (err) {
-          console.error("onCycleComplete error:", err);
-        }
-      }, adjustmentPauseMs);
+      try {
+        console.info(
+          `⏸️ Scheduling ${adjustmentPauseMs}ms adjustment pause before cycle-complete callback.`
+        );
+        setTimeout(() => {
+          try {
+            onCycleComplete();
+          } catch (err) {
+            console.error("onCycleComplete callback error:", err);
+          }
+        }, adjustmentPauseMs);
+      } catch (err) {
+        console.error("Failed to schedule onCycleComplete:", err);
+      }
     }
   }
 }
@@ -95,7 +128,12 @@ export function startMetronome(newBpm = 120) {
   audioCtx = ensureAudio();
   bpm = Math.max(20, Math.min(400, Number(newBpm) || bpm));
   tickIndex = 0;
-  nextNoteTime = audioCtx.currentTime + 0.05;
+
+  // UPDATED: Use the new formula for the initial tick scheduling
+  const durationOfOneBeat = (60.0 / bpm) * (4 / timeSignature.value);
+  const secondsPerTick = durationOfOneBeat / ticksPerBeat;
+  nextNoteTime = audioCtx.currentTime + 0.1;
+
   isPlaying = true;
   isPaused = false;
   scheduler();
@@ -166,22 +204,33 @@ export function requestEndOfCycle(callback) {
   console.log("simpleMetronomeCore: end-of-cycle requested");
 }
 
-export function setBeatsPerBar(n) {
-  const newBeats = Math.max(1, Math.round(n));
-  const currentBeat = Math.floor(tickIndex / Math.max(1, ticksPerBeat));
-  const tickInBeat = tickIndex % Math.max(1, ticksPerBeat);
-  const newBeatIndex = currentBeat % newBeats;
-  tickIndex = newBeatIndex * Math.max(1, ticksPerBeat) + tickInBeat;
-  beatsPerBar = newBeats;
-  try {
-    const isAccent = tickInBeat === 0 && currentBeat % beatsPerBar === 0;
-    onBeatVisual(tickIndex, isAccent, tickInBeat);
-  } catch (e) {}
-  console.log(`simpleMetronomeCore: beatsPerBar set to ${beatsPerBar}`);
+// --- NEW time signature and subdivision config ---
+
+export function setTimeSignature(beats, value) {
+  const newBeats = Math.max(1, Math.round(beats));
+  const newValue = [2, 4, 8, 16].includes(value) ? value : 4; // Sanitize value
+
+  // Preserve relative position in the new measure
+  const currentTotalTicks = timeSignature.beats * ticksPerBeat;
+  const newTotalTicks = newBeats * 1; // Subdivisions are reset
+
+  // Find where we are in the old measure and apply to new one
+  const tickInOldMeasure = tickIndex % currentTotalTicks || 0;
+  const progress = tickInOldMeasure / currentTotalTicks;
+
+  tickIndex = Math.round(progress * newTotalTicks);
+
+  timeSignature = { beats: newBeats, value: newValue };
+  // CRUCIAL: Reset subdivisions whenever the time signature changes
+  setTicksPerBeat(1);
+
+  console.log(
+    `simpleMetronomeCore: Time signature set to ${timeSignature.beats}/${timeSignature.value}`
+  );
 }
 
-export function getBeatsPerBar() {
-  return beatsPerBar;
+export function getTimeSignature() {
+  return { ...timeSignature }; // Return a copy
 }
 
 export function setTicksPerBeat(n) {
