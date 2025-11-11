@@ -115,13 +115,13 @@
 4. ✅ **Dual-Point BPM Slider**  
    Sync with numeric min/max BPM inputs.
 
-5. **Note Type & Time Signature Customization**
-   - Add support for selecting subdivision types: quarter notes, eighths, sixteenths (and optionally triplets).
-   - Allow compound and irregular time signatures (e.g., 6/8, 12/16).
-   - Display smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth).
-   - Keep timing accurate using an internal subdivision multiplier (e.g., 16ths = 4 sub-ticks per beat).
-   - **Optional:** Display phonation text under circles (e.g., “1 &” for eighths, “1 e & a” for sixteenths, etc.) to aid rhythmic counting.
-   - Maintain lightweight logic and visuals using only procedural generation (no audio or image assets).
+5. ✅ **Note Type & Time Signature Customization**
+   - ✅ Add support for selecting subdivision types: quarter notes, eighths, sixteenths (and optionally triplets).
+   - ✅ Allow compound and irregular time signatures (e.g., 6/8, 12/16).
+   - ✅ Display smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth).
+   - ✅ Keep timing accurate using an internal subdivision multiplier (e.g., 16ths = 4 sub-ticks per beat).
+   - ✅ Display phonation text under circles (e.g., “1 &” for eighths, “1 e & a” for sixteenths, etc.) to aid rhythmic counting.
+   - ✅ Maintain lightweight logic and visuals using only procedural generation (no audio or image assets).
 
 ---
 
