@@ -123,6 +123,13 @@ export function startSession() {
   ui.startBtn.disabled = true;
   ui.pauseBtn.disabled = true;
   ui.nextBtn.disabled = true;
+  ui.bpmMinEl.disabled = true;
+  ui.bpmMaxEl.disabled = true;
+
+  document.getElementById("groovePresetSelect").disabled = true;
+  document.getElementById("grooveCustomNumerator").disabled = true;
+  document.getElementById("grooveCustomDenominator").disabled = true;
+  document.getElementById("grooveSubdivisionSelect").disabled = true;
 
   runCycle(); // handles count-in and re-enables buttons
 
@@ -316,6 +323,18 @@ export function stopSession(message = "") {
   if (ui.nextBtn) {
     ui.nextBtn.disabled = true;
   }
+
+  if (ui.bpmMinEl) ui.bpmMinEl.disabled = false;
+  if (ui.bpmMaxEl) ui.bpmMaxEl.disabled = false;
+
+  if (document.getElementById("groovePresetSelect"))
+    document.getElementById("groovePresetSelect").disabled = false;
+  if (document.getElementById("grooveCustomNumerator"))
+    document.getElementById("grooveCustomNumerator").disabled = false;
+  if (document.getElementById("grooveCustomDenominator"))
+    document.getElementById("grooveCustomDenominator").disabled = false;
+  if (document.getElementById("grooveSubdivisionSelect"))
+    document.getElementById("grooveSubdivisionSelect").disabled = false;
 
   if (ui.countdownEl) ui.countdownEl.textContent = "";
   if (ui.sessionCountdownEl) ui.sessionCountdownEl.textContent = "";

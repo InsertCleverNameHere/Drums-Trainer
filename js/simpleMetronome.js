@@ -138,6 +138,12 @@ export function start() {
     })
   );
   toggleSliderDisabled(true);
+  document.getElementById("simpleBpm").disabled = true;
+  document.getElementById("simplePresetSelect").disabled = true;
+  document.getElementById("simpleCustomNumerator").disabled = true;
+  document.getElementById("simpleCustomDenominator").disabled = true;
+  document.getElementById("simpleSubdivisionSelect").disabled = true;
+
   console.log("simpleMetronome started at BPM", bpm);
   return Promise.resolve(true);
 }
@@ -195,4 +201,9 @@ export function stop() {
   );
   console.log("simpleMetronome stopped");
   toggleSliderDisabled(false);
+  document.getElementById("simpleBpm").disabled = false;
+  document.getElementById("simplePresetSelect").disabled = false;
+  document.getElementById("simpleCustomNumerator").disabled = false;
+  document.getElementById("simpleCustomDenominator").disabled = false;
+  document.getElementById("simpleSubdivisionSelect").disabled = false;
 }
