@@ -116,7 +116,7 @@ function scheduler() {
   while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
     scheduleNote();
   }
-  schedulerTimer = setTimeout(scheduler, 25);
+  schedulerTimer = setTimeout(scheduler, 5);
 }
 
 // --- public functions ---
@@ -135,7 +135,7 @@ export function startMetronome(newBpm = 120) {
   // UPDATED: Use the new formula for the initial tick scheduling
   const durationOfOneBeat = (60.0 / bpm) * (4 / timeSignature.value);
   const secondsPerTick = durationOfOneBeat / ticksPerBeat;
-  nextNoteTime = audioCtx.currentTime + secondsPerTick;
+  nextNoteTime = audioCtx.currentTime + 0.1;
 
   isMetronomePlaying = true;
   isPaused = false;
@@ -220,14 +220,6 @@ export function setTimeSignature(beats, value) {
   console.log(
     `Time signature set to ${timeSignature.beats}/${timeSignature.value}`
   );
-
-  // Trigger immediate visual refresh
-  // try {
-  //   const isPrimaryAccent =
-  //     tickIndex % (timeSignature.beats * ticksPerBeat) === 0;
-  //   const isMainBeat = tickIndex % ticksPerBeat === 0;
-  //   onBeatVisual(tickIndex, isPrimaryAccent, isMainBeat);
-  // } catch (e) {}
 }
 
 export function getTimeSignature() {

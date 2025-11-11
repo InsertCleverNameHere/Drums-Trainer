@@ -969,7 +969,7 @@ export function initTimeSignatureUI() {
 
     // Determine which metronome core to control
     const core =
-      panelPrefix === "groove" ? window.metronome : window.simpleMetronome.core;
+      panelPrefix === "groove" ? window.metronome : simpleMetronome.core;
     if (!core) {
       console.error(`Metronome core not found for prefix: ${panelPrefix}`);
       return;
