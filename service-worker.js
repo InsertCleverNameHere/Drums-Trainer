@@ -18,7 +18,7 @@ const FILES_TO_CACHE = [
   "./index.html",
   "./favicon.ico",
   "./commits.json",
-  "./manifest.json",
+  "./manifest.webmanifest",
   "./css/styles.css",
   "./js/main.js",
   "./js/utils.js",
@@ -28,6 +28,7 @@ const FILES_TO_CACHE = [
   "./js/uiController.js",
   "./js/simpleMetronome.js",
   "./js/simpleMetronomeCore.js",
+  "./js/audioProfiles.js",
   "./libs/css/nouislider.min.css",
   "./libs/js/nouislider.min.js",
 ];

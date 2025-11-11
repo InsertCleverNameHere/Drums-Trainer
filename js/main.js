@@ -36,37 +36,12 @@ const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
 
 // === Metronome Setup ===
-// Ensure window.metronome exists and expose safe getters for visuals and debugging
-if (
-  typeof metronome.getTicksPerBeat === "function" &&
-  !window.metronome.getTicksPerBeat
-)
-  window.metronome.getTicksPerBeat = metronome.getTicksPerBeat;
-if (
-  typeof metronome.getBeatsPerBar === "function" &&
-  !window.metronome.getBeatsPerBar
-)
-  window.metronome.getBeatsPerBar = metronome.getBeatsPerBar;
-if (typeof metronome.getBpm === "function" && !window.metronome.getBpm)
-  window.metronome.getBpm = metronome.getBpm;
-if (
-  typeof metronome.getPauseState === "function" &&
-  !window.metronome.getPauseState
-)
-  window.metronome.getPauseState = metronome.getPauseState;
+// We declare the callback variables here.
+// They will be assigned and registered later in the script's execution flow
+// to ensure all modules are loaded and ready, preventing race conditions.
 
-// Create visuals callback (backwards-compatible)
-const visualsCallback = createVisualCallback(metronome.getBeatsPerBar);
-
-// Adapter: translate metronome tick signature to visuals
-metronome.registerVisualCallback((tickIndex, isAccent, tickInBeat) => {
-  try {
-    visualsCallback(tickIndex, isAccent, tickInBeat);
-  } catch (err) {
-    console.error("visuals callback error:", err);
-  }
-});
-
+let grooveVisualsCallback;
+let simpleVisualsCallback;
 // === Session Engine Setup ===
 // Wire up session engine with metronome and UI dependencies
 sessionEngine.initSessionEngine({
@@ -76,7 +51,6 @@ sessionEngine.initSessionEngine({
     pauseMetronome: metronome.pauseMetronome,
     resumeMetronome: metronome.resumeMetronome,
     getPauseState: metronome.getPauseState,
-    getBeatsPerBar: metronome.getBeatsPerBar,
     getBpm: metronome.getBpm,
     requestEndOfCycle: metronome.requestEndOfCycle,
     performCountIn: metronome.performCountIn,
@@ -112,38 +86,57 @@ uiController.initUI({
   pauseMetronome: metronome.pauseMetronome,
   resumeMetronome: metronome.resumeMetronome,
   getPauseState: metronome.getPauseState,
-  setBeatsPerBar: metronome.setBeatsPerBar,
-  getBeatsPerBar: metronome.getBeatsPerBar,
   getBpm: metronome.getBpm,
   requestEndOfCycle: metronome.requestEndOfCycle,
   performCountIn: metronome.performCountIn,
 });
 
-// Initialize sound profile UI, ownership guards, and simple panel safely
+// 1. Initialize the Simple Metronome first...
+simpleMetronome.initSimpleMetronome({
+  initialBpm: 120,
+  // tickCallback is no longer needed
+});
+
+// 2. NOW, ASSIGN and REGISTER the callbacks.
+grooveVisualsCallback = createVisualCallback("groove");
+simpleVisualsCallback = createVisualCallback("simple");
+
+// Register the Groove callback
+metronome.registerVisualCallback((tickIndex, isPrimaryAccent, isMainBeat) => {
+  try {
+    grooveVisualsCallback(tickIndex, isPrimaryAccent, isMainBeat);
+  } catch (err) {
+    console.error("Groove visuals callback error:", err);
+  }
+});
+
+// Register the Simple callback
+simpleMetronome.core.registerVisualCallback(
+  (tickIndex, isPrimaryAccent, isMainBeat) => {
+    try {
+      simpleVisualsCallback(tickIndex, isPrimaryAccent, isMainBeat);
+    } catch (err) {
+      console.error("Simple visuals callback error:", err);
+    }
+  }
+);
+
+// 3. Now that everything is set up, initialize the UI controllers.
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     uiController.initSoundProfileUI();
     uiController.initOwnershipGuards();
     uiController.initSimplePanelControls();
+    uiController.initTimeSignatureUI();
   });
 } else {
   uiController.initSoundProfileUI();
   uiController.initOwnershipGuards();
   uiController.initSimplePanelControls();
+  uiController.initTimeSignatureUI();
 }
 
-// Initialize simple metronome core (UI handled separately)
-simpleMetronome.initSimpleMetronome({
-  initialBpm: 120,
-  // No direct visualTick dependency; emit a small DOM pulse if a dot element exists
-  tickCallback: () => {
-    const dot = document.getElementById("simpleMetronomeDot");
-    if (!dot) return;
-    dot.classList.add("pulse");
-    setTimeout(() => dot.classList.remove("pulse"), 120);
-  },
-});
-
+// 4. Initialize the mode tabs.
 uiController.initModeTabs(sessionEngine, simpleMetronome);
 
 // === Version Fetch & App Footer Handling ===

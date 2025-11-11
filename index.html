@@ -363,14 +363,46 @@ Funk
 
       <div class="row beats-and-sound-row">
         <div class="beats-section">
-          <label for="grooveBeatsPerBar">Beats per bar</label>
-          <input
-            type="number"
-            id="grooveBeatsPerBar"
-            min="1"
-            max="12"
-            value="4"
-          />
+          <!-- Time Signature Controls -->
+          <div class="time-signature-controls">
+            <label for="groovePresetSelect">Time Signature</label>
+            <select id="groovePresetSelect">
+              <option value="4/4" selected>4/4</option>
+              <option value="3/4">3/4</option>
+              <option value="2/4">2/4</option>
+              <option value="6/8">6/8</option>
+              <option value="7/8">7/8</option>
+              <option value="12/8">12/8</option>
+              <option value="custom">Custom</option>
+            </select>
+            <!-- Custom Inputs (hidden by default) -->
+            <div id="grooveCustomTimeSignature" class="hidden">
+              <input
+                type="number"
+                id="grooveCustomNumerator"
+                value="4"
+                min="1"
+                max="16"
+              />
+              <span>/</span>
+              <input
+                type="number"
+                id="grooveCustomDenominator"
+                value="4"
+                min="2"
+                max="16"
+              />
+            </div>
+          </div>
+          <!-- Subdivision Controls (conditionally visible) -->
+          <div id="grooveSubdivisionContainer">
+            <label for="grooveSubdivisionSelect">Display Subdivision</label>
+            <select id="grooveSubdivisionSelect">
+              <option value="1" selected>None</option>
+              <option value="2">8th Notes</option>
+              <option value="4">16th Notes</option>
+            </select>
+          </div>
         </div>
 
         <div class="sound-section">
@@ -499,14 +531,46 @@ Funk
 
       <div class="row beats-and-sound-row">
         <div class="beats-section">
-          <label for="simpleBeatsPerBar">Beats per bar</label>
-          <input
-            type="number"
-            id="simpleBeatsPerBar"
-            min="1"
-            max="12"
-            value="4"
-          />
+          <!-- Time Signature Controls -->
+          <div class="time-signature-controls">
+            <label for="simplePresetSelect">Time Signature</label>
+            <select id="simplePresetSelect">
+              <option value="4/4" selected>4/4</option>
+              <option value="3/4">3/4</option>
+              <option value="2/4">2/4</option>
+              <option value="6/8">6/8</option>
+              <option value="7/8">7/8</option>
+              <option value="12/8">12/8</option>
+              <option value="custom">Custom</option>
+            </select>
+            <!-- Custom Inputs (hidden by default) -->
+            <div id="simpleCustomTimeSignature" class="hidden">
+              <input
+                type="number"
+                id="simpleCustomNumerator"
+                value="4"
+                min="1"
+                max="16"
+              />
+              <span>/</span>
+              <input
+                type="number"
+                id="simpleCustomDenominator"
+                value="4"
+                min="2"
+                max="16"
+              />
+            </div>
+          </div>
+          <!-- Subdivision Controls (conditionally visible) -->
+          <div id="simpleSubdivisionContainer">
+            <label for="simpleSubdivisionSelect">Display Subdivision</label>
+            <select id="simpleSubdivisionSelect">
+              <option value="1" selected>None</option>
+              <option value="2">8th Notes</option>
+              <option value="4">16th Notes</option>
+            </select>
+          </div>
         </div>
 
         <div class="sound-section">
