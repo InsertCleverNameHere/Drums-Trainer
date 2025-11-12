@@ -1024,9 +1024,12 @@ button#installBtn.utility-button {
 #beat-indicator-container,
 #beat-indicator-container-simple {
   /* This will center all rows of dots, fixing the wrapping issue */
-  justify-content: center;
-  flex-wrap: wrap; /* Ensure wrapping is enabled */
+  justify-content: flex-start;
+  flex-wrap: nowrap;
   padding: 0 10px;
+  overflow: hidden;
+  width: 100%;
+  padding-bottom: 30px;
 }
 
 /* --- Wrapper & Text Alignment Fix --- */

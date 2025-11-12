@@ -157,6 +157,10 @@ export function createVisualCallback(panelId = "groove") {
       ticksPerBeat !== lastRenderedTicksPerBeat
     ) {
       container.innerHTML = "";
+      const panningContainer = document.createElement("div");
+      panningContainer.className = "panning-container";
+      panningContainer.style.display = "flex";
+      container.appendChild(panningContainer);
       const measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
 
       measureLayout.forEach((dotInfo) => {
@@ -175,39 +179,16 @@ export function createVisualCallback(panelId = "groove") {
 
         wrapper.appendChild(dot);
         wrapper.appendChild(text);
-        container.appendChild(wrapper);
+        panningContainer.appendChild(wrapper);
       });
-
-      // --- NEW: Add spacer elements to fix last-row alignment ---
-      // Add up to 10 invisible spacers. Flexbox will use as many as it needs
-      // to fill the last row, forcing the visible items to the left.
-      for (let i = 0; i < 10; i++) {
-        const spacer = document.createElement("div");
-        spacer.className = "beat-wrapper"; // Use the same class to get the same width/margin
-        spacer.style.visibility = "hidden"; // Make it invisible
-        container.appendChild(spacer);
-      }
 
       lastRenderedSignature = signatureKey;
       lastRenderedTicksPerBeat = ticksPerBeat;
     }
 
-    // --- "PAGE TURN" LOGIC (Unchanged) ---
-    const mainBeatsPerPage = BEATS_PER_PAGE;
-    const currentPage = Math.floor(currentBeat / mainBeatsPerPage);
-
-    const allWrappers = container.children;
-    for (let i = 0; i < allWrappers.length; i++) {
-      const beatOfThisDot = Math.floor(i / ticksPerBeat);
-      if (Math.floor(beatOfThisDot / mainBeatsPerPage) === currentPage) {
-        allWrappers[i].style.display = "flex";
-      } else {
-        allWrappers[i].style.display = "none";
-      }
-    }
-
     // --- Clear any previous flash timeouts to prevent glitches ---
     clearTimeout(flashTimeout);
+    const allWrappers = container.children[0]?.children;
 
     // Find and remove all previous flashing classes
     const prevFlashedDot = container.querySelector(".beat-dot.flashing");
@@ -227,7 +208,7 @@ export function createVisualCallback(panelId = "groove") {
 
     // --- Apply new flashing classes ---
     const activeWrapper = allWrappers[currentTickInMeasure];
-    if (activeWrapper && activeWrapper.style.display !== "none") {
+    if (activeWrapper) {
       const dot = activeWrapper.children[0];
       const text = activeWrapper.children[1];
 
@@ -277,6 +258,10 @@ export function primeVisuals(panelId = "groove") {
 
   // This is the heavy, blocking code that we need to run upfront.
   container.innerHTML = "";
+  const panningContainer = document.createElement("div");
+  panningContainer.className = "panning-container";
+  panningContainer.style.display = "flex";
+  container.appendChild(panningContainer);
   const measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
 
   measureLayout.forEach((dotInfo) => {
@@ -290,27 +275,8 @@ export function primeVisuals(panelId = "groove") {
     text.textContent = dotInfo.label;
     wrapper.appendChild(dot);
     wrapper.appendChild(text);
-    container.appendChild(wrapper);
+    panningContainer.appendChild(wrapper);
   });
-
-  for (let i = 0; i < 10; i++) {
-    const spacer = document.createElement("div");
-    spacer.className = "beat-wrapper";
-    spacer.style.visibility = "hidden";
-    container.appendChild(spacer);
-  }
-
-  // Also perform the initial "page turn" logic.
-  const mainBeatsPerPage = 8; // BEATS_PER_PAGE
-  const allWrappers = container.children;
-  for (let i = 0; i < allWrappers.length; i++) {
-    const beatOfThisDot = Math.floor(i / ticksPerBeat);
-    if (Math.floor(beatOfThisDot / mainBeatsPerPage) === 0) {
-      allWrappers[i].style.display = "flex";
-    } else {
-      allWrappers[i].style.display = "none";
-    }
-  }
 }
 
 // --- Keep the other functions from the original visuals.js ---
