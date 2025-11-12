@@ -1029,7 +1029,7 @@ button#installBtn.utility-button {
   padding: 0 10px;
   overflow: hidden;
   width: 100%;
-  padding-bottom: 30px;
+  padding: 15px 10px 30px;
 }
 
 /* --- Wrapper & Text Alignment Fix --- */
@@ -1039,7 +1039,7 @@ button#installBtn.utility-button {
   /* Center the dot horizontally and vertically */
   justify-content: center;
   align-items: center;
-  margin: 0 7px;
+  margin: 0 12px;
   /* Set a fixed height that can contain the LARGEST dot + text */
   height: 100px;
 }
@@ -1078,7 +1078,7 @@ button#installBtn.utility-button {
 .beat-dot.flashing {
   transform: scale(1.4);
   opacity: 1;
-  box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);
+  outline: 1px solid transparent;
 }
 
 /* COLOR for Accent Beats (Downbeat) - RESTORED */

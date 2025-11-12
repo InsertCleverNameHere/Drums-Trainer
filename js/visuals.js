@@ -125,6 +125,7 @@ export function createVisualCallback(panelId = "groove") {
 
   // --- We need a way to clear timeouts to prevent glitches ---
   let flashTimeout = null;
+  let dotPositions = [];
 
   return (tickIndex, isPrimaryAccent, isMainBeat) => {
     const container = document.getElementById(containerId);
@@ -182,6 +183,14 @@ export function createVisualCallback(panelId = "groove") {
         panningContainer.appendChild(wrapper);
       });
 
+      dotPositions = []; // Clear old positions
+      const wrappers = panningContainer.children;
+      for (let i = 0; i < wrappers.length; i++) {
+        const wrapper = wrappers[i];
+        const centerPosition = wrapper.offsetLeft + wrapper.offsetWidth / 2;
+        dotPositions.push(centerPosition);
+      }
+
       lastRenderedSignature = signatureKey;
       lastRenderedTicksPerBeat = ticksPerBeat;
     }
@@ -237,6 +246,33 @@ export function createVisualCallback(panelId = "groove") {
           text.className = "phonation-text";
         }, 120);
       }
+    }
+    // --- GSAP Panning Logic ---
+    const panningContainer = container.children[0];
+    if (panningContainer && dotPositions.length > 0) {
+      // 1. Get positions
+      const viewportCenter = container.offsetWidth / 2;
+      const targetDotCenter = dotPositions[currentTickInMeasure];
+
+      // 2. Calculate the destination X value
+      const targetX = viewportCenter - targetDotCenter;
+
+      // 3. Get the current BPM from the metronome core for timing
+      const currentBPM = core.getBpm();
+
+      // 4. Calculate animation duration based on the NON-NEGOTIABLE formula
+      const durationInSeconds = Math.max(
+        0.08,
+        Math.min(0.4, (60 / currentBPM) * 0.75)
+      );
+
+      // 5. Execute the GSAP animation
+      gsap.to(panningContainer, {
+        x: targetX,
+        duration: durationInSeconds,
+        ease: "power1.out",
+        overwrite: "auto", // Smoothly handles animation interruptions
+      });
     }
   };
 }
