@@ -135,6 +135,59 @@ function renderNewPhrase(container, measureLayout, phrase, core, dotElements) {
 }
 
 /**
+ * Updates only the phonation labels with fade animation.
+ * Used when phrase hierarchy matches but labels differ (intelligent panning mode).
+ *
+ * @param {HTMLElement} container - The beat indicator container
+ * @param {Array} measureLayout - Full measure layout
+ * @param {Object} phrase - Current phrase {start, end, length}
+ * @param {Array} cachedElements - Existing dotElements array (wrappers)
+ */
+function updatePhraseLabels(container, measureLayout, phrase, cachedElements) {
+  const phraseSlice = measureLayout.slice(phrase.start, phrase.end + 1);
+
+  // Safety check: ensure we have cached elements
+  if (!cachedElements || cachedElements.length === 0) {
+    console.warn("⚠️ updatePhraseLabels called with no cached elements");
+    return;
+  }
+
+  cachedElements.forEach((wrapper, i) => {
+    // Safety: don't exceed phrase length
+    if (i >= phraseSlice.length) return;
+
+    const text = wrapper.querySelector(".phonation-text");
+    if (!text) return;
+
+    const newLabel = phraseSlice[i].label;
+
+    // Skip if label hasn't changed (optimization)
+    if (text.textContent === newLabel) return;
+
+    // Enhanced animation: slide out left, then slide in from right
+    gsap.to(text, {
+      x: -15,
+      opacity: 0,
+      duration: 0.12,
+      ease: "power1.in",
+      onComplete: () => {
+        text.textContent = newLabel;
+        gsap.fromTo(
+          text,
+          { x: 15, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.12,
+            ease: "power1.out",
+          }
+        );
+      },
+    });
+  });
+}
+
+/**
  * The Layout Engine.
  * Takes the current time signature and subdivision and returns an array
  * of "virtual dot" objects representing the entire measure.
@@ -341,59 +394,109 @@ export function createVisualCallback(panelId = "groove") {
     const currentPhrase = phrases[newPhraseIndex];
     const tickInPhrase = currentTickInMeasure - currentPhrase.start;
 
+    // NEW: Detect measure boundaries for forced mode single-phrase edge case
+    const isMeasureBoundary = currentTickInMeasure === 0;
+    const shouldForceRender =
+      !intelligentPanning && isMeasureBoundary && phrases.length === 1;
+
     // === PHRASE BOUNDARY DETECTION & RENDERING ===
-    if (newPhraseIndex !== currentPhraseIndex) {
+    if (newPhraseIndex !== currentPhraseIndex || shouldForceRender) {
       const prevPhraseIndex = currentPhraseIndex;
       currentPhraseIndex = newPhraseIndex;
 
-      const actualPrevIndex =
-        prevPhraseIndex === -1 ? phrases.length - 1 : prevPhraseIndex;
-
-      const prevPhrase = phrases[actualPrevIndex];
-
-      console.log(`\n🎯 [${panelId}] === PHRASE BOUNDARY DETECTED ===`);
-
-      if (prevPhraseIndex === -1) {
-        console.log(
-          `   Previous phrase: -1 (first tick, comparing to phrase ${actualPrevIndex}: ticks ${prevPhrase.start}-${prevPhrase.end})`
-        );
-      } else {
-        console.log(
-          `   Previous phrase: ${prevPhraseIndex} (ticks ${prevPhrase.start}-${prevPhrase.end})`
-        );
-      }
+      // Only do pattern comparison if this is a real phrase change, not a forced render
+      const isRealPhraseBoundary = newPhraseIndex !== prevPhraseIndex;
 
       console.log(
-        `   New phrase: ${newPhraseIndex} (ticks ${currentPhrase.start}-${currentPhrase.end})`
+        `\n🎯 [${panelId}] === ${
+          shouldForceRender ? "MEASURE" : "PHRASE"
+        } BOUNDARY DETECTED ===`
       );
-      console.log(`   Tick in new phrase: ${tickInPhrase}`);
 
-      // === DECISION LOGIC ===
-      if (intelligentPanning) {
-        const comparison = comparePhrasePatterns(
-          measureLayout,
-          prevPhrase,
-          currentPhrase
-        );
+      if (isRealPhraseBoundary) {
+        // This is an actual phrase boundary - normal logic applies
+        const actualPrevIndex =
+          prevPhraseIndex === -1 ? phrases.length - 1 : prevPhraseIndex;
+        const prevPhrase = phrases[actualPrevIndex];
 
-        console.log(`   Pattern comparison:`, comparison);
-
-        if (comparison.labelMatch) {
-          console.log(`   ➡️ Decision: NO UPDATE (complete match)`);
-          // Don't render - keep existing phrase visible
-        } else if (comparison.hierarchyMatch) {
-          console.log(`   ➡️ Decision: LABEL UPDATE ONLY (hierarchy match)`);
-          // TODO Step 4D: updatePhraseLabels
-          // For now, do full pan as fallback
-          dotElements = renderNewPhrase(
-            container,
-            measureLayout,
-            currentPhrase,
-            core,
-            dotElements
+        if (prevPhraseIndex === -1) {
+          console.log(
+            `   Previous phrase: -1 (first tick, comparing to phrase ${actualPrevIndex}: ticks ${prevPhrase.start}-${prevPhrase.end})`
           );
         } else {
-          console.log(`   ➡️ Decision: FULL PAN (structure differs)`);
+          console.log(
+            `   Previous phrase: ${prevPhraseIndex} (ticks ${prevPhrase.start}-${prevPhrase.end})`
+          );
+        }
+
+        console.log(
+          `   New phrase: ${newPhraseIndex} (ticks ${currentPhrase.start}-${currentPhrase.end})`
+        );
+        console.log(`   Tick in new phrase: ${tickInPhrase}`);
+
+        // === DECISION LOGIC ===
+        if (intelligentPanning) {
+          const comparison = comparePhrasePatterns(
+            measureLayout,
+            prevPhrase,
+            currentPhrase
+          );
+
+          console.log(`   Pattern comparison:`, comparison);
+
+          if (comparison.labelMatch) {
+            if (prevPhraseIndex === -1) {
+              // First phrase ever - must render even if it matches the "previous" (last) phrase
+              console.log(`   ➡️ Decision: INITIAL RENDER (first phrase)`);
+              dotElements = renderNewPhrase(
+                container,
+                measureLayout,
+                currentPhrase,
+                core,
+                dotElements
+              );
+            } else {
+              console.log(`   ➡️ Decision: NO UPDATE (complete match)`);
+              // Keep existing phrase visible
+            }
+          } else if (comparison.hierarchyMatch) {
+            console.log(`   ➡️ Decision: LABEL UPDATE ONLY (hierarchy match)`);
+
+            // Guard: ensure we have cached elements before attempting label update
+            if (dotElements.length === 0) {
+              console.log(
+                `   ⚠️ No cached elements yet - performing initial render instead`
+              );
+              dotElements = renderNewPhrase(
+                container,
+                measureLayout,
+                currentPhrase,
+                core,
+                dotElements
+              );
+            } else {
+              updatePhraseLabels(
+                container,
+                measureLayout,
+                currentPhrase,
+                dotElements
+              );
+            }
+          } else {
+            console.log(`   ➡️ Decision: FULL PAN (structure differs)`);
+            dotElements = renderNewPhrase(
+              container,
+              measureLayout,
+              currentPhrase,
+              core,
+              dotElements
+            );
+          }
+        } else {
+          // Forced mode with real phrase boundary
+          console.log(
+            `   ➡️ Decision: FULL PAN (forced mode - phrase boundary)`
+          );
           dotElements = renderNewPhrase(
             container,
             measureLayout,
@@ -402,8 +505,17 @@ export function createVisualCallback(panelId = "groove") {
             dotElements
           );
         }
-      } else {
-        console.log(`   ➡️ Decision: FULL PAN (forced mode)`);
+      } else if (shouldForceRender) {
+        // This is NOT a phrase boundary, but a measure boundary in single-phrase forced mode
+        console.log(
+          `   Measure boundary in single-phrase measure (phrase stays at ${newPhraseIndex})`
+        );
+        console.log(
+          `   Current phrase: ticks ${currentPhrase.start}-${currentPhrase.end}`
+        );
+        console.log(
+          `   ➡️ Decision: FULL PAN (forced mode - measure boundary)`
+        );
         dotElements = renderNewPhrase(
           container,
           measureLayout,
@@ -412,6 +524,7 @@ export function createVisualCallback(panelId = "groove") {
           dotElements
         );
       }
+
       console.log(`========================================\n`);
     }
 
