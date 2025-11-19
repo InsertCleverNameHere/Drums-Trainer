@@ -127,12 +127,14 @@ if (document.readyState === "loading") {
     uiController.initSoundProfileUI();
     uiController.initOwnershipGuards();
     uiController.initSimplePanelControls();
+    uiController.initPanningModeUI();
     uiController.initTimeSignatureUI();
   });
 } else {
   uiController.initSoundProfileUI();
   uiController.initOwnershipGuards();
   uiController.initSimplePanelControls();
+  uiController.initPanningModeUI();
   uiController.initTimeSignatureUI();
 }
 
