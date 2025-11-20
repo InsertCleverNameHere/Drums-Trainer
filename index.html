@@ -479,6 +479,10 @@ Funk
           <input id="tempoSyncedToggle" type="checkbox" />
           <span id="tempoSyncedLabel">Tempo-synced Count-in</span>
         </label>
+        <label class="toggle" style="margin-left: 12px">
+          <input id="intelligentPanningToggle" type="checkbox" checked />
+          <span id="intelligentPanningLabel">Intelligent Panning</span>
+        </label>
       </div>
 
       <div class="status" aria-live="polite">
@@ -582,6 +586,10 @@ Funk
       <div class="controls">
         <button id="simpleStartBtn">Start</button>
         <button id="simplePauseBtn" disabled>Pause</button>
+        <label class="toggle" style="margin-left: 12px">
+          <input id="intelligentPanningToggleSimple" type="checkbox" checked />
+          <span>Intelligent Panning</span>
+        </label>
         <button id="tapTempoBtn" title="Tap 4–6 times to set tempo">🖐️</button>
       </div>
 
@@ -608,6 +616,8 @@ Funk
     <script type="module" src="./js/main.js"></script>
     <!-- Include noUiSlider JS -->
     <script src="libs/js/nouislider.min.js"></script>
+    <!-- Include GSAP JS -->
+    <script src="libs/js/gsap.min.js"></script>
   </body>
   <div id="uiNotice" class="ui-notice hidden"></div>
 </html>
