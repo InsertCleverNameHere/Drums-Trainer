@@ -188,6 +188,84 @@ function updatePhraseLabels(container, measureLayout, phrase, cachedElements) {
 }
 
 /**
+ * Flashes the active dot within the current phrase.
+ * Clears previous flashing state and applies new flash to the active tick.
+ *
+ * @param {HTMLElement} container - The beat indicator container
+ * @param {number} tickInPhrase - Which tick in the phrase (0-3) is active
+ * @param {Array} dotElements - Cached array of dot wrapper elements
+ * @param {Array} measureLayout - Full measure layout for accessing dot info
+ * @param {number} currentTickInMeasure - Absolute tick index in measure
+ * @param {boolean} isPrimaryAccent - Whether this is the downbeat
+ * @param {number} flashTimeoutRef - Reference to existing timeout to clear
+ * @returns {number} New timeout ID for cleanup
+ */
+function flashActiveDot(
+  container,
+  tickInPhrase,
+  dotElements,
+  measureLayout,
+  currentTickInMeasure,
+  isPrimaryAccent,
+  flashTimeoutRef
+) {
+  // Clear any existing flash timeout
+  clearTimeout(flashTimeoutRef);
+
+  // Remove flashing state from previously flashed elements
+  const prevFlashedDot = container.querySelector(".beat-dot.flashing");
+  const prevFlashedText = container.querySelector(
+    '.phonation-text[class*="flash-"]'
+  );
+
+  if (prevFlashedDot) {
+    prevFlashedDot.classList.remove("flashing", "accent-flash", "normal-flash");
+  }
+
+  if (prevFlashedText) {
+    prevFlashedText.className = "phonation-text";
+  }
+
+  // Get the active dot wrapper for this tick
+  const activeWrapper = dotElements[tickInPhrase];
+  if (!activeWrapper) {
+    console.warn(`⚠️ No wrapper found for tickInPhrase: ${tickInPhrase}`);
+    return flashTimeoutRef;
+  }
+
+  const dot = activeWrapper.children[0];
+  const text = activeWrapper.children[1];
+  const dotInfo = measureLayout[currentTickInMeasure];
+
+  // Safety check: ensure all elements exist
+  if (!dot || !text || !dotInfo) {
+    console.warn(
+      `⚠️ Missing elements for flash: dot=${!!dot}, text=${!!text}, dotInfo=${!!dotInfo}`
+    );
+    return flashTimeoutRef;
+  }
+
+  // Apply flashing state
+  dot.classList.add("flashing");
+
+  if (isPrimaryAccent) {
+    dot.classList.add("accent-flash");
+  } else {
+    dot.classList.add("normal-flash");
+  }
+
+  text.classList.add(`flash-${dotInfo.colorClass}`);
+
+  // Schedule flash removal after 120ms
+  const newTimeout = setTimeout(() => {
+    dot.classList.remove("flashing", "accent-flash", "normal-flash");
+    text.className = "phonation-text";
+  }, 120);
+
+  return newTimeout;
+}
+
+/**
  * The Layout Engine.
  * Takes the current time signature and subdivision and returns an array
  * of "virtual dot" objects representing the entire measure.
@@ -362,7 +440,7 @@ export function createVisualCallback(panelId = "groove") {
     const currentTickInMeasure = tickIndex % totalTicksInMeasure;
     const currentBeat = Math.floor(currentTickInMeasure / ticksPerBeat);
 
-    // === NEW: REBUILD LAYOUT ON SIGNATURE CHANGE ===
+    // === NEW: REBUILD LAYOUT ON SIGNATURE OR SUBDIVISION CHANGE ===
     if (
       signatureKey !== lastRenderedSignature ||
       ticksPerBeat !== lastRenderedTicksPerBeat
@@ -370,6 +448,12 @@ export function createVisualCallback(panelId = "groove") {
       measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
       phrases = segmentIntoPhrases(totalTicksInMeasure);
       currentPhraseIndex = -1; // Force rebuild on next boundary
+
+      // CRITICAL: Force immediate visual rebuild when subdivisions change
+      // Clear container to remove old dot hierarchy
+      container.innerHTML = "";
+      dotElements.length = 0; // Clear cached elements
+
       lastRenderedSignature = signatureKey;
       lastRenderedTicksPerBeat = ticksPerBeat;
 
@@ -377,6 +461,9 @@ export function createVisualCallback(panelId = "groove") {
         `🎼 [${panelId}] Layout rebuilt: ${signatureKey}, ${totalTicksInMeasure} ticks`
       );
       console.log(`📊 [${panelId}] Phrases:`, phrases);
+      console.log(
+        `🔄 [${panelId}] Visual reset: container cleared, forcing re-render`
+      );
     }
 
     // === NEW: DETERMINE CURRENT PHRASE ===
@@ -567,44 +654,15 @@ export function createVisualCallback(panelId = "groove") {
     }
 
     // === FLASH ACTIVE DOT (using tickInPhrase) ===
-    clearTimeout(flashTimeout);
-
-    const prevFlashedDot = container.querySelector(".beat-dot.flashing");
-    const prevFlashedText = container.querySelector(
-      '.phonation-text[class*="flash-"]'
+    flashTimeout = flashActiveDot(
+      container,
+      tickInPhrase,
+      dotElements,
+      measureLayout,
+      currentTickInMeasure,
+      isPrimaryAccent,
+      flashTimeout
     );
-    if (prevFlashedDot) {
-      prevFlashedDot.classList.remove(
-        "flashing",
-        "accent-flash",
-        "normal-flash"
-      );
-    }
-    if (prevFlashedText) {
-      prevFlashedText.className = "phonation-text";
-    }
-
-    const activeWrapper = dotElements[tickInPhrase];
-    if (activeWrapper) {
-      const dot = activeWrapper.children[0];
-      const text = activeWrapper.children[1];
-      const dotInfo = measureLayout[currentTickInMeasure];
-
-      if (dot && text && dotInfo) {
-        dot.classList.add("flashing");
-        if (isPrimaryAccent) {
-          dot.classList.add("accent-flash");
-        } else {
-          dot.classList.add("normal-flash");
-        }
-        text.classList.add(`flash-${dotInfo.colorClass}`);
-
-        flashTimeout = setTimeout(() => {
-          dot.classList.remove("flashing", "accent-flash", "normal-flash");
-          text.className = "phonation-text";
-        }, 120);
-      }
-    }
   };
 }
 
