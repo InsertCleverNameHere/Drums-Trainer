@@ -1,8 +1,15 @@
 // js/visuals.js
 // Procedural, hierarchical, and paginated metronome visualizer.
 
-// --- Configuration ---
-// --- Configuration ---
+// === DEBUG CONFIGURATION ===
+const DEBUG_VISUALS = false; // Set to true for verbose logging
+
+// Debug logging helper
+function debugLog(panelId, ...args) {
+  if (DEBUG_VISUALS) {
+    console.log(`[${panelId}]`, ...args);
+  }
+}
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
 
 /**
@@ -83,10 +90,20 @@ function comparePhrasePatterns(layout, phrase1, phrase2) {
  * @returns {Array} Updated dotElements array
  */
 function renderNewPhrase(container, measureLayout, phrase, core, dotElements) {
-  // Clear existing content
-  container.innerHTML = "";
+  // CRITICAL: Kill ALL GSAP animations in container, not just panning container
+  const oldPanningContainer = container.querySelector(".panning-container");
+  if (oldPanningContainer) {
+    // Kill animations on container itself
+    gsap.killTweensOf(oldPanningContainer);
 
-  // Create new panning container
+    // Kill animations on ALL children (dots and text elements)
+    const allDots = oldPanningContainer.querySelectorAll(".beat-dot");
+    const allText = oldPanningContainer.querySelectorAll(".phonation-text");
+    allDots.forEach((dot) => gsap.killTweensOf(dot));
+    allText.forEach((text) => gsap.killTweensOf(text));
+  }
+
+  container.innerHTML = "";
   const panningContainer = document.createElement("div");
   panningContainer.className = "panning-container";
   panningContainer.style.display = "flex";
@@ -163,6 +180,9 @@ function updatePhraseLabels(container, measureLayout, phrase, cachedElements) {
 
     // Skip if label hasn't changed (optimization)
     if (text.textContent === newLabel) return;
+
+    // CRITICAL: Kill any existing animations on this text element
+    gsap.killTweensOf(text);
 
     // Enhanced animation: slide out left, then slide in from right
     gsap.to(text, {
@@ -418,159 +438,192 @@ export function createVisualCallback(panelId = "groove") {
   );
 
   return (tickIndex, isPrimaryAccent, isMainBeat) => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    try {
+      const container = document.getElementById(containerId);
+      if (!container) return;
 
-    // Get the correct metronome core
-    const core =
-      panelId === "groove" ? window.metronome : window.simpleMetronome.core;
+      // Get the correct metronome core
+      const core =
+        panelId === "groove" ? window.metronome : window.simpleMetronome.core;
+      // Safety check
+      if (!core || typeof core.getTimeSignature !== "function") {
+        return;
+      }
 
-    // Safety check
-    if (!core || typeof core.getTimeSignature !== "function") {
-      return;
-    }
+      const timeSignature = core.getTimeSignature();
+      const ticksPerBeat = core.getTicksPerBeat();
+      const signatureKey = `${timeSignature.beats}/${timeSignature.value}`;
+      const totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
 
-    const timeSignature = core.getTimeSignature();
-    const ticksPerBeat = core.getTicksPerBeat();
-    const signatureKey = `${timeSignature.beats}/${timeSignature.value}`;
-    const totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
+      if (totalTicksInMeasure === 0) return;
 
-    if (totalTicksInMeasure === 0) return;
+      const currentTickInMeasure = tickIndex % totalTicksInMeasure;
+      const currentBeat = Math.floor(currentTickInMeasure / ticksPerBeat);
 
-    const currentTickInMeasure = tickIndex % totalTicksInMeasure;
-    const currentBeat = Math.floor(currentTickInMeasure / ticksPerBeat);
+      // === NEW: REBUILD LAYOUT ON SIGNATURE OR SUBDIVISION CHANGE ===
+      if (
+        signatureKey !== lastRenderedSignature ||
+        ticksPerBeat !== lastRenderedTicksPerBeat
+      ) {
+        measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
+        phrases = segmentIntoPhrases(totalTicksInMeasure);
+        currentPhraseIndex = -1;
 
-    // === NEW: REBUILD LAYOUT ON SIGNATURE OR SUBDIVISION CHANGE ===
-    if (
-      signatureKey !== lastRenderedSignature ||
-      ticksPerBeat !== lastRenderedTicksPerBeat
-    ) {
-      measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
-      phrases = segmentIntoPhrases(totalTicksInMeasure);
-      currentPhraseIndex = -1; // Force rebuild on next boundary
-
-      // CRITICAL: Force immediate visual rebuild when subdivisions change
-      // Clear container to remove old dot hierarchy
-      container.innerHTML = "";
-      dotElements.length = 0; // Clear cached elements
-
-      lastRenderedSignature = signatureKey;
-      lastRenderedTicksPerBeat = ticksPerBeat;
-
-      console.log(
-        `🎼 [${panelId}] Layout rebuilt: ${signatureKey}, ${totalTicksInMeasure} ticks`
-      );
-      console.log(`📊 [${panelId}] Phrases:`, phrases);
-      console.log(
-        `🔄 [${panelId}] Visual reset: container cleared, forcing re-render`
-      );
-    }
-
-    // === NEW: DETERMINE CURRENT PHRASE ===
-    const newPhraseIndex = phrases.findIndex(
-      (p) => currentTickInMeasure >= p.start && currentTickInMeasure <= p.end
-    );
-
-    if (newPhraseIndex === -1) {
-      console.warn(
-        `⚠️ [${panelId}] Tick ${currentTickInMeasure} not in any phrase!`
-      );
-      return;
-    }
-
-    const currentPhrase = phrases[newPhraseIndex];
-    const tickInPhrase = currentTickInMeasure - currentPhrase.start;
-
-    // NEW: Detect measure boundaries for forced mode single-phrase edge case
-    const isMeasureBoundary = currentTickInMeasure === 0;
-    const shouldForceRender =
-      !intelligentPanning && isMeasureBoundary && phrases.length === 1;
-
-    // === PHRASE BOUNDARY DETECTION & RENDERING ===
-    if (newPhraseIndex !== currentPhraseIndex || shouldForceRender) {
-      const prevPhraseIndex = currentPhraseIndex;
-      currentPhraseIndex = newPhraseIndex;
-
-      // Only do pattern comparison if this is a real phrase change, not a forced render
-      const isRealPhraseBoundary = newPhraseIndex !== prevPhraseIndex;
-
-      console.log(
-        `\n🎯 [${panelId}] === ${
-          shouldForceRender ? "MEASURE" : "PHRASE"
-        } BOUNDARY DETECTED ===`
-      );
-
-      if (isRealPhraseBoundary) {
-        // This is an actual phrase boundary - normal logic applies
-        const actualPrevIndex =
-          prevPhraseIndex === -1 ? phrases.length - 1 : prevPhraseIndex;
-        const prevPhrase = phrases[actualPrevIndex];
-
-        if (prevPhraseIndex === -1) {
-          console.log(
-            `   Previous phrase: -1 (first tick, comparing to phrase ${actualPrevIndex}: ticks ${prevPhrase.start}-${prevPhrase.end})`
-          );
-        } else {
-          console.log(
-            `   Previous phrase: ${prevPhraseIndex} (ticks ${prevPhrase.start}-${prevPhrase.end})`
-          );
+        // CRITICAL: Kill ALL GSAP animations before clearing DOM
+        const oldPanningContainer =
+          container.querySelector(".panning-container");
+        if (oldPanningContainer) {
+          gsap.killTweensOf(oldPanningContainer);
+          const allElements = oldPanningContainer.querySelectorAll("*");
+          allElements.forEach((el) => gsap.killTweensOf(el));
         }
 
+        // Clear container to remove old dot hierarchy
+        container.innerHTML = "";
+        dotElements.length = 0;
+
+        lastRenderedSignature = signatureKey;
+        lastRenderedTicksPerBeat = ticksPerBeat;
+
         console.log(
-          `   New phrase: ${newPhraseIndex} (ticks ${currentPhrase.start}-${currentPhrase.end})`
+          `🎼 [${panelId}] Layout rebuilt: ${signatureKey}, ${totalTicksInMeasure} ticks`
         );
-        console.log(`   Tick in new phrase: ${tickInPhrase}`);
+        console.log(`📊 [${panelId}] Phrases:`, phrases);
+        console.log(
+          `🔄 [${panelId}] Visual reset: container cleared, forcing re-render`
+        );
+      }
 
-        // === DECISION LOGIC ===
-        if (intelligentPanning) {
-          const comparison = comparePhrasePatterns(
-            measureLayout,
-            prevPhrase,
-            currentPhrase
+      // === NEW: DETERMINE CURRENT PHRASE ===
+      const newPhraseIndex = phrases.findIndex(
+        (p) => currentTickInMeasure >= p.start && currentTickInMeasure <= p.end
+      );
+
+      if (newPhraseIndex === -1) {
+        console.warn(
+          `⚠️ [${panelId}] Tick ${currentTickInMeasure} not in any phrase!`
+        );
+        return;
+      }
+
+      const currentPhrase = phrases[newPhraseIndex];
+      const tickInPhrase = currentTickInMeasure - currentPhrase.start;
+
+      // NEW: Detect measure boundaries for forced mode single-phrase edge case
+      const isMeasureBoundary = currentTickInMeasure === 0;
+      const shouldForceRender =
+        !intelligentPanning && isMeasureBoundary && phrases.length === 1;
+
+      // === PHRASE BOUNDARY DETECTION & RENDERING ===
+      if (newPhraseIndex !== currentPhraseIndex || shouldForceRender) {
+        const prevPhraseIndex = currentPhraseIndex;
+        currentPhraseIndex = newPhraseIndex;
+
+        // Only do pattern comparison if this is a real phrase change, not a forced render
+        const isRealPhraseBoundary = newPhraseIndex !== prevPhraseIndex;
+
+        debugLog(
+          panelId,
+          `\n🎯 === ${
+            shouldForceRender ? "MEASURE" : "PHRASE"
+          } BOUNDARY DETECTED ===`
+        );
+
+        if (isRealPhraseBoundary) {
+          // This is an actual phrase boundary - normal logic applies
+          const actualPrevIndex =
+            prevPhraseIndex === -1 ? phrases.length - 1 : prevPhraseIndex;
+          const prevPhrase = phrases[actualPrevIndex];
+
+          if (prevPhraseIndex === -1) {
+            debugLog(
+              panelId,
+              `   Previous phrase: -1 (first tick, comparing to phrase ${actualPrevIndex}: ticks ${prevPhrase.start}-${prevPhrase.end})`
+            );
+          } else {
+            debugLog(
+              panelId,
+              `   Previous phrase: ${prevPhraseIndex} (ticks ${prevPhrase.start}-${prevPhrase.end})`
+            );
+          }
+
+          debugLog(
+            panelId,
+            `   New phrase: ${newPhraseIndex} (ticks ${currentPhrase.start}-${currentPhrase.end})`
           );
+          debugLog(panelId, `   Tick in new phrase: ${tickInPhrase}`);
 
-          console.log(`   Pattern comparison:`, comparison);
+          // === DECISION LOGIC ===
+          if (intelligentPanning) {
+            const comparison = comparePhrasePatterns(
+              measureLayout,
+              prevPhrase,
+              currentPhrase
+            );
 
-          if (comparison.labelMatch) {
-            if (prevPhraseIndex === -1) {
-              // First phrase ever - must render even if it matches the "previous" (last) phrase
-              console.log(`   ➡️ Decision: INITIAL RENDER (first phrase)`);
+            debugLog(panelId, `   Pattern comparison:`, comparison);
+
+            if (comparison.labelMatch) {
+              if (prevPhraseIndex === -1) {
+                // First phrase ever - must render even if it matches the "previous" (last) phrase
+                debugLog(
+                  panelId,
+                  `   ➡️ Decision: INITIAL RENDER (first phrase)`
+                );
+                dotElements = renderNewPhrase(
+                  container,
+                  measureLayout,
+                  currentPhrase,
+                  core,
+                  dotElements
+                );
+              } else {
+                debugLog(panelId, `   ➡️ Decision: NO UPDATE (complete match)`);
+                // Keep existing phrase visible
+              }
+            } else if (comparison.hierarchyMatch) {
+              debugLog(
+                panelId,
+                `   ➡️ Decision: LABEL UPDATE ONLY (hierarchy match)`
+              );
+
+              // Guard: ensure we have cached elements before attempting label update
+              if (dotElements.length === 0) {
+                debugLog(
+                  panelId,
+                  `   ⚠️ No cached elements yet - performing initial render instead`
+                );
+                dotElements = renderNewPhrase(
+                  container,
+                  measureLayout,
+                  currentPhrase,
+                  core,
+                  dotElements
+                );
+              } else {
+                updatePhraseLabels(
+                  container,
+                  measureLayout,
+                  currentPhrase,
+                  dotElements
+                );
+              }
+            } else {
+              debugLog(panelId, `   ➡️ Decision: FULL PAN (structure differs)`);
               dotElements = renderNewPhrase(
                 container,
                 measureLayout,
                 currentPhrase,
                 core,
-                dotElements
-              );
-            } else {
-              console.log(`   ➡️ Decision: NO UPDATE (complete match)`);
-              // Keep existing phrase visible
-            }
-          } else if (comparison.hierarchyMatch) {
-            console.log(`   ➡️ Decision: LABEL UPDATE ONLY (hierarchy match)`);
-
-            // Guard: ensure we have cached elements before attempting label update
-            if (dotElements.length === 0) {
-              console.log(
-                `   ⚠️ No cached elements yet - performing initial render instead`
-              );
-              dotElements = renderNewPhrase(
-                container,
-                measureLayout,
-                currentPhrase,
-                core,
-                dotElements
-              );
-            } else {
-              updatePhraseLabels(
-                container,
-                measureLayout,
-                currentPhrase,
                 dotElements
               );
             }
           } else {
-            console.log(`   ➡️ Decision: FULL PAN (structure differs)`);
+            // Forced mode with real phrase boundary
+            debugLog(
+              panelId,
+              `   ➡️ Decision: FULL PAN (forced mode - phrase boundary)`
+            );
             dotElements = renderNewPhrase(
               container,
               measureLayout,
@@ -579,10 +632,19 @@ export function createVisualCallback(panelId = "groove") {
               dotElements
             );
           }
-        } else {
-          // Forced mode with real phrase boundary
-          console.log(
-            `   ➡️ Decision: FULL PAN (forced mode - phrase boundary)`
+        } else if (shouldForceRender) {
+          // This is NOT a phrase boundary, but a measure boundary in single-phrase forced mode
+          debugLog(
+            panelId,
+            `   Measure boundary in single-phrase measure (phrase stays at ${newPhraseIndex})`
+          );
+          debugLog(
+            panelId,
+            `   Current phrase: ticks ${currentPhrase.start}-${currentPhrase.end}`
+          );
+          debugLog(
+            panelId,
+            `   ➡️ Decision: FULL PAN (forced mode - measure boundary)`
           );
           dotElements = renderNewPhrase(
             container,
@@ -592,77 +654,63 @@ export function createVisualCallback(panelId = "groove") {
             dotElements
           );
         }
-      } else if (shouldForceRender) {
-        // This is NOT a phrase boundary, but a measure boundary in single-phrase forced mode
-        console.log(
-          `   Measure boundary in single-phrase measure (phrase stays at ${newPhraseIndex})`
-        );
-        console.log(
-          `   Current phrase: ticks ${currentPhrase.start}-${currentPhrase.end}`
-        );
-        console.log(
-          `   ➡️ Decision: FULL PAN (forced mode - measure boundary)`
-        );
-        dotElements = renderNewPhrase(
-          container,
-          measureLayout,
-          currentPhrase,
-          core,
-          dotElements
-        );
+
+        debugLog(panelId, `========================================\n`);
       }
 
-      console.log(`========================================\n`);
-    }
+      // === WITHIN-PHRASE: Ensure phrase is rendered and flash active dot ===
+      let panningContainer = container.querySelector(".panning-container");
+      if (!panningContainer || panningContainer.children.length === 0) {
+        // No phrase rendered yet - render current phrase without animation
+        container.innerHTML = "";
+        panningContainer = document.createElement("div");
+        panningContainer.className = "panning-container";
+        panningContainer.style.display = "flex";
+        container.appendChild(panningContainer);
 
-    // === WITHIN-PHRASE: Ensure phrase is rendered and flash active dot ===
-    let panningContainer = container.querySelector(".panning-container");
-    if (!panningContainer || panningContainer.children.length === 0) {
-      // No phrase rendered yet - render current phrase without animation
-      container.innerHTML = "";
-      panningContainer = document.createElement("div");
-      panningContainer.className = "panning-container";
-      panningContainer.style.display = "flex";
-      container.appendChild(panningContainer);
+        const phraseSlice = measureLayout.slice(
+          currentPhrase.start,
+          currentPhrase.end + 1
+        );
+        dotElements.length = 0;
 
-      const phraseSlice = measureLayout.slice(
-        currentPhrase.start,
-        currentPhrase.end + 1
+        phraseSlice.forEach((dotInfo) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "beat-wrapper";
+
+          const dot = document.createElement("div");
+          dot.className = `beat-dot ${dotInfo.size}`;
+          if (dotInfo.isAccent) dot.classList.add("accent");
+
+          const text = document.createElement("div");
+          text.className = "phonation-text";
+          text.textContent = dotInfo.label;
+
+          wrapper.appendChild(dot);
+          wrapper.appendChild(text);
+          panningContainer.appendChild(wrapper);
+          dotElements.push(wrapper);
+        });
+
+        // Center the container immediately (for NO UPDATE cases)
+        gsap.set(panningContainer, { x: 0 });
+      }
+
+      // === FLASH ACTIVE DOT (using tickInPhrase) ===
+      flashTimeout = flashActiveDot(
+        container,
+        tickInPhrase,
+        dotElements,
+        measureLayout,
+        currentTickInMeasure,
+        isPrimaryAccent,
+        flashTimeout
       );
-      dotElements.length = 0;
-
-      phraseSlice.forEach((dotInfo) => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "beat-wrapper";
-
-        const dot = document.createElement("div");
-        dot.className = `beat-dot ${dotInfo.size}`;
-        if (dotInfo.isAccent) dot.classList.add("accent");
-
-        const text = document.createElement("div");
-        text.className = "phonation-text";
-        text.textContent = dotInfo.label;
-
-        wrapper.appendChild(dot);
-        wrapper.appendChild(text);
-        panningContainer.appendChild(wrapper);
-        dotElements.push(wrapper);
-      });
-
-      // Center the container immediately (for NO UPDATE cases)
-      gsap.set(panningContainer, { x: 0 });
+    } catch (error) {
+      console.error(`❌ Visual callback error [${panelId}]:`, error);
+      console.error("Stack trace:", error.stack);
+      // Don't rethrow - let metronome continue even if visuals break
     }
-
-    // === FLASH ACTIVE DOT (using tickInPhrase) ===
-    flashTimeout = flashActiveDot(
-      container,
-      tickInPhrase,
-      dotElements,
-      measureLayout,
-      currentTickInMeasure,
-      isPrimaryAccent,
-      flashTimeout
-    );
   };
 }
 
