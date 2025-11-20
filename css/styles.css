@@ -140,6 +140,29 @@ button:disabled {
 .toggle input[type="checkbox"]:checked::after {
   transform: translateX(18px);
 }
+/* Disabled toggle styling */
+.toggle input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #b0b0b0;
+}
+
+.toggle input[type="checkbox"]:disabled::after {
+  opacity: 0.6;
+}
+
+.toggle:has(input[type="checkbox"]:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle:has(input[type="checkbox"]:disabled) #tempoSyncedLabel,
+.toggle:has(input[type="checkbox"]:disabled) #intelligentPanningLabel,
+.toggle:has(input[type="checkbox"]:disabled) span {
+  opacity: 0.6;
+  cursor: not-allowed;
+  color: #999;
+}
 .toggle #tempoSyncedLabel {
   margin-left: 6px;
   font-weight: 600;
@@ -156,13 +179,6 @@ button:disabled {
   position: relative;
   min-height: 160px;
   padding-top: 12px;
-}
-#beat-indicator-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
 }
 .beat-dot,
 .beat-dot-simple {
@@ -210,13 +226,6 @@ button:disabled {
   align-items: center;
 }
 
-#beat-indicator-container-simple {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-  margin-top: 14px;
-}
 #simpleMetronomeDot.pulse {
   transform: scale(1.25);
   transition: transform 120ms ease;
@@ -1023,10 +1032,16 @@ button#installBtn.utility-button {
 /* --- Container Alignment Fix --- */
 #beat-indicator-container,
 #beat-indicator-container-simple {
-  /* This will center all rows of dots, fixing the wrapping issue */
-  justify-content: center;
-  flex-wrap: wrap; /* Ensure wrapping is enabled */
+  display: flex;
+  justify-content: center; /* ← CHANGED from flex-start */
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 14px;
+  margin-top: 14px;
   padding: 0 10px;
+  overflow: hidden;
+  width: 100%;
+  padding: 15px 10px 30px;
 }
 
 /* --- Wrapper & Text Alignment Fix --- */
@@ -1036,7 +1051,7 @@ button#installBtn.utility-button {
   /* Center the dot horizontally and vertically */
   justify-content: center;
   align-items: center;
-  margin: 0 7px;
+  margin: 0 12px;
   /* Set a fixed height that can contain the LARGEST dot + text */
   height: 100px;
 }
@@ -1075,7 +1090,7 @@ button#installBtn.utility-button {
 .beat-dot.flashing {
   transform: scale(1.4);
   opacity: 1;
-  box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);
+  outline: 1px solid transparent;
 }
 
 /* COLOR for Accent Beats (Downbeat) - RESTORED */

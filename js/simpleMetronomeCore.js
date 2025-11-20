@@ -214,19 +214,25 @@ export function setTimeSignature(beats, value) {
   const currentTotalTicks = timeSignature.beats * ticksPerBeat;
   const newTotalTicks = newBeats * 1; // Subdivisions are reset
 
-  // Find where we are in the old measure and apply to new one
   const tickInOldMeasure = tickIndex % currentTotalTicks || 0;
   const progress = tickInOldMeasure / currentTotalTicks;
-
   tickIndex = Math.round(progress * newTotalTicks);
 
-  timeSignature = { beats: newBeats, value: newValue };
-  // CRUCIAL: Reset subdivisions whenever the time signature changes
-  setTicksPerBeat(1);
+  // NEW: Only reset subdivisions if denominator changes
+  const denominatorChanged = timeSignature.value !== newValue;
 
-  console.log(
-    `simpleMetronomeCore: Time signature set to ${timeSignature.beats}/${timeSignature.value}`
-  );
+  timeSignature = { beats: newBeats, value: newValue };
+
+  if (denominatorChanged) {
+    setTicksPerBeat(1);
+    console.log(
+      `Time signature set to ${timeSignature.beats}/${timeSignature.value}, subdivisions reset`
+    );
+  } else {
+    console.log(
+      `Time signature set to ${timeSignature.beats}/${timeSignature.value}, subdivisions preserved`
+    );
+  }
 }
 
 export function getTimeSignature() {

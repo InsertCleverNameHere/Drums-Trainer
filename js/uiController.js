@@ -617,6 +617,78 @@ export function initSoundProfileUI() {
   );
 }
 
+// -----------------------------
+// 🎧 Panning Mode Toggles
+// -----------------------------
+/**
+ * Initialize panning mode toggles for both groove and simple panels.
+ * Keeps toggles synchronized and persists preference.
+ */
+export function initPanningModeUI() {
+  const grooveToggle = document.getElementById("intelligentPanningToggle");
+  const simpleToggle = document.getElementById(
+    "intelligentPanningToggleSimple"
+  );
+
+  if (!grooveToggle || !simpleToggle) {
+    console.warn("⚠️ Panning mode toggles not found in DOM");
+    return;
+  }
+
+  // Load persisted preference (default: true = intelligent)
+  const stored = localStorage.getItem("intelligentPanningMode");
+  // Validate stored value - only accept "true" or "false"
+  const isValidStored = stored === "true" || stored === "false";
+  const intelligentPanning = isValidStored ? stored === "true" : true;
+
+  // If corrupted, fix it immediately
+  if (!isValidStored && stored !== null) {
+    console.warn(
+      "⚠️ Corrupted intelligentPanningMode value, resetting to default (true)"
+    );
+    localStorage.setItem("intelligentPanningMode", "true");
+  }
+
+  // Initialize both toggles
+  grooveToggle.checked = intelligentPanning;
+  simpleToggle.checked = intelligentPanning;
+
+  // Sync function
+  function syncToggles(sourceValue) {
+    grooveToggle.checked = sourceValue;
+    simpleToggle.checked = sourceValue;
+    localStorage.setItem(
+      "intelligentPanningMode",
+      sourceValue ? "true" : "false"
+    );
+
+    // Dispatch event for visuals.js to listen to
+    document.dispatchEvent(
+      new CustomEvent("panningModeChanged", {
+        detail: { intelligent: sourceValue },
+      })
+    );
+
+    console.info(`🎯 Panning mode: ${sourceValue ? "Intelligent" : "Forced"}`);
+  }
+
+  // Wire up listeners
+  grooveToggle.addEventListener("change", () =>
+    syncToggles(grooveToggle.checked)
+  );
+  simpleToggle.addEventListener("change", () =>
+    syncToggles(simpleToggle.checked)
+  );
+
+  // Disable toggles during playback
+  document.addEventListener("metronome:ownerChanged", (e) => {
+    const owner = e?.detail?.owner;
+    const isPlaying = owner !== null;
+    grooveToggle.disabled = isPlaying;
+    simpleToggle.disabled = isPlaying;
+  });
+}
+
 // -----------------------------------
 // 🥁 Simple Metronome Panel Controls
 // -----------------------------------
