@@ -39,6 +39,80 @@ export function initQuantization() {
   }
 }
 
+// ============================
+// 🌙 Dark Mode Toggle (Icon Button)
+// ============================
+
+export function initDarkMode() {
+  const button = document.getElementById("themeToggleBtn");
+  const icon = document.getElementById("themeIcon");
+
+  if (!button || !icon) {
+    console.warn("⚠️ Dark mode button not found in DOM");
+    return;
+  }
+
+  // Detect system preference
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+  // Check localStorage for saved preference
+  const saved = localStorage.getItem("darkMode");
+  const isDark = saved !== null ? saved === "true" : prefersDark;
+
+  // Apply initial theme
+  applyTheme(isDark, icon, button);
+
+  console.info(
+    `🌙 Dark mode initialized: ${isDark ? "ON" : "OFF"} (${
+      saved !== null ? "saved preference" : "system default"
+    })`
+  );
+
+  // Click handler
+  button.addEventListener("click", () => {
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    const newIsDark = currentTheme !== "dark";
+
+    // Add animation class
+    button.classList.add("switching");
+    setTimeout(() => button.classList.remove("switching"), 300);
+
+    // Apply new theme
+    applyTheme(newIsDark, icon, button);
+    localStorage.setItem("darkMode", newIsDark ? "true" : "false");
+
+    console.info(`🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
+  });
+
+  // Listen for system preference changes
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", (e) => {
+      // Only auto-switch if user hasn't manually set preference
+      if (localStorage.getItem("darkMode") === null) {
+        applyTheme(e.matches, icon, button);
+        console.info(
+          `🌙 Dark mode auto-switched to system preference: ${
+            e.matches ? "ON" : "OFF"
+          }`
+        );
+      }
+    });
+}
+
+// Helper function to apply theme and update icon
+function applyTheme(isDark, icon, button) {
+  document.documentElement.setAttribute(
+    "data-theme",
+    isDark ? "dark" : "light"
+  );
+  icon.textContent = isDark ? "☀️" : "🌙";
+  button.setAttribute(
+    "title",
+    isDark ? "Switch to light mode" : "Switch to dark mode"
+  );
+}
+
 // --- Quantization Safety Wrapper ---
 export function getSafeQuantization() {
   // Re-initialize if the global object doesn’t exist
