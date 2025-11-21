@@ -52,12 +52,37 @@
 /* ============================================
 🎨 1. Layout & Typography
 ============================================ */
+/* App Header */
+.app-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-top: 8px;
+}
+
+.app-header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.app-header .tagline {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin: 0;
+  font-style: italic;
+}
+
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  margin: 18px;
+  margin: 18px auto;
   max-width: 900px;
   background: var(--bg-primary);
   color: var(--text-primary);
+  padding: 0 18px;
+  box-sizing: border-box;
 }
 h1 {
   margin-bottom: 4px;
@@ -431,7 +456,7 @@ button:disabled {
 ============================================ */
 #themeToggleBtn {
   position: fixed;
-  top: 112px; /* Below update button */
+  top: 118px; /* Below update button */
   right: 12px;
   width: 42px;
   height: 42px;
@@ -507,7 +532,9 @@ button:disabled {
   position: fixed;
   top: 60px;
   right: 12px;
-  max-width: 300px;
+  max-width: 340px; /* Increased slightly for better readability */
+  max-height: calc(100vh - 80px); /* Prevent overflow off screen */
+  overflow-y: auto;
   background: var(--bg-secondary);
   color: var(--text-primary);
   border-radius: 12px;
@@ -537,6 +564,19 @@ button:disabled {
 
 .tooltip-content li {
   margin-bottom: 4px;
+}
+
+/* Keyboard key styling */
+.tooltip-content kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  font-family: monospace;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px var(--shadow);
+  font-weight: 600;
 }
 
 /* ============================================
@@ -661,9 +701,11 @@ button#installBtn.utility-button {
   }
 
   #tooltipDialog {
-    max-width: 90%;
-    right: 5%;
+    max-width: calc(100vw - 24px); /* 12px margin on each side */
+    right: 12px;
+    left: 12px;
     top: 60px;
+    max-height: calc(100vh - 100px); /* More breathing room on mobile */
   }
 }
 
