@@ -99,16 +99,57 @@ select {
   color: var(--text-primary);
   border: 1px solid var(--border);
   font-size: 1rem;
-  padding: 6px;
+  padding: 10px 12px;
   margin-top: 6px;
   box-sizing: border-box;
+  border-radius: 6px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 44px; /* Touch-friendly */
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-secondary);
 }
 input[type="number"] {
   width: 90px;
 }
 select {
   width: 110px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px;
+  padding-right: 30px; /* Space for arrow */
+  cursor: pointer;
 }
+
+/* Dark mode arrow color fix */
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23999' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit; /* Match body font */
+  line-height: 1.5;
+}
+
 #sessionMode {
   width: 100%;
   max-width: 260px;
@@ -127,15 +168,55 @@ textarea {
   min-width: 200px;
 }
 button {
-  padding: 10px 14px;
+  padding: 12px 20px;
   margin-top: 10px;
   font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 2px 4px var(--shadow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px; /* Touch-friendly minimum */
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px var(--shadow-hover);
+  background: var(--text-secondary);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px var(--shadow);
 }
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #e0e0e0;
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border);
+  box-shadow: none;
+  transform: none; /* Prevent hover effects */
+}
+/* Primary action buttons (Start/Stop) */
+#startBtn,
+#simpleStartBtn {
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+#startBtn:hover:not(:disabled),
+#simpleStartBtn:hover:not(:disabled) {
+  background: #9a1a1a; /* Darker red */
+  box-shadow: 0 4px 12px rgba(178, 34, 34, 0.4);
+}
+
+#startBtn:active:not(:disabled),
+#simpleStartBtn:active:not(:disabled) {
+  background: #7a1515; /* Even darker when pressed */
 }
 .big {
   font-size: 1.4rem;
@@ -328,22 +409,35 @@ button:disabled {
   margin: 12px 0;
 }
 .tab {
-  padding: 8px 12px;
+  padding: 10px 16px;
   border-radius: 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px var(--shadow);
 }
+
+.tab:hover:not(.disabled) {
+  background: var(--text-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px var(--shadow-hover);
+}
+
 .tab.active {
   background: var(--text-primary);
   color: var(--bg-primary);
+  box-shadow: 0 2px 8px var(--shadow-hover);
 }
+
 .tab.disabled {
   background: var(--bg-secondary);
   color: var(--text-secondary);
   cursor: not-allowed;
   opacity: 0.6;
+  box-shadow: none;
 }
 .panel {
   margin-top: 8px;
@@ -398,7 +492,7 @@ button:disabled {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: none;
+  border: 1px solid var(--border);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 1.4rem;
@@ -408,9 +502,17 @@ button:disabled {
   cursor: pointer;
   z-index: 10000;
   box-shadow: 0 2px 6px var(--shadow-hover);
+  transition: all 0.2s ease;
 }
+
 #checkUpdatesBtn:hover {
   background-color: var(--text-secondary);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px var(--shadow-hover);
+}
+
+#checkUpdatesBtn:active {
+  transform: scale(0.98);
 }
 
 .update-button {
@@ -520,12 +622,24 @@ button:disabled {
   color: var(--text-primary);
   font-size: 1.4rem;
   border-radius: 50%;
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10000;
   box-shadow: 0 2px 6px var(--shadow-hover);
+  transition: all 0.2s ease;
+}
+
+#tooltipTrigger:hover {
+  background: var(--text-secondary);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px var(--shadow-hover);
+}
+
+#tooltipTrigger:active {
+  transform: scale(0.98);
 }
 
 #tooltipDialog {
@@ -677,13 +791,26 @@ button#installBtn.utility-button {
   position: fixed;
   bottom: 12px;
   right: 12px;
-  padding: 8px 12px;
+  padding: 10px 16px;
   font-size: 1rem;
-  background-color: #4e4e4e;
+  font-weight: 600;
+  background-color: var(--accent);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px var(--shadow-hover);
   z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+button#installBtn.utility-button:hover {
+  background-color: #9a1a1a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(178, 34, 34, 0.4);
+}
+
+button#installBtn.utility-button:active {
+  transform: translateY(0);
 }
 @keyframes spin {
   to {
