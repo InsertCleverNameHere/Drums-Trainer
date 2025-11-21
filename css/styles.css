@@ -49,6 +49,11 @@
   --shadow-hover: rgba(0, 0, 0, 0.5);
 }
 
+/* Dark mode body gradient override */
+[data-theme="dark"] body {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+}
+
 /* ============================================
 🎨 1. Layout & Typography
 ============================================ */
@@ -83,6 +88,8 @@ body {
   color: var(--text-primary);
   padding: 0 18px;
   box-sizing: border-box;
+  min-height: 100vh;
+  transition: background 0.3s ease;
 }
 h1 {
   margin-bottom: 4px;
@@ -103,7 +110,8 @@ select {
   margin-top: 6px;
   box-sizing: border-box;
   border-radius: 6px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease,
+    background-color 0.2s ease;
   min-height: 44px; /* Touch-friendly */
 }
 
@@ -168,11 +176,12 @@ textarea {
   min-width: 200px;
 }
 button {
-  padding: 12px 20px;
+  padding: 10px 16px;
   margin-top: 10px;
   font-size: 1rem;
   font-weight: 600;
   border-radius: 8px;
+  border: 1px solid transparent;
   border: none;
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -196,7 +205,7 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
+  border-color: var(--border);
   box-shadow: none;
   transform: none; /* Prevent hover effects */
 }
@@ -231,6 +240,8 @@ button:disabled {
   padding: 12px 12px 30px 12px;
   background: var(--bg-secondary);
   border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+  border: 1px solid var(--border);
 }
 
 /* ============================================
@@ -252,6 +263,7 @@ button:disabled {
   -webkit-appearance: none;
   width: 42px;
   height: 24px;
+  min-height: unset;
   background: var(--border);
   border-radius: 999px;
   position: relative;
@@ -263,7 +275,7 @@ button:disabled {
   content: "";
   position: absolute;
   left: 3px;
-  top: 3px;
+  top: 2px;
   width: 18px;
   height: 18px;
   background: #fff;
@@ -407,6 +419,10 @@ button:disabled {
   display: flex;
   gap: 8px;
   margin: 12px 0;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px var(--shadow);
 }
 .tab {
   padding: 10px 16px;
@@ -441,6 +457,11 @@ button:disabled {
 }
 .panel {
   margin-top: 8px;
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px var(--shadow);
+  border: 1px solid var(--border);
 }
 .hidden {
   display: none !important;
@@ -1299,6 +1320,9 @@ button#installBtn.utility-button:active {
   overflow: hidden;
   width: 100%;
   padding: 15px 10px 30px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 3px var(--shadow);
 }
 
 /* --- Wrapper & Text Alignment Fix --- */
