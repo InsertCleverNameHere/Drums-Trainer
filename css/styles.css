@@ -21,7 +21,33 @@
 ============================================
 */
 
-/* Added missing section comments throughout the file */
+/* ============================================
+🎨 CSS Variables for Theming
+============================================ */
+
+:root {
+  /* Light mode (default) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f3f3;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --accent: #b22222;
+  --border: #dcdcdc;
+  --shadow: rgba(0, 0, 0, 0.1);
+  --shadow-hover: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] {
+  /* Dark mode */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2a2a2a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #999999;
+  --accent: #b22222;
+  --border: #3a3a3a;
+  --shadow: rgba(0, 0, 0, 0.4);
+  --shadow-hover: rgba(0, 0, 0, 0.5);
+}
 
 /* ============================================
 🎨 1. Layout & Typography
@@ -30,6 +56,8 @@ body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
   margin: 18px;
   max-width: 900px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 h1 {
   margin-bottom: 4px;
@@ -42,6 +70,9 @@ label {
 input,
 textarea,
 select {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   font-size: 1rem;
   padding: 6px;
   margin-top: 6px;
@@ -79,7 +110,7 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: #e0e0e0;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
 }
 .big {
   font-size: 1.4rem;
@@ -92,7 +123,7 @@ button:disabled {
 .status {
   margin-top: 12px;
   padding: 12px 12px 30px 12px;
-  background: #f3f3f3;
+  background: var(--bg-secondary);
   border-radius: 8px;
 }
 
@@ -115,7 +146,7 @@ button:disabled {
   -webkit-appearance: none;
   width: 42px;
   height: 24px;
-  background: #dcdcdc;
+  background: var(--border);
   border-radius: 999px;
   position: relative;
   cursor: pointer;
@@ -144,7 +175,7 @@ button:disabled {
 .toggle input[type="checkbox"]:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #b0b0b0;
+  background: var(--text-secondary);
 }
 
 .toggle input[type="checkbox"]:disabled::after {
@@ -205,7 +236,7 @@ button:disabled {
   font-size: 2.5rem;
   font-weight: bold;
   text-align: center;
-  color: #333;
+  color: var(--text-primary);
   opacity: 0.6;
   margin-bottom: 0;
   margin-top: -24px;
@@ -255,7 +286,8 @@ button:disabled {
   font-size: 14px;
   border-radius: 8px;
   appearance: none;
-  background-color: #fff;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
@@ -273,18 +305,18 @@ button:disabled {
 .tab {
   padding: 8px 12px;
   border-radius: 8px;
-  background: #eee;
-  border: 1px solid #ddd;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   cursor: pointer;
   font-weight: 600;
 }
 .tab.active {
-  background: #333;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--bg-primary);
 }
 .tab.disabled {
-  background: #f3f3f3;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -303,14 +335,14 @@ button:disabled {
   bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.75);
-  color: #fff;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   padding: 8px 16px;
   border-radius: 12px;
   font-size: 0.9rem;
   font-family: monospace;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px var(--shadow);
   z-index: 9999;
   opacity: 0.9;
 }
@@ -342,18 +374,18 @@ button:disabled {
   height: 42px;
   border-radius: 50%;
   border: none;
-  background-color: #333;
-  color: #fff;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 1.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10000;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px var(--shadow-hover);
 }
 #checkUpdatesBtn:hover {
-  background-color: #555;
+  background-color: var(--text-secondary);
 }
 
 .update-button {
@@ -403,8 +435,8 @@ button:disabled {
   right: 12px;
   width: 42px;
   height: 42px;
-  background: #333;
-  color: #fff;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-size: 1.4rem;
   border-radius: 50%;
   display: flex;
@@ -412,7 +444,7 @@ button:disabled {
   justify-content: center;
   cursor: pointer;
   z-index: 10000;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px var(--shadow-hover);
 }
 
 #tooltipDialog {
@@ -420,12 +452,12 @@ button:disabled {
   top: 60px;
   right: 12px;
   max-width: 300px;
-  background: #222;
-  color: #fff;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   border-radius: 12px;
   padding: 16px;
   font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px var(--shadow-hover);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.5s ease;
@@ -626,7 +658,7 @@ button#installBtn.utility-button {
   left: 50%;
   transform: translateX(-50%) translateY(-10px);
   background: rgba(150, 130, 180, 0.9); /* 🌸 muted lavender */
-  color: #fff;
+  color: var(--text-primary);
   font-size: 15px;
   padding: 10px 18px;
   border-radius: 10px;
@@ -762,7 +794,7 @@ button#installBtn.utility-button {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   user-select: none;
   pointer-events: none;
 }
@@ -776,7 +808,7 @@ button#installBtn.utility-button {
   pointer-events: auto;
   transition: color 0.25s ease; /* Just color transition like simple metronome */
   font-size: 0.72rem; /* Match the simple metronome font size */
-  color: #666; /* Default color */
+  color: var(--text-secondary);
 }
 
 #slider-numbers .slider-mark:hover {
@@ -794,7 +826,7 @@ button#installBtn.utility-button {
   position: absolute;
   width: 1px;
   height: 8px;
-  background: #666;
+  background: var(--text-secondary);
   transform: translateX(-50%);
   opacity: 0.7;
   transition: background 0.25s ease, height 0.25s ease, opacity 0.25s ease;
@@ -852,7 +884,7 @@ button#installBtn.utility-button {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   user-select: none;
   pointer-events: none;
 }
@@ -866,7 +898,7 @@ button#installBtn.utility-button {
   pointer-events: auto;
   transition: color 0.25s ease;
   font-size: 0.72rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 #simple-slider-numbers .slider-mark:hover {
@@ -1061,7 +1093,7 @@ button#installBtn.utility-button {
   bottom: -22px; /* Pins the text to the absolute bottom of the wrapper */
   font-size: 1.1rem;
   font-weight: 600;
-  color: #aaa;
+  color: var(--text-secondary);
   transition: color 0.1s ease-out;
   user-select: none;
 }
