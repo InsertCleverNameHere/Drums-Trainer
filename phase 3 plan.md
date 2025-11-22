@@ -30,12 +30,12 @@ This phase transforms the app's visual identity from "primitive HTML" to a sleek
 
 ### **Phase 3b: Enhancements (Cycle Summary + Icons)**
 
-- Step 6: Cycle Summary Popup
+- ❌ (SKIPPED) Step 6: Cycle Summary Popup
 - ✅ Step 7: SVG Icon Integration
 
 ### **Phase 3c: Final Polish (Spacing + QA)**
 
-- Step 8: Layout Breathing Room
+- ✅ Step 8: Layout Breathing Room
 - Step 9: Micro-Animation Audit
 - Step 10: Final QA & Mobile Testing
 

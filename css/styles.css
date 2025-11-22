@@ -96,7 +96,7 @@ h1 {
 }
 label {
   display: block;
-  margin-top: 10px;
+  margin-top: 20px;
   font-weight: 600;
 }
 input,
@@ -170,6 +170,7 @@ textarea {
   gap: 12px;
   flex-wrap: wrap;
   align-items: center;
+  margin-bottom: 12px;
 }
 .col {
   flex: 1;
@@ -236,8 +237,8 @@ button:disabled {
   font-size: 0.92rem;
 }
 .status {
-  margin-top: 12px;
-  padding: 12px 12px 30px 12px;
+  margin-top: 20px;
+  padding: 16px 16px 32px 16px;
   background: var(--bg-secondary);
   border-radius: 8px;
   box-shadow: 0 2px 8px var(--shadow);
@@ -251,6 +252,7 @@ button:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 16px;
 }
 .controls .toggle {
   display: inline-flex;
@@ -418,7 +420,7 @@ button:disabled {
 .mode-tabs {
   display: flex;
   gap: 8px;
-  margin: 12px 0;
+  margin: 20px 0;
   padding: 8px 8px 16px 8px;
   background: var(--bg-secondary);
   border-radius: 12px;
@@ -457,7 +459,7 @@ button:disabled {
 }
 .panel {
   margin-top: 8px;
-  padding: 16px;
+  padding: 20px;
   background: var(--bg-primary);
   border-radius: 12px;
   box-shadow: 0 1px 4px var(--shadow);
@@ -885,6 +887,32 @@ button#installBtn.utility-button:active {
 📱 10. Responsive Media Queries
 ================================ */
 @media (max-width: 600px) {
+  body {
+    margin: 12px auto;
+    padding: 0 12px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .status {
+    padding: 14px 14px 28px 14px;
+  }
+
+  label {
+    margin-top: 16px;
+  }
+
+  /* Ensure touch targets are large enough */
+  button {
+    min-height: 40px;
+  }
+
+  input[type="number"],
+  select {
+    min-height: 44px;
+  }
   #VersionNumber {
     font-size: 0.8rem;
     padding: 6px 10px;
