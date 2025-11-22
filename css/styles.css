@@ -563,15 +563,19 @@ button:disabled {
 .update-button.loading::after {
   content: "";
   position: absolute;
-  right: 10px;
+  left: 50%;
   top: 50%;
-  width: 12px;
-  height: 12px;
-  margin-top: -6px;
-  border: 2px solid #fff;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px; /* ← Center horizontally */
+  margin-top: -10px; /* ← Center vertically */
+  border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+}
+.update-button.loading svg {
+  opacity: 0; /* Hide SVG icon when spinner shows */
 }
 
 /* ============================================
@@ -628,6 +632,44 @@ button:disabled {
   100% {
     transform: rotateY(0deg);
   }
+}
+
+/* ============================================
+🎨 SVG Icon Styling
+============================================ */
+
+/* Ensure SVGs inherit button/container colors */
+button svg,
+#tooltipTrigger svg {
+  display: block;
+  stroke: currentColor;
+  transition: transform 0.2s ease;
+}
+
+/* Consistent sizing for utility buttons */
+#tooltipTrigger svg,
+#checkUpdatesBtn svg {
+  width: 28px;
+  height: 28px;
+}
+#themeIcon {
+  display: block;
+  line-height: 1;
+  transition: transform 0.3s ease;
+  font-size: 1.4rem; /* ← Matches original emoji size */
+}
+
+/* Slightly smaller for tap tempo */
+#tapTempoBtn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Hover scale effect for utility buttons */
+#tooltipTrigger:hover svg,
+#checkUpdatesBtn:hover svg,
+#themeToggleBtn:hover svg {
+  transform: scale(1.1);
 }
 
 /* ============================================
