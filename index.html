@@ -9,14 +9,10 @@
         ).matches;
         const saved = localStorage.getItem("darkMode");
         const isDark = saved !== null ? saved === "true" : prefersDark;
-        if (isDark) {
-          document.documentElement.setAttribute("data-theme", "dark");
-          // Set sun emoji for dark mode
-          document.addEventListener("DOMContentLoaded", function () {
-            const icon = document.getElementById("themeIcon");
-            if (icon) icon.textContent = "☀️";
-          });
-        }
+        document.documentElement.setAttribute(
+          "data-theme",
+          isDark ? "dark" : "light"
+        );
       })();
     </script>
     <!-- Manifest -->
@@ -339,14 +335,6 @@
         <polyline points="23 4 23 10 17 10"></polyline>
         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
       </svg>
-    </button>
-
-    <button
-      id="themeToggleBtn"
-      class="utility-icon-button"
-      title="Toggle dark mode"
-    >
-      <span id="themeIcon">🌙</span>
     </button>
 
     <!-- TABS -->
@@ -700,6 +688,47 @@ Funk
     <script src="libs/js/nouislider.min.js"></script>
     <!-- Include GSAP JS -->
     <script src="libs/js/gsap.min.js"></script>
+    <!-- Theme Toggle (Bottom Right) -->
+    <div class="theme-toggle-floating">
+      <div class="theme-btn">
+        <div class="theme-btn__indicator">
+          <div class="theme-btn__icon-container">
+            <svg
+              class="theme-btn__icon moon-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg
+              class="theme-btn__icon sun-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
   <div id="uiNotice" class="ui-notice hidden"></div>
 </html>

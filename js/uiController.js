@@ -39,16 +39,17 @@ export function initQuantization() {
   }
 }
 
-// ============================
-// 🌙 Dark Mode Toggle (Icon Button)
-// ============================
+// =========================
+// 🌙 Dark Mode Toggle
+// =========================
 
 export function initDarkMode() {
-  const button = document.getElementById("themeToggleBtn");
-  const icon = document.getElementById("themeIcon");
+  const btn = document.querySelector(".theme-btn");
+  const sunIcon = document.querySelector(".sun-svg");
+  const moonIcon = document.querySelector(".moon-svg");
 
-  if (!button || !icon) {
-    console.warn("⚠️ Dark mode button not found in DOM");
+  if (!btn || !sunIcon || !moonIcon) {
+    console.warn("⚠️ Dark mode button elements not found in DOM");
     return;
   }
 
@@ -57,10 +58,22 @@ export function initDarkMode() {
 
   // Check localStorage for saved preference
   const saved = localStorage.getItem("darkMode");
-  const isDark = saved !== null ? saved === "true" : prefersDark;
 
-  // Apply initial theme
-  applyTheme(isDark, icon, button);
+  // Determine initial state
+  let isDark;
+  if (saved === null) {
+    // First visit - use system preference
+    isDark = prefersDark;
+    localStorage.setItem("darkMode", isDark ? "true" : "false");
+  } else {
+    isDark = saved === "true";
+  }
+
+  // Apply initial theme (inline script already set data-theme, just verify icons)
+  document.documentElement.setAttribute(
+    "data-theme",
+    isDark ? "dark" : "light"
+  );
 
   console.info(
     `🌙 Dark mode initialized: ${isDark ? "ON" : "OFF"} (${
@@ -69,19 +82,27 @@ export function initDarkMode() {
   );
 
   // Click handler
-  button.addEventListener("click", () => {
+  btn.addEventListener("click", () => {
     const currentTheme = document.documentElement.getAttribute("data-theme");
     const newIsDark = currentTheme !== "dark";
 
-    // Add animation class
-    button.classList.add("switching");
-    setTimeout(() => button.classList.remove("switching"), 300);
+    // Add spin animation to active icon
+    const activeIcon = newIsDark ? moonIcon : sunIcon;
+    activeIcon.classList.add("animated");
 
-    // Apply new theme
-    applyTheme(newIsDark, icon, button);
+    // Toggle theme
+    document.documentElement.setAttribute(
+      "data-theme",
+      newIsDark ? "dark" : "light"
+    );
     localStorage.setItem("darkMode", newIsDark ? "true" : "false");
 
     console.info(`🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
+
+    // Remove animation after it completes
+    setTimeout(() => {
+      activeIcon.classList.remove("animated");
+    }, 500);
   });
 
   // Listen for system preference changes
@@ -89,8 +110,12 @@ export function initDarkMode() {
     .matchMedia("(prefers-color-scheme: dark)")
     .addEventListener("change", (e) => {
       // Only auto-switch if user hasn't manually set preference
-      if (localStorage.getItem("darkMode") === null) {
-        applyTheme(e.matches, icon, button);
+      const saved = localStorage.getItem("darkMode");
+      if (saved === null) {
+        document.documentElement.setAttribute(
+          "data-theme",
+          e.matches ? "dark" : "light"
+        );
         console.info(
           `🌙 Dark mode auto-switched to system preference: ${
             e.matches ? "ON" : "OFF"
@@ -98,19 +123,6 @@ export function initDarkMode() {
         );
       }
     });
-}
-
-// Helper function to apply theme and update icon
-function applyTheme(isDark, icon, button) {
-  document.documentElement.setAttribute(
-    "data-theme",
-    isDark ? "dark" : "light"
-  );
-  icon.textContent = isDark ? "☀️" : "🌙";
-  button.setAttribute(
-    "title",
-    isDark ? "Switch to light mode" : "Switch to dark mode"
-  );
 }
 
 // --- Quantization Safety Wrapper ---
