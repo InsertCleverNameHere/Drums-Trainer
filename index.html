@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- CRITICAL: Apply theme before any rendering to prevent flash -->
+    <script>
+      (function () {
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const saved = localStorage.getItem("darkMode");
+        const isDark = saved !== null ? saved === "true" : prefersDark;
+        document.documentElement.setAttribute(
+          "data-theme",
+          isDark ? "dark" : "light"
+        );
+      })();
+    </script>
     <!-- Manifest -->
     <link rel="manifest" href="manifest.webmanifest" />
     <!-- Theme Color for Browser Toolbar -->
@@ -240,42 +254,65 @@
     />
   </head>
   <body>
-    <h1>Random Groove Trainer &amp; Metronome</h1>
-    <p class="small">
-      Randomize BPM (multiples of 5) + groove name and practice landing grooves
-      instantly. Built-in metronome uses lightweight bundled javascript for
-      accuracy.
-    </p>
-    <div id="tooltipTrigger" title="Help / Hotkeys">❔</div>
+    <header class="app-header">
+      <h1>Random Groove Trainer</h1>
+      <p class="tagline">Practice smarter. Land any groove.</p>
+    </header>
+    <div id="tooltipTrigger" title="Help / Hotkeys">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+      >
+        <text
+          x="12"
+          y="18"
+          font-size="20"
+          font-weight="600"
+          font-family="system-ui, -apple-system, sans-serif"
+          text-anchor="middle"
+          fill="currentColor"
+        >
+          ?
+        </text>
+      </svg>
+    </div>
     <div id="tooltipDialog">
       <div class="tooltip-content">
-        <h2>🎵 Random Groove Trainer &amp; Metronome</h2>
+        <h2>🎵 How It Works</h2>
         <p>
-          This app helps you practice groove transitions by randomly selecting a
-          BPM and groove name. You set a BPM range, enter groove names, and
-          choose session settings. The built-in metronome guides you through
-          each cycle.
+          A lightweight, fun way to train groove transitions with randomized BPM
+          ranges. Includes a full-featured
+          <strong>Groove Randomizer</strong> for practice sessions and a
+          <strong>Simple Metronome</strong> for everyday use.
         </p>
 
-        <p><strong>How to use:</strong></p>
+        <p><strong>Quick Start:</strong></p>
         <ul>
-          <li>Set your desired BPM range</li>
+          <li>Set your desired BPM range (multiples of 5)</li>
           <li>Enter groove names (one per line)</li>
           <li>Choose session duration or cycle count</li>
-          <li>
-            Click <strong>Start</strong> or press <strong>Space</strong> to
-            begin
-          </li>
+          <li>Press <strong>Space</strong> or tap <strong>Start</strong></li>
+        </ul>
+
+        <p><strong>Features:</strong></p>
+        <ul>
+          <li>Randomized BPM and groove selection</li>
+          <li>Built-in metronome with accurate timing</li>
+          <li>Tempo-synced count-in (toggle available)</li>
+          <li>Visual beat indicators with subdivisions</li>
+          <li>Dark mode and offline support</li>
         </ul>
 
         <p><strong>Hotkeys:</strong></p>
         <ul>
-          <li>H = Show this help</li>
-          <li>⎵ Space = ▶️ Start / ⏹️ Stop</li>
-          <li>P = ⏸️ Pause / ▶️ Resume</li>
-          <li>N = ⏭️ Next Groove</li>
-          <li>⬆️ / ⬇️ = Adjust BPM (±5)</li>
-          <li>← / → = Switch Min/Max</li>
+          <li><kbd>H</kbd> = Show this help</li>
+          <li><kbd>Space</kbd> = ▶️ Start / ⏹️ Stop</li>
+          <li><kbd>P</kbd> = ⏸️ Pause / ▶️ Resume</li>
+          <li><kbd>N</kbd> = ⏭️ Next Groove</li>
+          <li><kbd>↑</kbd> / <kbd>↓</kbd> = Adjust BPM (±5)</li>
+          <li><kbd>←</kbd> / <kbd>→</kbd> = Switch Min/Max</li>
         </ul>
       </div>
     </div>
@@ -284,7 +321,20 @@
       class="update-button"
       title="Check for updates"
     >
-      ⟳
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+      </svg>
     </button>
 
     <!-- TABS -->
@@ -590,7 +640,27 @@ Funk
           <input id="intelligentPanningToggleSimple" type="checkbox" checked />
           <span>Intelligent Panning</span>
         </label>
-        <button id="tapTempoBtn" title="Tap 4–6 times to set tempo">🖐️</button>
+        <button id="tapTempoBtn" title="Tap 4–6 times to set tempo">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- Elongated finger paths -->
+            <path d="M18 9V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path>
+            <path d="M14 8V2a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v3"></path>
+            <path d="M10 9V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v10"></path>
+            <path
+              d="M18 7a2 2 0 1 1 4 0v7a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"
+            ></path>
+          </svg>
+        </button>
       </div>
 
       <div class="status">
@@ -618,6 +688,47 @@ Funk
     <script src="libs/js/nouislider.min.js"></script>
     <!-- Include GSAP JS -->
     <script src="libs/js/gsap.min.js"></script>
+    <!-- Theme Toggle (Bottom Right) -->
+    <div class="theme-toggle-floating">
+      <div class="theme-btn">
+        <div class="theme-btn__indicator">
+          <div class="theme-btn__icon-container">
+            <svg
+              class="theme-btn__icon moon-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg
+              class="theme-btn__icon sun-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
   <div id="uiNotice" class="ui-notice hidden"></div>
 </html>

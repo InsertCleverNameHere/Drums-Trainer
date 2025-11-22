@@ -124,6 +124,7 @@ simpleMetronome.core.registerVisualCallback(
 // 3. Now that everything is set up, initialize the UI controllers.
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
+    uiController.initDarkMode();
     uiController.initSoundProfileUI();
     uiController.initOwnershipGuards();
     uiController.initSimplePanelControls();
@@ -131,6 +132,7 @@ if (document.readyState === "loading") {
     uiController.initTimeSignatureUI();
   });
 } else {
+  uiController.initDarkMode();
   uiController.initSoundProfileUI();
   uiController.initOwnershipGuards();
   uiController.initSimplePanelControls();
