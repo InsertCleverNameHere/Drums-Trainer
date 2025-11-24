@@ -1038,7 +1038,6 @@ button#installBtn.utility-button:active {
   background: var(--text-secondary) !important;
   height: 8px !important;
   transition: all 0.2s ease !important;
-  transform: translateX(40%) !important;
 }
 
 /* 🔴 ACTIVE TICK (The growing red line) */
@@ -1070,20 +1069,24 @@ button#installBtn.utility-button:active {
 }
 
 /* 🚫 DISABLED STATE */
-[disabled] .noUi-connect {
+#groove-slider-wrapper.disabled .noUi-connect,
+#simple-slider-wrapper.disabled .noUi-connect {
   background: var(--text-secondary) !important;
 }
-[disabled] .noUi-handle {
+#groove-slider-wrapper.disabled .noUi-handle,
+#simple-slider-wrapper.disabled .noUi-handle {
   background: var(--text-secondary) !important;
   cursor: not-allowed !important;
   box-shadow: none !important;
 }
-[disabled] .noUi-value {
+#groove-slider-wrapper.disabled .noUi-value,
+#simple-slider-wrapper.disabled .noUi-value {
   color: var(--text-secondary) !important;
   opacity: 0.5 !important;
   pointer-events: none !important;
 }
-[disabled] .noUi-marker {
+#groove-slider-wrapper.disabled .noUi-marker,
+#simple-slider-wrapper.disabled .noUi-marker {
   opacity: 0.5 !important;
 }
 

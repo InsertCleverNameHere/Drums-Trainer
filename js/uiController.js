@@ -1500,6 +1500,10 @@ export function showNotice(message, duration = 2000) {
  * Creates a slider using native noUiSlider pips.
  * Handles both Single (Simple) and Dual (Groove) sliders.
  */
+
+let grooveSliderInstance = null;
+let simpleSliderInstance = null;
+
 function createMetronomeSlider(elementId, config) {
   const sliderEl = document.getElementById(elementId);
   if (!sliderEl) return null;
@@ -1526,7 +1530,11 @@ function createMetronomeSlider(elementId, config) {
       filter: () => 1,
     },
   });
-
+  if (elementId === "groove-slider") {
+    grooveSliderInstance = sliderEl.noUiSlider;
+  } else {
+    simpleSliderInstance = sliderEl.noUiSlider;
+  }
   // 🎨 Active Pip Highlighter
   const updateActivePips = (currentValues) => {
     sliderEl
@@ -1603,19 +1611,29 @@ function createMetronomeSlider(elementId, config) {
 // =============================================================
 
 window.toggleGrooveSliderDisabled = (disabled) => {
-  const el = document.getElementById("groove-slider");
-  if (el)
-    disabled
-      ? el.setAttribute("disabled", true)
-      : el.removeAttribute("disabled");
+  const wrapper = document.getElementById("groove-slider-wrapper");
+  if (!grooveSliderInstance) return;
+
+  if (disabled) {
+    grooveSliderInstance.disable();
+    wrapper.classList.add("disabled");
+  } else {
+    grooveSliderInstance.enable();
+    wrapper.classList.remove("disabled");
+  }
 };
 
 window.toggleSimpleSliderDisabled = (disabled) => {
-  const el = document.getElementById("simpleMetronomeSlider");
-  if (el)
-    disabled
-      ? el.setAttribute("disabled", true)
-      : el.removeAttribute("disabled");
+  const wrapper = document.getElementById("simple-slider-wrapper");
+  if (!simpleSliderInstance) return;
+
+  if (disabled) {
+    simpleSliderInstance.disable();
+    wrapper.classList.add("disabled");
+  } else {
+    simpleSliderInstance.enable();
+    wrapper.classList.remove("disabled");
+  }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
