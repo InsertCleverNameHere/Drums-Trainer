@@ -987,21 +987,8 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
     setTabEnabled(tabGroove, true);
     setTabEnabled(tabMet, true);
 
-    // If we are switching to the groove panel, trigger a re-render of the slider marks
-    if (mode === "groove") {
-      setTimeout(() => {
-        renderGrooveSliderMarks();
-        const currentValues = grooveSlider.noUiSlider.get().map(Number);
-        updateGrooveActiveTicks(currentValues[0], currentValues[1]);
-      }, 0);
-    }
-    if (mode === "metronome") {
-      setTimeout(() => {
-        renderSimpleSliderMarks();
-        const currentValue = Number(simpleSlider.noUiSlider.get());
-        updateSimpleActiveTick(currentValue);
-      }, 0);
-    }
+    // ✅ CLEANUP: We removed the manual render calls here.
+    // Native noUiSlider handles its own rendering when the container becomes visible.
   }
 
   // click handlers
@@ -1506,454 +1493,171 @@ export function showNotice(message, duration = 2000) {
 }
 
 // =============================================================
-// Groove Metronome Dual-thumb Slider
+// 🎚️ Unified Native Metronome Slider Factory
 // =============================================================
 
-// Define renderSliderMarks in the module scope so it can be called by other functions
-let grooveSlider; // Declare slider in module scope too
-let bpmMinInput, bpmMaxInput; // And inputs
-let ignoreSliderUpdate = false;
+/**
+ * Creates a slider using native noUiSlider pips.
+ * Handles both Single (Simple) and Dual (Groove) sliders.
+ */
+function createMetronomeSlider(elementId, config) {
+  const sliderEl = document.getElementById(elementId);
+  if (!sliderEl) return null;
 
-// Helper for disabling the groove slider when session is running
-function toggleGrooveSliderDisabled(disabled) {
-  const sliderEl = document.getElementById("groove-slider");
-  const sliderContainer = document.getElementById("groove-slider-container");
+  // Safety: Destroy existing instance
+  if (sliderEl.noUiSlider) sliderEl.noUiSlider.destroy();
 
-  if (sliderEl && sliderEl.noUiSlider) {
-    if (disabled) {
-      sliderEl.noUiSlider.disable();
-      // Add visual feedback
-      if (sliderContainer) {
-        sliderContainer.classList.add("disabled");
-      }
-    } else {
-      sliderEl.noUiSlider.enable();
-      // Remove visual feedback
-      if (sliderContainer) {
-        sliderContainer.classList.remove("disabled");
-      }
-    }
-  }
-}
-
-// Expose globally for sessionEngine.js to use
-window.toggleGrooveSliderDisabled = toggleGrooveSliderDisabled;
-
-// =======================================
-// Groove Metronome Slider Marks & Ticks)
-// =======================================
-function renderGrooveSliderMarks() {
-  const marksContainer = document.getElementById("slider-numbers");
-  const ticksContainer = document.getElementById("groove-ticks-container");
-
-  if (!grooveSlider || !marksContainer || !ticksContainer) return;
-
-  const sliderMin = 30;
-  const sliderMax = 300;
-  const marks = [];
-  for (let i = sliderMin; i <= sliderMax; i += 30) marks.push(i);
-
-  // Clear previous content
-  marksContainer.innerHTML = "";
-  ticksContainer.innerHTML = "";
-
-  const sliderRect = grooveSlider.getBoundingClientRect();
-  const containerRect = grooveSlider.parentElement.getBoundingClientRect();
-  const computed = window.getComputedStyle(grooveSlider);
-  const padLeft = parseFloat(computed.paddingLeft) || 7;
-  const padRight = parseFloat(computed.paddingRight) || padLeft;
-
-  // Calculate the slider's position within its container
-  const sliderLeftOffset = sliderRect.left - containerRect.left;
-  const innerWidth = Math.max(0, sliderRect.width - padLeft - padRight);
-
-  // Position containers relative to the slider's actual position
-  const relativeOffset = sliderRect.width * 0.0029; // 0.29% of slider width
-  marksContainer.style.left = `${
-    sliderLeftOffset + padLeft + relativeOffset
-  }px`;
-  marksContainer.style.width = `${innerWidth}px`;
-  ticksContainer.style.left = `${
-    sliderLeftOffset + padLeft + relativeOffset
-  }px`;
-  ticksContainer.style.width = `${innerWidth}px`;
-
-  const range = sliderMax - sliderMin;
-
-  marks.forEach((value) => {
-    const ratio = (value - sliderMin) / range;
-    const percent = ratio * 100;
-
-    // Create the number mark
-    const span = document.createElement("span");
-    span.textContent = value;
-    span.className = "slider-mark";
-    span.style.position = "absolute";
-    span.style.left = `${percent}%`;
-    span.style.transform = "translateX(-50%)";
-
-    span.addEventListener("click", () => {
-      const current = grooveSlider.noUiSlider.get().map(Number);
-      const d0 = Math.abs(current[0] - value);
-      const d1 = Math.abs(current[1] - value);
-      const idx = d0 <= d1 ? 0 : 1;
-      const newVals = [...current];
-      newVals[idx] = value;
-      grooveSlider.noUiSlider.set(newVals);
-    });
-
-    marksContainer.appendChild(span);
-
-    // Create separate tick element
-    const tick = document.createElement("div");
-    tick.className = "groove-tick";
-    tick.style.left = `${percent}%`;
-    tick.style.transform = "translateX(-50%)";
-    ticksContainer.appendChild(tick);
-  });
-}
-
-// =======================================
-// Simple Metronome Slider Marks & Ticks)
-// =======================================
-
-function renderSimpleSliderMarks() {
-  const marksContainer = document.getElementById("simple-slider-numbers");
-  const ticksContainer = document.getElementById("simple-ticks-container");
-
-  if (!simpleSlider || !marksContainer || !ticksContainer) return;
-
-  const sliderMin = 30;
-  const sliderMax = 300;
-  const marks = [];
-  for (let i = sliderMin; i <= sliderMax; i += 30) marks.push(i);
-
-  // Clear previous content
-  marksContainer.innerHTML = "";
-  ticksContainer.innerHTML = "";
-
-  const sliderRect = simpleSlider.getBoundingClientRect();
-  const containerRect = simpleSlider.parentElement.getBoundingClientRect();
-  const computed = window.getComputedStyle(simpleSlider);
-  const padLeft = parseFloat(computed.paddingLeft) || 7;
-  const padRight = parseFloat(computed.paddingRight) || padLeft;
-
-  // Calculate the slider's position within its container
-  const sliderLeftOffset = sliderRect.left - containerRect.left;
-  const innerWidth = Math.max(0, sliderRect.width - padLeft - padRight);
-
-  // Position containers relative to the slider's actual position
-  const relativeOffset = sliderRect.width * 0.0029; // 0.29% of slider width
-  marksContainer.style.left = `${
-    sliderLeftOffset + padLeft + relativeOffset
-  }px`;
-  marksContainer.style.width = `${innerWidth}px`;
-  ticksContainer.style.left = `${
-    sliderLeftOffset + padLeft + relativeOffset
-  }px`;
-  ticksContainer.style.width = `${innerWidth}px`;
-
-  const range = sliderMax - sliderMin;
-
-  marks.forEach((value) => {
-    const ratio = (value - sliderMin) / range;
-    const percent = ratio * 100;
-
-    // Create the number mark
-    const span = document.createElement("span");
-    span.textContent = value;
-    span.className = "slider-mark";
-    span.style.position = "absolute";
-    span.style.left = `${percent}%`;
-    span.style.transform = "translateX(-50%)";
-
-    // Add click handler for marks
-    span.addEventListener("click", (event) => {
-      event.stopPropagation();
-      simpleSlider.noUiSlider.set(value);
-    });
-
-    marksContainer.appendChild(span);
-
-    // Create separate tick element
-    const tick = document.createElement("div");
-    tick.className = "groove-tick";
-    tick.style.left = `${percent}%`;
-    tick.style.transform = "translateX(-50%)";
-
-    // Add click handler for ticks
-    tick.addEventListener("click", (event) => {
-      event.stopPropagation();
-      simpleSlider.noUiSlider.set(value);
-    });
-
-    ticksContainer.appendChild(tick);
-  });
-}
-
-function updateSimpleActiveTick(currentValue) {
-  const ticks = document.querySelectorAll(
-    "#simple-ticks-container .groove-tick"
-  );
-  const marks = document.querySelectorAll(
-    "#simple-slider-numbers .slider-mark"
-  );
-
-  // Remove active class from all
-  ticks.forEach((tick) => tick.classList.remove("active"));
-  marks.forEach((mark) => mark.classList.remove("active"));
-
-  // If no marks, return
-  if (marks.length === 0) return;
-
-  // Find closest mark to current value
-  let closestMark = null;
-  let closestTick = null;
-  let minDistance = Infinity;
-
-  marks.forEach((mark, index) => {
-    const markValue = parseInt(mark.textContent);
-    const tick = ticks[index];
-    const distance = Math.abs(markValue - currentValue);
-
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestMark = mark;
-      closestTick = tick;
-    }
-  });
-
-  // Highlight closest mark and tick
-  if (closestMark && closestTick) {
-    closestTick.classList.add("active");
-    closestMark.classList.add("active");
-  }
-}
-
-function updateGrooveActiveTicks(minVal, maxVal) {
-  const ticks = document.querySelectorAll(".groove-tick");
-  const marks = document.querySelectorAll(".slider-mark");
-
-  // Remove active class from all
-  ticks.forEach((tick) => tick.classList.remove("active"));
-  marks.forEach((mark) => mark.classList.remove("active"));
-
-  // If no marks, return
-  if (marks.length === 0) return;
-
-  // Find closest mark to min value
-  let minClosest = null;
-  let minDistance = Infinity;
-
-  // Find closest mark to max value
-  let maxClosest = null;
-  let maxDistance = Infinity;
-
-  marks.forEach((mark, index) => {
-    const markValue = parseInt(mark.textContent);
-    const tick = ticks[index];
-
-    // Calculate distance to min thumb
-    const distToMin = Math.abs(markValue - minVal);
-    if (distToMin < minDistance) {
-      minDistance = distToMin;
-      minClosest = { mark, tick, index };
-    }
-
-    // Calculate distance to max thumb
-    const distToMax = Math.abs(markValue - maxVal);
-    if (distToMax < maxDistance) {
-      maxDistance = distToMax;
-      maxClosest = { mark, tick, index };
-    }
-  });
-
-  // Highlight closest to min (if found)
-  if (minClosest) {
-    minClosest.tick.classList.add("active");
-    minClosest.mark.classList.add("active");
-  }
-
-  // Highlight closest to max (if found and different from min)
-  if (maxClosest && maxClosest.index !== minClosest?.index) {
-    maxClosest.tick.classList.add("active");
-    maxClosest.mark.classList.add("active");
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  bpmMinInput = document.getElementById("bpmMin");
-  bpmMaxInput = document.getElementById("bpmMax");
-  grooveSlider = document.getElementById("groove-slider");
-
-  const quantizeToStep = (value, step = 5) =>
-    Math.round(Number(value) / step) * step;
-
-  const defaultMin = parseInt(bpmMinInput.value) || 30;
-  const defaultMax = parseInt(bpmMaxInput.value) || 60;
-
-  noUiSlider.create(grooveSlider, {
-    start: [defaultMin, defaultMax],
-    connect: true,
+  noUiSlider.create(sliderEl, {
+    start: config.start,
+    connect: config.connect,
     range: { min: 30, max: 300 },
     step: 5,
-    margin: 5,
+    margin: 5, // Safety margin (ignored if single handle)
+    animate: true,
+    animationDuration: 300,
     tooltips: false,
-    orientation: "horizontal",
+
+    // ✅ NATIVE PIPS
+    pips: {
+      mode: "values",
+      values: [30, 60, 90, 120, 150, 180, 210, 240, 270, 300],
+      density: 100,
+      stepped: false,
+      filter: () => 1,
+    },
   });
 
-  grooveSlider.noUiSlider.on("update", (values, handle) => {
-    // Skip update if we're in the middle of a hotkey adjustment
-    if (ignoreSliderUpdate) return;
+  // 🎨 Active Pip Highlighter
+  const updateActivePips = (currentValues) => {
+    sliderEl
+      .querySelectorAll(".active-pip")
+      .forEach((el) => el.classList.remove("active-pip"));
+    sliderEl
+      .querySelectorAll(".active-marker")
+      .forEach((el) => el.classList.remove("active-marker"));
 
-    const [minVal, maxVal] = values.map((v) => quantizeToStep(v));
-    bpmMinInput.value = minVal;
-    bpmMaxInput.value = maxVal;
+    currentValues.forEach((val) => {
+      const numVal = Math.round(Number(val));
+      const pipValues = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300];
+      const closest = pipValues.reduce((prev, curr) =>
+        Math.abs(curr - numVal) < Math.abs(prev - numVal) ? curr : prev
+      );
 
-    // Update active ticks
-    updateGrooveActiveTicks(minVal, maxVal);
+      const activePip = sliderEl.querySelector(
+        `.noUi-value[data-value="${closest}"]`
+      );
+      if (activePip) {
+        activePip.classList.add("active-pip");
+        const marker = activePip.previousElementSibling;
+        if (marker && marker.classList.contains("noUi-marker")) {
+          marker.classList.add("active-marker");
+        }
+      }
+    });
+  };
+
+  // 🖱️ CLICK HANDLER (ADAPTED FROM OLD IMPLEMENTATION)
+  const pips = sliderEl.querySelectorAll(".noUi-value");
+  pips.forEach((pip) => {
+    pip.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const value = Number(this.getAttribute("data-value"));
+
+      // Get raw values from slider
+      const rawValues = sliderEl.noUiSlider.get();
+
+      // CHECK: Is this a Range (Array) or Single (Number)?
+      if (Array.isArray(rawValues)) {
+        // --- LOGIC PORTED FROM YOUR OLD IMPLEMENTATION ---
+        const current = rawValues.map(Number); // Ensure numbers: [30, 60]
+
+        const d0 = Math.abs(current[0] - value); // Dist to min
+        const d1 = Math.abs(current[1] - value); // Dist to max
+
+        // If d0 is closer (or equal), move handle 0. Otherwise move handle 1.
+        const idx = d0 <= d1 ? 0 : 1;
+
+        const newVals = [...current];
+        newVals[idx] = value; // Update only the target handle
+
+        sliderEl.noUiSlider.set(newVals);
+        // -------------------------------------------------
+      } else {
+        // Simple Slider (Single Handle)
+        sliderEl.noUiSlider.set(value);
+      }
+    });
   });
 
-  // Sync slider values to input fields
-  function syncSliderToInputs() {
-    const minVal = Math.max(
-      5,
-      Math.min(300, parseInt(bpmMinInput.value) || 30)
-    );
-    const maxVal = Math.max(
-      5,
-      Math.min(300, parseInt(bpmMaxInput.value) || 60)
-    );
+  // Update Listener
+  sliderEl.noUiSlider.on("update", (values, handle) => {
+    updateActivePips(values);
+    if (config.onUpdate) config.onUpdate(values, handle);
+  });
 
-    grooveSlider.noUiSlider.set([minVal, maxVal]);
+  return sliderEl;
+}
 
-    // Visual feedback
-    const handles = document.querySelectorAll(".noUi-handle");
-    handles.forEach((handle) => {
-      handle.classList.add("slider-update");
-      setTimeout(() => handle.classList.remove("slider-update"), 300);
+// =============================================================
+// 🚀 Initialization & Global Helpers
+// =============================================================
+
+window.toggleGrooveSliderDisabled = (disabled) => {
+  const el = document.getElementById("groove-slider");
+  if (el)
+    disabled
+      ? el.setAttribute("disabled", true)
+      : el.removeAttribute("disabled");
+};
+
+window.toggleSimpleSliderDisabled = (disabled) => {
+  const el = document.getElementById("simpleMetronomeSlider");
+  if (el)
+    disabled
+      ? el.setAttribute("disabled", true)
+      : el.removeAttribute("disabled");
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  // 1. Groove Slider (Range)
+  const minInput = document.getElementById("bpmMin");
+  const maxInput = document.getElementById("bpmMax");
+
+  if (minInput && maxInput) {
+    const grooveSlider = createMetronomeSlider("groove-slider", {
+      start: [parseInt(minInput.value) || 30, parseInt(maxInput.value) || 60],
+      connect: true,
+      onUpdate: (values) => {
+        minInput.value = Math.round(values[0]);
+        maxInput.value = Math.round(values[1]);
+      },
+    });
+
+    const syncGroove = () => {
+      if (grooveSlider && grooveSlider.noUiSlider) {
+        grooveSlider.noUiSlider.set([minInput.value, maxInput.value]);
+      }
+    };
+    minInput.addEventListener("change", syncGroove);
+    maxInput.addEventListener("change", syncGroove);
+  }
+
+  // 2. Simple Slider (Single)
+  const simpleInput = document.getElementById("simpleBpm");
+
+  if (simpleInput) {
+    const simpleSlider = createMetronomeSlider("simpleMetronomeSlider", {
+      start: [parseInt(simpleInput.value) || 120],
+      connect: "lower",
+      onUpdate: (values) => {
+        simpleInput.value = Math.round(values[0]);
+      },
+    });
+
+    simpleInput.addEventListener("change", () => {
+      if (simpleSlider && simpleSlider.noUiSlider) {
+        simpleSlider.noUiSlider.set(simpleInput.value);
+      }
     });
   }
-
-  // Listen for changes on both BPM input fields
-  bpmMinInput.addEventListener("change", syncSliderToInputs);
-  bpmMaxInput.addEventListener("change", syncSliderToInputs);
-
-  // Optional: Also sync on input for real-time feedback (but might be too frequent)
-  // bpmMinInput.addEventListener('input', syncSliderToInputs);
-  // bpmMaxInput.addEventListener('input', syncSliderToInputs);
-
-  // Initial render
-  renderGrooveSliderMarks();
-  updateGrooveActiveTicks(defaultMin, defaultMax);
-
-  // Guarded resize listener - update both sliders when their panels are visible
-  window.addEventListener("resize", () => {
-    const groovePanel = document.getElementById("panel-groove");
-    const simplePanel = document.getElementById("panel-metronome");
-
-    if (groovePanel && !groovePanel.classList.contains("hidden")) {
-      renderGrooveSliderMarks();
-      const currentValues = grooveSlider.noUiSlider.get().map(Number);
-      updateGrooveActiveTicks(currentValues[0], currentValues[1]);
-    }
-
-    if (simplePanel && !simplePanel.classList.contains("hidden")) {
-      renderSimpleSliderMarks();
-      const currentValue = Number(simpleSlider.noUiSlider.get());
-      updateSimpleActiveTick(currentValue);
-    }
-  });
-});
-
-// =============================================================
-// Simple Metronome Single-thumb Slider (noUiSlider) - STEP 1
-// =============================================================
-
-let simpleSlider; // Declare slider in module scope
-
-function initSimpleMetronomeSlider() {
-  const simpleSliderEl = document.getElementById("simpleMetronomeSlider");
-  const simpleBpmInput = document.getElementById("simpleBpm");
-
-  if (!simpleSliderEl || !simpleBpmInput) return;
-
-  noUiSlider.create(simpleSliderEl, {
-    start: [parseInt(simpleBpmInput.value) || 120],
-    connect: true,
-    range: {
-      min: 30,
-      max: 300,
-    },
-    step: 5,
-    tooltips: false,
-    orientation: "horizontal",
-  });
-
-  simpleSlider = simpleSliderEl;
-
-  // Update BPM input when slider changes
-  simpleSliderEl.noUiSlider.on("update", (values, handle) => {
-    const bpmValue = Math.round(values[handle]);
-    simpleBpmInput.value = bpmValue;
-
-    // Update active ticks for simple slider
-    updateSimpleActiveTick(bpmValue);
-  });
-
-  // Sync slider when BPM input changes
-  simpleBpmInput.addEventListener("change", () => {
-    const newBpm = utils.clamp(Number(simpleBpmInput.value), 30, 300);
-    simpleSliderEl.noUiSlider.set(newBpm);
-  });
-
-  // Initial render of marks
-  renderSimpleSliderMarks();
-
-  // Initial active tick update
-  const initialBpm = parseInt(simpleBpmInput.value) || 120;
-  updateSimpleActiveTick(initialBpm);
-
-  console.log("Simple metronome noUiSlider initialized with marks");
-}
-
-// Helper for disabling the simple slider when metronome is running
-function toggleSimpleSliderDisabled(disabled) {
-  const sliderEl = document.getElementById("simpleMetronomeSlider");
-  const sliderContainer = document.getElementById("simple-slider-container");
-  const sliderWrapper = document.querySelector(
-    "#panel-metronome .bpm-slider-wrapper"
-  );
-
-  if (sliderEl && sliderEl.noUiSlider) {
-    if (disabled) {
-      sliderEl.noUiSlider.disable();
-      // Add visual feedback to both container and wrapper
-      if (sliderContainer) {
-        sliderContainer.classList.add("disabled");
-      }
-      if (sliderWrapper) {
-        sliderWrapper.style.opacity = "0.5";
-        sliderWrapper.style.cursor = "not-allowed";
-      }
-    } else {
-      sliderEl.noUiSlider.enable();
-      // Remove visual feedback from both container and wrapper
-      if (sliderContainer) {
-        sliderContainer.classList.remove("disabled");
-      }
-      if (sliderWrapper) {
-        sliderWrapper.style.opacity = "1.0";
-        sliderWrapper.style.cursor = "pointer";
-      }
-    }
-  }
-}
-
-// Expose globally for simpleMetronome.js to use
-window.toggleSimpleSliderDisabled = toggleSimpleSliderDisabled;
-
-// Call the initialization
-document.addEventListener("DOMContentLoaded", () => {
-  initSimpleMetronomeSlider();
 });
