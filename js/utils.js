@@ -296,8 +296,9 @@ export function sanitizeBpmRange(
 
   if (bpmMax - bpmMin < step) {
     bpmMax = bpmMin + step;
-    console.warn(
-      `Adjusted BPM range to maintain at least one quantization step: ${bpmMin}-${bpmMax}`
+    debugLog(
+      "state",
+      `⚠️ Adjusted BPM range to maintain at least one quantization step: ${bpmMin}-${bpmMax}`
     );
   }
 

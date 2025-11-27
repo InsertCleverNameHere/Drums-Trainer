@@ -175,7 +175,7 @@ function updatePhraseLabels(container, measureLayout, phrase, cachedElements) {
 
   // Safety check: ensure we have cached elements
   if (!cachedElements || cachedElements.length === 0) {
-    console.warn("⚠️ updatePhraseLabels called with no cached elements");
+    debugLog("visuals", "⚠️ updatePhraseLabels called with no cached elements");
     return;
   }
 

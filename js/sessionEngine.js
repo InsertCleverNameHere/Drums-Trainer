@@ -87,10 +87,16 @@ export function initSessionEngine(deps) {
         "tempoSyncedCountIn",
         sessionConfig.tempoSynced ? "true" : "false"
       );
-      console.info("tempoSyncedCountIn set to", sessionConfig.tempoSynced);
+      debugLog(
+        "state",
+        `tempoSyncedCountIn set to ${sessionConfig.tempoSynced}`
+      );
     };
   } else {
-    console.warn("tempoSyncedToggle not found — no UI toggle available.");
+    debugLog(
+      "state",
+      "⚠️ tempoSyncedToggle not found — no UI toggle available"
+    );
   }
 }
 
@@ -100,7 +106,10 @@ export function startSession() {
   const currentOwner =
     typeof getActiveModeOwner === "function" ? getActiveModeOwner() : null;
   if (currentOwner && currentOwner !== "groove") {
-    console.warn("Cannot start groove session: owner is", currentOwner);
+    debugLog(
+      "ownership",
+      `⚠️ Cannot start groove session: owner is ${currentOwner}`
+    );
     return false;
   }
 
@@ -162,7 +171,7 @@ export function startSession() {
 
     timers.sessionInterval = setInterval(() => {
       if (flags.isPaused || flags.isCountingIn) {
-        console.log("⏳ Session tick skipped — counting in or paused");
+        debugLog("state", "⏳ Session tick skipped — counting in or paused");
         return;
       }
 
@@ -222,7 +231,7 @@ export function startSession() {
 
 export function pauseSession() {
   if (flags.isCountingIn || flags.isFinishingBar) {
-    console.warn("⏳ Cannot pause during countdown or finishing bar");
+    debugLog("state", "⚠️ Cannot pause during countdown or finishing bar");
     return;
   }
 
@@ -255,7 +264,7 @@ export function pauseSession() {
     }, 1000);
 
     ui.pauseBtn.textContent = "Pause";
-    console.log("▶️ Resumed metronome");
+    debugLog("state", "▶️ Resumed metronome");
   } else {
     // ⏸️ Pause
     flags.isPaused = true;
@@ -265,8 +274,9 @@ export function pauseSession() {
     flags.pausedRemaining = flags.remaining;
 
     ui.pauseBtn.textContent = "Resume";
-    console.log(
-      "⏸️ Paused metronome at " + flags.pausedRemaining + "s remaining"
+    debugLog(
+      "state",
+      `⏸️ Paused metronome at ${flags.pausedRemaining}s remaining`
     );
   }
 }
@@ -275,11 +285,11 @@ export function nextCycle() {
   if (!flags.sessionActive) return;
 
   if (flags.isCountingIn || flags.isFinishingBar) {
-    console.warn("⏭️ Cannot skip during countdown or finishing bar");
+    debugLog("state", "⚠️ Cannot skip during countdown or finishing bar");
     return;
   }
 
-  console.log("⏭️ Skipping to next cycle");
+  debugLog("state", "⏭️ Skipping to next cycle");
 
   metronome.pauseMetronome();
   metronome.resetPlaybackFlag(); // ✅ allows clean restart
@@ -412,14 +422,15 @@ function runCycle() {
   ui.bpmMinEl.value = bpmMin;
   ui.bpmMaxEl.value = bpmMax;
 
-  // ✅ Notify user if the range was changed by quantization or clamping
+  // Notify user if the range was changed by quantization or clamping
   if (bpmMin !== originalMin || bpmMax !== originalMax) {
     if (typeof showNotice === "function") {
       showNotice(
         `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
       );
     } else {
-      console.info(
+      debugLog(
+        "state",
         `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
       );
     }

@@ -247,7 +247,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
       installBtn.style.display = "none"; // hide button after click
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User response to install prompt: ${outcome}`);
+      debugLog("state", `PWA install prompt: user ${outcome}`);
       deferredPrompt = null;
     });
   }

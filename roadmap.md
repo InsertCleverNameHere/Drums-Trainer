@@ -77,9 +77,7 @@
 
 - ✅ Display app version in footer.
 - ✅ Console log cache version for debugging:
-  ```js
-  console.info("Random Groove Trainer v1.0.4 — Cached Offline");
-  ```
+
 - Plan for two footer messages for PWA updates:
   1. ✅ **Update Available** — shows when a new version is detected.
   2. ✅ **Updated / Cached** — shows when a new version has been cached successfully (appears for a few launches, then disappears).

@@ -33,7 +33,8 @@ export function initQuantization() {
   // Auto-correct using utils.sanitizeQuantizationStep
   const safeGroove = utils.sanitizeQuantizationStep(window.QUANTIZATION.groove);
   if (safeGroove !== window.QUANTIZATION.groove) {
-    console.warn(
+    debugLog(
+      "state",
       `⚠️ Corrected invalid QUANTIZATION.groove from ${window.QUANTIZATION.groove} → ${safeGroove}`
     );
     window.QUANTIZATION.groove = safeGroove;
@@ -50,7 +51,7 @@ export function initDarkMode() {
   const moonIcon = document.querySelector(".moon-svg");
 
   if (!btn || !sunIcon || !moonIcon) {
-    console.warn("⚠️ Dark mode button elements not found in DOM");
+    debugLog("state", "⚠️ Dark mode button elements not found in DOM");
     return;
   }
 
@@ -99,7 +100,7 @@ export function initDarkMode() {
     );
     localStorage.setItem("darkMode", newIsDark ? "true" : "false");
 
-    console.info(`🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
+    debugLog("state", `🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
 
     // Remove animation after it completes
     setTimeout(() => {
@@ -118,7 +119,8 @@ export function initDarkMode() {
           "data-theme",
           e.matches ? "dark" : "light"
         );
-        console.info(
+        debugLog(
+          "state",
           `🌙 Dark mode auto-switched to system preference: ${
             e.matches ? "ON" : "OFF"
           }`
@@ -138,8 +140,9 @@ export function getSafeQuantization() {
   // If the sanitized value differs, fix it in place
   if (safeGroove !== window.QUANTIZATION.groove) {
     window.QUANTIZATION.groove = safeGroove;
-    console.warn(
-      `💡 Quantization groove corrected to safe value: ${safeGroove}`
+    debugLog(
+      "state",
+      `⚠️ Quantization groove corrected to safe value: ${safeGroove}`
     );
   }
 
@@ -158,7 +161,7 @@ if (document.readyState === "loading") {
 export function initOwnershipGuards() {
   const startBtn = document.getElementById("startBtn");
   if (!startBtn) {
-    console.warn("⚠️ Start button not found for ownership guard");
+    debugLog("state", "⚠️ Start button not found for ownership guard");
     return;
   }
 
@@ -173,9 +176,9 @@ export function initOwnershipGuards() {
       if (owner && owner !== "groove") {
         ev.preventDefault();
         ev.stopImmediatePropagation();
-        console.warn(
-          "🚫 Cannot start Groove metronome — current owner:",
-          owner
+        debugLog(
+          "ownership",
+          `🚫 Cannot start Groove metronome — current owner: ${owner}`
         );
         return;
       }
@@ -385,16 +388,25 @@ window.addEventListener("keydown", (event) => {
       break;
 
     case "ArrowRight":
-      debugLog("hotkeys", `Right Arrow pressed - ${target} mode`);
-      window.__adjustingTarget = "max";
-      console.log("🎚️ Adjusting target: MAX BPM");
-      break;
+    case "ArrowLeft": {
+      // ✅ GUARD: Only allow target switching in Groove mode
+      const groovePanel = document.getElementById("panel-groove");
+      const isGrooveVisible =
+        groovePanel && !groovePanel.classList.contains("hidden");
 
-    case "ArrowLeft":
-      debugLog("hotkeys", `Left Arrow pressed - ${target} mode`);
-      window.__adjustingTarget = "min";
-      console.log("🎚️ Adjusting target: MIN BPM");
+      if (!isGrooveVisible) {
+        debugLog("hotkeys", `⚠️ Left/Right arrow blocked - not in Groove mode`);
+        return;
+      }
+
+      const newTarget = code === "ArrowRight" ? "max" : "min";
+      window.__adjustingTarget = newTarget;
+      debugLog(
+        "hotkeys",
+        `🎚️ Adjusting target: ${newTarget.toUpperCase()} BPM`
+      );
       break;
+    }
 
     case "ArrowUp":
     case "ArrowDown": {
@@ -615,8 +627,9 @@ export function initUI(deps) {
       console.info("tempoSyncedCountIn set to", tempoSynced);
     };
   } else {
-    console.warn(
-      "tempoSyncedToggle not found in DOM — count-in preference will still work but no UI toggle is available."
+    debugLog(
+      "state",
+      "⚠️ tempoSyncedToggle not found in DOM — count-in preference will still work but no UI toggle is available."
     );
   }
 
@@ -686,7 +699,7 @@ export function initSoundProfileUI() {
   const simpleProfileEl = document.getElementById("soundProfileSimple");
 
   if (!grooveProfileEl || !simpleProfileEl) {
-    console.warn("⚠️ Sound profile dropdowns not found in DOM");
+    debugLog("state", "⚠️ Sound profile dropdowns not found in DOM");
     return;
   }
 
@@ -735,7 +748,7 @@ export function initPanningModeUI() {
   );
 
   if (!grooveToggle || !simpleToggle) {
-    console.warn("⚠️ Panning mode toggles not found in DOM");
+    debugLog("state", "⚠️ Panning mode toggles not found in DOM");
     return;
   }
 
@@ -747,7 +760,8 @@ export function initPanningModeUI() {
 
   // If corrupted, fix it immediately
   if (!isValidStored && stored !== null) {
-    console.warn(
+    debugLog(
+      "state",
       "⚠️ Corrupted intelligentPanningMode value, resetting to default (true)"
     );
     localStorage.setItem("intelligentPanningMode", "true");
@@ -806,7 +820,8 @@ export function initSimplePanelControls() {
   const ownerPanelEventTarget = document;
 
   if (!startBtn) {
-    console.warn(
+    debugLog(
+      "state",
       "⚠️ simpleStartBtn not found; check DOM ID or ensure this script runs after the element."
     );
     return;
@@ -838,10 +853,9 @@ export function initSimplePanelControls() {
         ? sessionEngine.getActiveModeOwner()
         : null;
     if (owner && owner !== "simple") {
-      console.warn(
-        "🚫 Cannot start simple metronome while",
-        owner,
-        "is active"
+      debugLog(
+        "state",
+        `🚫 Cannot start simple metronome while ${owner} is active`
       );
       return;
     }
@@ -896,7 +910,7 @@ export function initSimplePanelControls() {
       const isRunning = simpleMetronome.isRunning?.();
       const isPaused = simpleMetronome.isPaused?.();
       if (isRunning && !isPaused) {
-        console.warn("🚫 Tap tempo only works when stopped or paused.");
+        debugLog("hotkeys", "⚠️ Tap tempo only works when stopped or paused");
         return;
       }
 
@@ -917,7 +931,7 @@ export function initSimplePanelControls() {
           setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
         }
 
-        console.log(`🎯 Tap Tempo BPM set to ${newBpm}`);
+        debugLog("state", `🎯 Tap Tempo BPM set to ${newBpm}`);
       }
     });
   }
@@ -936,7 +950,7 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
   const panelMet = document.getElementById("panel-metronome");
 
   if (!tabGroove || !tabMet || !panelGroove || !panelMet) {
-    console.warn("⚠️ Mode tab elements not found in DOM");
+    debugLog("state", "⚠️ Mode tab elements not found in DOM");
     return;
   }
 
@@ -1312,7 +1326,7 @@ export function initUpdateUI() {
       })
       .catch((err) => {
         clearTimeout(spinnerTimeout);
-        console.warn("Manual update check failed:", err);
+        debugLog("state", `⚠️ Manual update check failed: ${err.message}`);
 
         const showError = () => {
           footerEl.innerHTML = `⚠️ Could not check for updates — network error`;

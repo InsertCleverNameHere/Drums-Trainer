@@ -131,7 +131,7 @@ function stopInternalScheduling() {
 
 export function startMetronome(newBpm = 120) {
   if (isPlaying) {
-    console.warn("simpleMetronomeCore: already playing");
+    debugLog("audio", "⚠️ simpleMetronomeCore: already playing");
     return;
   }
   audioCtx = ensureAudio();
@@ -165,7 +165,7 @@ export function pauseMetronome() {
     schedulerTimer = null;
   }
   pauseAudioOffset = nextNoteTime - (audioCtx ? audioCtx.currentTime : 0);
-  console.info("simpleMetronomeCore paused");
+  debugLog("audio", "⏸️ simpleMetronomeCore paused");
 }
 
 export function resumeMetronome() {
@@ -173,7 +173,7 @@ export function resumeMetronome() {
   isPaused = false;
   nextNoteTime = audioCtx.currentTime + pauseAudioOffset;
   scheduler();
-  console.info("simpleMetronomeCore resumed");
+  debugLog("audio", "▶️ simpleMetronomeCore resumed");
 }
 
 export function performCountIn(nextBpm = 120, tempoSynced = true) {
@@ -211,7 +211,7 @@ export function requestEndOfCycle(callback) {
   if (!isPlaying || endOfCycleRequested) return;
   endOfCycleRequested = true;
   if (typeof callback === "function") onCycleComplete = callback;
-  console.log("simpleMetronomeCore: end-of-cycle requested");
+  debugLog("state", "⏳ simpleMetronomeCore: end-of-cycle requested");
 }
 
 // --- NEW time signature and subdivision config ---

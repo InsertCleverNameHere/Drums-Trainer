@@ -133,7 +133,7 @@ function scheduler() {
 
 export function startMetronome(newBpm = 120) {
   if (isMetronomePlaying) {
-    console.warn("⚠️ Metronome already playing — start skipped");
+    debugLog("audio", "⚠️ Metronome already playing — start skipped");
     return;
   }
   audioCtx = ensureAudio();
@@ -284,7 +284,7 @@ export function pauseMetronome() {
 
   pauseWallTime = audioCtx ? audioCtx.currentTime : 0;
   pauseAudioOffset = nextNoteTime - (audioCtx ? audioCtx.currentTime : 0);
-  console.info(`⏸️ Metronome paused at ${pauseWallTime.toFixed(3)}s`);
+  debugLog("audio", `⏸️ Metronome paused at ${pauseWallTime.toFixed(3)}s`);
 }
 
 export function resumeMetronome() {
@@ -294,7 +294,7 @@ export function resumeMetronome() {
   const resumeTime = audioCtx.currentTime;
   nextNoteTime = resumeTime + pauseAudioOffset;
   scheduler();
-  console.info("▶️ Metronome resumed after pause");
+  debugLog("audio", "▶️ Metronome resumed after pause");
 }
 
 // --- Cycle completion handling ---

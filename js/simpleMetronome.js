@@ -110,7 +110,10 @@ export function start() {
       ? sessionEngine.getActiveModeOwner()
       : null;
   if (owner && owner !== "simple") {
-    console.warn("Cannot start simple metronome: owner is", owner);
+    debugLog(
+      "ownership",
+      `⚠️ Cannot start simple metronome: owner is ${owner}`
+    );
     return Promise.resolve(false);
   }
 
@@ -129,7 +132,7 @@ export function start() {
     if (typeof simpleCore.startMetronome === "function") {
       simpleCore.startMetronome(bpm);
     } else {
-      console.warn("simpleMetronomeCore.startMetronome missing");
+      debugLog("audio", "⚠️ simpleMetronomeCore.startMetronome missing");
       return Promise.resolve(false);
     }
   } catch (err) {
