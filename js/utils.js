@@ -3,6 +3,8 @@
 
 // === Core metronome helpers ===
 // Returns a random integer between min and max (inclusive)
+import { debugLog } from "./debug.js";
+
 export function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -68,8 +70,9 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
   // Ensure at least one quantization step difference
   if (bpmMax - bpmMin < step) {
     bpmMax = bpmMin + step;
-    console.warn(
-      `Adjusted BPM range to maintain at least one quantization step: ${bpmMin}-${bpmMax}`
+    debugLog(
+      "state",
+      `⚠️ Adjusted BPM range to maintain at least one quantization step: ${bpmMin}-${bpmMax}`
     );
   }
 
@@ -89,7 +92,8 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
       ? grooves[Math.floor(Math.random() * grooves.length)]
       : "No groove selected";
 
-  console.log(
+  debugLog(
+    "state",
     `🎲 Groove randomizer → BPM: ${randomBpm}, Range: ${bpmMin}-${bpmMax}, Step: ${step}`
   );
   return { bpm: randomBpm, groove: randomGroove };

@@ -4,6 +4,7 @@
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
+import { debugLog } from "./debug.js";
 import * as utils from "./utils.js";
 
 export const core = simpleCore;
@@ -56,9 +57,17 @@ document.addEventListener("metronome:ownerChanged", (e) => {
   if (owner && owner !== "simple" && running) {
     try {
       stop();
-      console.info("simpleMetronome stopped because owner changed to", owner);
+      debugLog(
+        "ownership",
+        "simpleMetronome stopped because owner changed to",
+        owner
+      );
     } catch (err) {
-      console.warn("simpleMetronome failed to stop on owner change:", err);
+      debugLog(
+        "ownership",
+        "simpleMetronome failed to stop on owner change:",
+        err
+      );
     }
   }
 });
@@ -144,7 +153,7 @@ export function start() {
   document.getElementById("simpleCustomDenominator").disabled = true;
   document.getElementById("simpleSubdivisionSelect").disabled = true;
 
-  console.log("simpleMetronome started at BPM", bpm);
+  debugLog("audio", "simpleMetronome started at BPM", bpm);
   return Promise.resolve(true);
 }
 
@@ -199,7 +208,7 @@ export function stop() {
       detail: { running: false, paused: false },
     })
   );
-  console.log("simpleMetronome stopped");
+  debugLog("audio", "simpleMetronome stopped");
   toggleSliderDisabled(false);
   document.getElementById("simpleBpm").disabled = false;
   document.getElementById("simplePresetSelect").disabled = false;

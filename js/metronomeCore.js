@@ -1,5 +1,6 @@
 // metronomeCore.js
 // Audio scheduling and metronome core logic (refactored from metronome.js)
+import { debugLog, DebugTimer } from "./debug.js";
 import {
   ensureAudio,
   setNextNoteTime,
@@ -46,6 +47,7 @@ function playTick(isAccent) {
 
 // Schedule a single beat ahead of time
 function scheduleNote() {
+  const timer = new DebugTimer("scheduleNote", "audio");
   const totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
   const tickInMeasure = tickIndex % totalTicksInMeasure;
 
@@ -54,6 +56,11 @@ function scheduleNote() {
 
   // The primary accent is ALWAYS the very first tick of the measure.
   const isPrimaryAccent = tickInMeasure === 0;
+
+  debugLog(
+    "audio",
+    `Scheduling tick ${tickIndex} (measure tick ${tickInMeasure})`
+  );
 
   // --- CORRECTED LOGIC ---
   // We play a sound for EVERY tick.
@@ -89,11 +96,12 @@ function scheduleNote() {
       schedulerTimer = null;
     }
 
-    console.log("🟢 Cycle finished cleanly at bar boundary.");
+    debugLog("state", "🟢 Cycle finished cleanly at bar boundary.");
 
     if (typeof onCycleComplete === "function") {
       try {
-        console.info(
+        debugLog(
+          "state",
           `⏸️ Scheduling ${adjustmentPauseMs}ms adjustment pause before cycle-complete callback.`
         );
         setTimeout(() => {
@@ -108,6 +116,7 @@ function scheduleNote() {
       }
     }
   }
+  timer.end();
 }
 
 // Continuously schedules beats ahead of time while metronome is active
@@ -140,7 +149,10 @@ export function startMetronome(newBpm = 120) {
   isMetronomePlaying = true;
   isPaused = false;
   scheduler();
-  console.log(`Metronome started at ${bpm} BPM (ticksPerBeat=${ticksPerBeat})`);
+  debugLog(
+    "audio",
+    `Metronome started at ${bpm} BPM (ticksPerBeat=${ticksPerBeat})`
+  );
 }
 
 // --- Count-in helper ---
@@ -189,7 +201,7 @@ export function stopMetronome() {
   isMetronomePlaying = false;
   if (schedulerTimer) clearTimeout(schedulerTimer);
   schedulerTimer = null;
-  console.log("Metronome stopped");
+  debugLog("audio", "Metronome stopped");
 }
 
 export function resetPlaybackFlag() {
@@ -200,6 +212,10 @@ export function resetPlaybackFlag() {
 // --- NEW time signature and subdivision config ---
 
 export function setTimeSignature(beats, value) {
+  debugLog(
+    "state",
+    `Time signature changing: ${timeSignature.beats}/${timeSignature.value} → ${beats}/${value}`
+  );
   const newBeats = Math.max(1, Math.round(beats));
   const newValue = [2, 4, 8, 16].includes(value) ? value : 4; // Sanitize value
 
@@ -218,14 +234,20 @@ export function setTimeSignature(beats, value) {
 
   if (denominatorChanged) {
     setTicksPerBeat(1);
-    console.log(
+    debugLog(
+      "state",
       `Time signature set to ${timeSignature.beats}/${timeSignature.value}, subdivisions reset`
     );
   } else {
-    console.log(
+    debugLog(
+      "state",
       `Time signature set to ${timeSignature.beats}/${timeSignature.value}, subdivisions preserved`
     );
   }
+  debugLog(
+    "state",
+    `Time signature changing: ${timeSignature.beats}/${timeSignature.value} → ${beats}/${value}`
+  );
 }
 
 export function getTimeSignature() {
@@ -234,7 +256,7 @@ export function getTimeSignature() {
 
 export function setTicksPerBeat(n) {
   ticksPerBeat = Math.max(1, Math.round(n));
-  console.log(`Ticks per beat set to ${ticksPerBeat}`);
+  debugLog("state", `Ticks per beat set to ${ticksPerBeat}`);
 }
 
 export function getTicksPerBeat() {
@@ -284,6 +306,9 @@ export function requestEndOfCycle(callback) {
     onCycleComplete = callback;
   }
 
-  console.log(`⏳ End-of-cycle requested — will stop at next bar boundary`);
+  debugLog(
+    "state",
+    `⏳ End-of-cycle requested — will stop at next bar boundary`
+  );
 }
 // keep the module lightweight

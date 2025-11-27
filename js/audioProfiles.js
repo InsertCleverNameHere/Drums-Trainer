@@ -1,5 +1,6 @@
 // audioProfiles.js
 // Centralized WebAudio tick generator and sound profile manager
+import { debugLog } from "./debug.js";
 
 let audioCtx;
 let nextNoteTime = 0; // The scheduling time will be managed externally by each metronome
@@ -70,9 +71,9 @@ export function setNextNoteTime(time) {
 export function setActiveProfile(name) {
   if (SOUND_PROFILES[name]) {
     activeProfileName = name;
-    console.info(`🎧 Active sound profile set to: ${name}`);
+    debugLog("audio", `🎧 Active sound profile set to: ${name}`);
   } else {
-    console.warn(`Unknown sound profile: ${name}`);
+    debugLog("audio", `⚠️ Unknown sound profile: ${name}`);
   }
 }
 export function getActiveProfile() {

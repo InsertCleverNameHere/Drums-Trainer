@@ -1,6 +1,7 @@
 // uiController.js
 // Depends on metronomeCore functions passed in at init.
 
+import { debugLog } from "./debug.js";
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
@@ -75,7 +76,8 @@ export function initDarkMode() {
     isDark ? "dark" : "light"
   );
 
-  console.info(
+  debugLog(
+    "state",
     `🌙 Dark mode initialized: ${isDark ? "ON" : "OFF"} (${
       saved !== null ? "saved preference" : "system default"
     })`
@@ -318,8 +320,13 @@ window.addEventListener("keydown", (event) => {
     el.dispatchEvent(new Event("change", { bubbles: true }));
   };
 
+  debugLog(
+    "hotkeys",
+    `Key pressed: ${code}, owner: ${owner}, target: ${target}`
+  );
   switch (code) {
     case "Space":
+      debugLog("hotkeys", `Space pressed - ${target} mode`);
       if (target === "groove") {
         if (!grooveStartBtn || grooveStartBtn.disabled) break;
         grooveStartBtn.click();
@@ -345,6 +352,7 @@ window.addEventListener("keydown", (event) => {
       break;
 
     case "KeyP":
+      debugLog("hotkeys", `P pressed - ${target} mode`);
       if (target === "groove") {
         if (typeof sessionEngine.pauseSession === "function")
           sessionEngine.pauseSession();
@@ -367,32 +375,42 @@ window.addEventListener("keydown", (event) => {
       break;
 
     case "KeyN":
+      debugLog("hotkeys", `N pressed - ${target} mode`);
       if (grooveNextBtn && !grooveNextBtn.disabled) grooveNextBtn.click();
       break;
 
     case "KeyH":
+      debugLog("hotkeys", `H pressed - ${target} mode`);
       document.dispatchEvent(new Event("toggleTooltip"));
       break;
 
     case "ArrowRight":
+      debugLog("hotkeys", `Right Arrow pressed - ${target} mode`);
       window.__adjustingTarget = "max";
       console.log("🎚️ Adjusting target: MAX BPM");
       break;
 
     case "ArrowLeft":
+      debugLog("hotkeys", `Left Arrow pressed - ${target} mode`);
       window.__adjustingTarget = "min";
       console.log("🎚️ Adjusting target: MIN BPM");
       break;
 
     case "ArrowUp":
-      if (target === "groove") adjustGrooveInput(+1);
-      else adjustSimpleBpm(+1);
-      break;
+    case "ArrowDown": {
+      // ✅ GUARD: Block BPM changes during playback
+      const owner = sessionEngine.getActiveModeOwner();
+      if (owner) {
+        debugLog("hotkeys", `⚠️ BPM adjustment blocked - ${owner} is active`);
+        showNotice("⚠️ Cannot adjust BPM during playback");
+        return;
+      }
 
-    case "ArrowDown":
-      if (target === "groove") adjustGrooveInput(-1);
-      else adjustSimpleBpm(-1);
+      const delta = code === "ArrowUp" ? +1 : -1;
+      if (target === "groove") adjustGrooveInput(delta);
+      else adjustSimpleBpm(delta);
       break;
+    }
   }
 });
 
@@ -686,7 +704,7 @@ export function initSoundProfileUI() {
     simpleProfileEl.value = profileName;
     audioProfiles.setActiveProfile(profileName);
     localStorage.setItem("activeSoundProfile", profileName); // Save to localStorage
-    console.log(`🎚 Sound profile set to: ${profileName}`);
+    debugLog("state", `🎚 Sound profile set to: ${profileName}`);
   }
 
   // Load persisted profile first
@@ -755,7 +773,10 @@ export function initPanningModeUI() {
       })
     );
 
-    console.info(`🎯 Panning mode: ${sourceValue ? "Intelligent" : "Forced"}`);
+    debugLog(
+      "state",
+      `🎯 Panning mode: ${sourceValue ? "Intelligent" : "Forced"}`
+    );
   }
 
   // Wire up listeners

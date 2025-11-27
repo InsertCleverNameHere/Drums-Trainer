@@ -5,11 +5,23 @@
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
 import { showNotice } from "./uiController.js";
+import { debugLog } from "./debug.js";
 
 let activeModeOwner = null; // "groove" | "simple" | null
 
 export function setActiveModeOwner(owner) {
-  activeModeOwner = owner || null;
+  const newOwner = owner || null;
+
+  // ✅ Only change if different (prevents spam)
+  if (newOwner === activeModeOwner) {
+    return; // No-op, don't dispatch event
+  }
+
+  const previous = activeModeOwner;
+  activeModeOwner = newOwner;
+
+  debugLog("ownership", `Owner changed: ${previous} → ${activeModeOwner}`);
+
   // dispatch a DOM event so other code can react immediately
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", {
@@ -104,7 +116,7 @@ export function startSession() {
   if (flags.sessionActive) {
     // ⏹️ Stop session if already running
     if (flags.isCountingIn || flags.isFinishingBar) {
-      console.warn("⏳ Cannot stop during countdown or finishing bar");
+      debugLog("state", "⚠️ Cannot stop during countdown or finishing bar");
       return;
     }
     stopSession("🛑 Stopped by user");
@@ -171,11 +183,13 @@ export function startSession() {
         ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
-          console.log(
+          debugLog(
+            "state",
             "🟡 Session time reached — requesting end of current bar..."
           );
           metronome.requestEndOfCycle(() => {
-            console.log(
+            debugLog(
+              "state",
               "✅ Final cycle finished cleanly — stopping session (time limit reached)."
             );
             setFinishingBar(false);
@@ -186,7 +200,8 @@ export function startSession() {
             ui.pauseBtn.disabled = true;
           });
         } else {
-          console.log(
+          debugLog(
+            "state",
             "🔴 requestEndOfCycle not available — stopping immediately."
           );
           setFinishingBar(false);
@@ -343,7 +358,7 @@ export function stopSession(message = "") {
     step: "",
   });
 
-  console.log(message || "Session stopped");
+  debugLog("state", message || "Session stopped");
   // Re-enable groove slider when session stops
   if (typeof window.toggleGrooveSliderDisabled === "function") {
     window.toggleGrooveSliderDisabled(false);
@@ -514,6 +529,7 @@ function runCycle() {
 
 // Called after a cycle finishes — updates state and starts next if needed
 export function completeCycle() {
+  debugLog("state", `Cycle complete: ${flags.cyclesDone + 1}`);
   setFinishingBar(false);
   flags.cyclesDone++;
   ui.cyclesDoneEl.textContent = flags.cyclesDone;
@@ -542,6 +558,7 @@ export function completeCycle() {
 
 // Toggles the finishing bar badge and disables Next button during final bar
 function setFinishingBar(flag) {
+  debugLog("state", `Finishing bar: ${flag ? "ACTIVE" : "CLEARED"}`);
   flags.isFinishingBar = Boolean(flag);
   if (ui.finishingBadgeEl)
     ui.finishingBadgeEl.classList.toggle("visible", flags.isFinishingBar);
