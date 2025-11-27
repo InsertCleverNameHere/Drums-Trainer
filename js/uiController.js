@@ -624,7 +624,7 @@ export function initUI(deps) {
         "tempoSyncedCountIn",
         tempoSynced ? "true" : "false"
       );
-      console.info("tempoSyncedCountIn set to", tempoSynced);
+      debugLog("state", "tempoSyncedCountIn set to", tempoSynced);
     };
   } else {
     debugLog(
