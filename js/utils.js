@@ -4,6 +4,11 @@
 // === Core metronome helpers ===
 // Returns a random integer between min and max (inclusive)
 import { debugLog } from "./debug.js";
+import {
+  BPM_HARD_LIMITS,
+  TAP_TEMPO_QUANTIZATION,
+  getUserQuantizationPreference,
+} from "./constants.js";
 
 export function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -219,9 +224,9 @@ export function calculateTapTempo() {
 
   let bpm = 60000 / avg;
 
-  // quantize + clamp
-  bpm = Math.round(bpm / 5) * 5;
-  bpm = Math.max(40, Math.min(bpm, 400));
+  // Tap tempo always uses fixed step=5 (rhythm-based)
+  bpm = Math.round(bpm / TAP_TEMPO_QUANTIZATION) * TAP_TEMPO_QUANTIZATION;
+  bpm = Math.max(BPM_HARD_LIMITS.MIN, Math.min(BPM_HARD_LIMITS.MAX, bpm));
 
   return bpm;
 }
@@ -275,24 +280,22 @@ export function sanitizePositiveInteger(
   return num;
 }
 
-export function sanitizeBpmRange(
-  bpmMin,
-  bpmMax,
-  quantizationStep = QUANTIZATION.groove
-) {
+export function sanitizeBpmRange(bpmMin, bpmMax, quantizationStep) {
+  // Use provided step, fallback to user preference, fallback to constant
+  const step = quantizationStep || getUserQuantizationPreference();
+
   bpmMin = parseInt(bpmMin);
   bpmMax = parseInt(bpmMax);
 
-  if (isNaN(bpmMin)) bpmMin = 30;
-  if (isNaN(bpmMax)) bpmMax = 60;
+  if (isNaN(bpmMin)) bpmMin = BPM_HARD_LIMITS.MIN;
+  if (isNaN(bpmMax)) bpmMax = BPM_HARD_LIMITS.MAX;
   if (bpmMin > bpmMax) [bpmMin, bpmMax] = [bpmMax, bpmMin];
 
-  const step = sanitizeQuantizationStep(quantizationStep);
-
+  // Quantize to step
   bpmMin = Math.ceil(bpmMin / step) * step;
   bpmMax = Math.floor(bpmMax / step) * step;
 
-  if (bpmMin > bpmMax) bpmMin = Math.max(0, bpmMax - step);
+  if (bpmMin > bpmMax) bpmMin = Math.max(BPM_HARD_LIMITS.MIN, bpmMax - step);
 
   if (bpmMax - bpmMin < step) {
     bpmMax = bpmMin + step;
@@ -302,7 +305,9 @@ export function sanitizeBpmRange(
     );
   }
 
-  bpmMax = Math.min(bpmMax, 300);
+  // Enforce hard limits
+  bpmMin = Math.max(BPM_HARD_LIMITS.MIN, bpmMin);
+  bpmMax = Math.min(BPM_HARD_LIMITS.MAX, bpmMax);
 
   return { bpmMin, bpmMax, step };
 }

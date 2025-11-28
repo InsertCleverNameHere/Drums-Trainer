@@ -2,6 +2,7 @@
 // Lightweight isolated metronome core for the simple metronome panel.
 // API-compatible with the existing metronomeCore functions used by the app.
 import { debugLog, DebugTimer } from "./debug.js";
+import { BPM_HARD_LIMITS, BPM_DEFAULTS } from "./constants.js";
 import {
   playTick as playProfileTick,
   ensureAudio,
@@ -135,7 +136,11 @@ export function startMetronome(newBpm = 120) {
     return;
   }
   audioCtx = ensureAudio();
-  bpm = Math.max(20, Math.min(400, Number(newBpm) || bpm));
+  // Enforce hard limits (allow any integer within range)
+  bpm = Math.max(
+    BPM_HARD_LIMITS.MIN,
+    Math.min(BPM_HARD_LIMITS.MAX, Number(newBpm) || bpm)
+  );
   tickIndex = 0;
 
   // UPDATED: Use the new formula for the initial tick scheduling

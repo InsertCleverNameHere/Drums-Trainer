@@ -2,6 +2,7 @@
 // Depends on metronomeCore functions passed in at init.
 
 import { debugLog } from "./debug.js";
+import { INPUT_LIMITS, getUserQuantizationPreference } from "./constants.js";
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
@@ -28,7 +29,8 @@ if (typeof window.QUANTIZATION === "undefined") {
 
 // Initialization function to sanitize and set defaults
 export function initQuantization() {
-  if (!window.QUANTIZATION) window.QUANTIZATION = {};
+  if (!window.QUANTIZATION)
+    window.QUANTIZATION = { groove: getUserQuantizationPreference() };
 
   // Auto-correct using utils.sanitizeQuantizationStep
   const safeGroove = utils.sanitizeQuantizationStep(window.QUANTIZATION.groove);
@@ -146,7 +148,9 @@ export function getSafeQuantization() {
     );
   }
 
-  return window.QUANTIZATION;
+  return {
+    groove: getUserQuantizationPreference(),
+  };
 }
 
 // Auto-run after DOM is ready
@@ -1364,32 +1368,6 @@ export function initUpdateUI() {
 // Input Validation Logic (strict numeric enforcement)
 // =============================================================
 
-// Define input constraints per field (from index.html)
-const INPUT_LIMITS = {
-  bpmMin: { min: 5, max: 300, defaultValue: 30 },
-  bpmMax: { min: 5, max: 300, defaultValue: 60 },
-  cycleDuration: { min: 1, max: 9999, defaultValue: 60 },
-  totalCycles: { min: 1, max: 9999, defaultValue: 5 },
-  totalTime: { min: 1, max: 9999, defaultValue: 300 },
-  simpleBpm: { min: 20, max: 300, defaultValue: 120 },
-
-  // --- NEW VALIDATION RULES ---
-  grooveCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
-  grooveCustomDenominator: {
-    min: 2,
-    max: 16,
-    defaultValue: 4,
-    allowed: [2, 4, 8, 16],
-  },
-  simpleCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
-  simpleCustomDenominator: {
-    min: 2,
-    max: 16,
-    defaultValue: 4,
-    allowed: [2, 4, 8, 16],
-  },
-};
-
 // Validate and sanitize numeric input
 function validateNumericInput(input) {
   const id = input.id;
@@ -1714,3 +1692,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+/**
+ * Updates BPM input step attributes based on user preference
+ * TODO: Call this when user changes quantization setting in future
+ */
+export function updateBpmInputSteps() {
+  const step = getUserQuantizationPreference();
+
+  const inputs = [
+    document.getElementById("bpmMin"),
+    document.getElementById("bpmMax"),
+    document.getElementById("simpleBpm"),
+  ];
+
+  inputs.forEach((input) => {
+    if (input?.hasAttribute("data-dynamic-step")) {
+      input.setAttribute("step", step);
+    }
+  });
+
+  // Also update noUiSlider configurations if they support dynamic step
+  // TODO: Research if noUiSlider supports runtime step changes
+  debugLog("state", `Updated BPM input steps to ${step}`);
+}

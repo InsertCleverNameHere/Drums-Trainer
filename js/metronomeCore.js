@@ -1,6 +1,7 @@
 // metronomeCore.js
 // Audio scheduling and metronome core logic (refactored from metronome.js)
 import { debugLog, DebugTimer } from "./debug.js";
+import { BPM_HARD_LIMITS, BPM_DEFAULTS } from "./constants.js";
 import {
   ensureAudio,
   setNextNoteTime,
@@ -138,7 +139,8 @@ export function startMetronome(newBpm = 120) {
   }
   audioCtx = ensureAudio();
 
-  bpm = Math.max(20, Math.min(400, newBpm));
+  // Enforce hard limits (allow any integer within range)
+  bpm = Math.max(BPM_HARD_LIMITS.MIN, Math.min(BPM_HARD_LIMITS.MAX, newBpm));
   tickIndex = 0;
 
   // UPDATED: Use the new formula for the initial tick scheduling
