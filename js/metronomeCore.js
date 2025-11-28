@@ -212,6 +212,15 @@ export function resetPlaybackFlag() {
 // --- NEW time signature and subdivision config ---
 
 export function setTimeSignature(beats, value) {
+  // 🛡️ GUARD: Block changes during active playback
+  if (isMetronomePlaying && !isPaused) {
+    debugLog(
+      "state",
+      "⚠️ setTimeSignature blocked - Groove metronome is playing"
+    );
+    return;
+  }
+
   debugLog(
     "state",
     `Time signature changing: ${timeSignature.beats}/${timeSignature.value} → ${beats}/${value}`
@@ -255,6 +264,15 @@ export function getTimeSignature() {
 }
 
 export function setTicksPerBeat(n) {
+  // 🛡️ GUARD: Block changes during active playback
+  if (isMetronomePlaying && !isPaused) {
+    debugLog(
+      "state",
+      "⚠️ setTicksPerBeat blocked - Groove metronome is playing"
+    );
+    return;
+  }
+
   ticksPerBeat = Math.max(1, Math.round(n));
   debugLog("state", `Ticks per beat set to ${ticksPerBeat}`);
 }

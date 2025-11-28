@@ -217,6 +217,15 @@ export function requestEndOfCycle(callback) {
 // --- NEW time signature and subdivision config ---
 
 export function setTimeSignature(beats, value) {
+  // 🛡️ GUARD: Block changes during active playback
+  if (isPlaying && !isPaused) {
+    debugLog(
+      "state",
+      "⚠️ setTimeSignature blocked - Simple metronome is playing"
+    );
+    return;
+  }
+
   debugLog(
     "state",
     `Time signature changing: ${timeSignature.beats}/${timeSignature.value} → ${beats}/${value}`
@@ -260,6 +269,15 @@ export function getTimeSignature() {
 }
 
 export function setTicksPerBeat(n) {
+  // 🛡️ GUARD: Block changes during active playback
+  if (isPlaying && !isPaused) {
+    debugLog(
+      "state",
+      "⚠️ setTicksPerBeat blocked - Simple metronome is playing"
+    );
+    return;
+  }
+
   ticksPerBeat = Math.max(1, Math.round(n));
   cdebugLog(
     "state",
