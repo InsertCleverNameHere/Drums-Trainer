@@ -279,10 +279,7 @@ export function setTicksPerBeat(n) {
   }
 
   ticksPerBeat = Math.max(1, Math.round(n));
-  cdebugLog(
-    "state",
-    `simpleMetronomeCore: ticksPerBeat set to ${ticksPerBeat}`
-  );
+  debugLog("state", `simpleMetronomeCore: ticksPerBeat set to ${ticksPerBeat}`);
 }
 
 export function getTicksPerBeat() {

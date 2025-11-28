@@ -1,6 +1,6 @@
 // main.js - simple bootstrap that wires modules together
 import * as metronome from "./metronomeCore.js";
-import { createVisualCallback } from "./visuals.js";
+import { createVisualCallback, primeVisuals } from "./visuals.js";
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
@@ -35,13 +35,6 @@ const cycleUnitEl = document.getElementById("cycleUnit");
 const sessionCountdownEl = document.getElementById("sessionCountdown");
 const finishingBadgeEl = document.getElementById("finishingBadge");
 
-// === Metronome Setup ===
-// We declare the callback variables here.
-// They will be assigned and registered later in the script's execution flow
-// to ensure all modules are loaded and ready, preventing race conditions.
-
-let grooveVisualsCallback;
-let simpleVisualsCallback;
 // === Session Engine Setup ===
 // Wire up session engine with metronome and UI dependencies
 sessionEngine.initSessionEngine({
@@ -91,39 +84,29 @@ uiController.initUI({
   performCountIn: metronome.performCountIn,
 });
 
-// 1. Initialize the Simple Metronome first...
-simpleMetronome.initSimpleMetronome({
-  initialBpm: 120,
-  // tickCallback is no longer needed
-});
+// Initialize cores (safe to do early - no DOM access)
+simpleMetronome.initSimpleMetronome({ initialBpm: 120 });
 
-// 2. NOW, ASSIGN and REGISTER the callbacks.
-grooveVisualsCallback = createVisualCallback("groove");
-simpleVisualsCallback = createVisualCallback("simple");
+// Declare callback variables at module scope
+let grooveVisualsCallback;
+let simpleVisualsCallback;
 
-// Register the Groove callback
-metronome.registerVisualCallback((tickIndex, isPrimaryAccent, isMainBeat) => {
-  try {
-    grooveVisualsCallback(tickIndex, isPrimaryAccent, isMainBeat);
-  } catch (err) {
-    console.error("Groove visuals callback error:", err);
-  }
-});
-
-// Register the Simple callback
-simpleMetronome.core.registerVisualCallback(
-  (tickIndex, isPrimaryAccent, isMainBeat) => {
-    try {
-      simpleVisualsCallback(tickIndex, isPrimaryAccent, isMainBeat);
-    } catch (err) {
-      console.error("Simple visuals callback error:", err);
-    }
-  }
-);
-
-// 3. Now that everything is set up, initialize the UI controllers.
+// Wait for DOM before creating/registering visual callbacks
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
+    // 1. Create visual callbacks (DOM is ready)
+    grooveVisualsCallback = createVisualCallback("groove");
+    simpleVisualsCallback = createVisualCallback("simple");
+
+    // 2. Prime the visual containers
+    primeVisuals("groove");
+    primeVisuals("simple");
+
+    // 3. Register callbacks with cores
+    metronome.registerVisualCallback(grooveVisualsCallback);
+    simpleMetronome.core.registerVisualCallback(simpleVisualsCallback);
+
+    // 4. Initialize UI controllers
     uiController.initDarkMode();
     uiController.initSoundProfileUI();
     uiController.initOwnershipGuards();
@@ -132,6 +115,16 @@ if (document.readyState === "loading") {
     uiController.initTimeSignatureUI();
   });
 } else {
+  // DOM already loaded, initialize immediately
+  grooveVisualsCallback = createVisualCallback("groove");
+  simpleVisualsCallback = createVisualCallback("simple");
+
+  primeVisuals("groove");
+  primeVisuals("simple");
+
+  metronome.registerVisualCallback(grooveVisualsCallback);
+  simpleMetronome.core.registerVisualCallback(simpleVisualsCallback);
+
   uiController.initDarkMode();
   uiController.initSoundProfileUI();
   uiController.initOwnershipGuards();
