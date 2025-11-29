@@ -199,7 +199,6 @@ export function initOwnershipGuards() {
 // Hotkey handling early
 let _hotkeyLock = false;
 window.__adjustingTarget = window.__adjustingTarget || "min";
-let adjustingTarget = "min";
 
 // Global hotkeys: owner-first; arrows repeatable
 window.addEventListener("keydown", (event) => {
@@ -1133,8 +1132,6 @@ export function updateFooterMessage(
   if (!suppressMessage) {
     localStorage.setItem(key, shownCount + 1);
   }
-  if (typeof window !== "undefined")
-    window.updateFooterMessage = updateFooterMessage;
 }
 
 // =====================================

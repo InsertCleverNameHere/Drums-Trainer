@@ -132,10 +132,3 @@ export const AudioProfiles = {
   getAvailableProfiles,
   playTick,
 };
-
-// Make a small, intentional global API for debugging / console control
-if (typeof window !== "undefined") {
-  window.setActiveProfile = setActiveProfile;
-  window.getActiveProfile = getActiveProfile;
-  window.getAvailableProfiles = getAvailableProfiles;
-}

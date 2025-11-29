@@ -231,28 +231,6 @@ export function calculateTapTempo() {
   return bpm;
 }
 
-// === Global debug exposure (optional for macros) ===
-if (typeof window !== "undefined") {
-  window.utils = {
-    randomInt,
-    convertToSeconds,
-    clamp,
-    randomizeGroove,
-    pickRandom,
-    formatTime,
-    generateColorFromVersion,
-    calculateTapTempo,
-    sanitizeQuantizationStep,
-    sanitizeBpmRange,
-    getGrooveNameFromText,
-    QUANTIZATION,
-  };
-
-  // Explicit shortcuts (for quick console access)
-  window.randomizeGroove = randomizeGroove;
-  window.sanitizeQuantizationStep = sanitizeQuantizationStep;
-}
-
 // =============================================================
 // Input Sanitization Helpers
 // =============================================================
