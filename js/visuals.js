@@ -13,6 +13,7 @@
 // - No resize bugs due to transform-based positioning
 
 import { debugLog } from "./debug.js";
+import { VISUAL_TIMING } from "./constants.js";
 
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
 
@@ -294,7 +295,7 @@ function flashActiveDot(
   const newTimeout = setTimeout(() => {
     dot.classList.remove("flashing", "accent-flash", "normal-flash");
     text.className = "phonation-text";
-  }, 120);
+  }, VISUAL_TIMING.FLASH_DURATION_MS);
 
   return newTimeout;
 }

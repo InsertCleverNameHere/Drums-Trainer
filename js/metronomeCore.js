@@ -1,7 +1,12 @@
 // metronomeCore.js
 // Audio scheduling and metronome core logic (refactored from metronome.js)
 import { debugLog, DebugTimer } from "./debug.js";
-import { BPM_HARD_LIMITS, BPM_DEFAULTS } from "./constants.js";
+import {
+  BPM_HARD_LIMITS,
+  BPM_DEFAULTS,
+  SCHEDULER_CONFIG,
+  COUNT_IN_CONFIG,
+} from "./constants.js";
 import {
   ensureAudio,
   setNextNoteTime,
@@ -162,36 +167,38 @@ export function startMetronome(newBpm = 120) {
 // tempoSynced is true. Returns a Promise that resolves when the count-in
 // completes.
 export function performCountIn(nextBpm = 120, tempoSynced = true) {
-  const steps = 3;
-  const intervalMs = tempoSynced ? 60000 / Math.max(1, nextBpm) : 1000;
+  const steps = COUNT_IN_CONFIG.STEPS;
+  const intervalMs = tempoSynced
+    ? 60000 / Math.max(1, nextBpm)
+    : COUNT_IN_CONFIG.FIXED_INTERVAL_MS;
 
   return new Promise((resolve) => {
     if (!audioCtx)
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    const now = audioCtx.currentTime + 0.02; // slight headroom
+    const now = audioCtx.currentTime + COUNT_IN_CONFIG.HEADROOM_SECONDS;
     for (let i = 0; i < steps; i++) {
       const t = now + (i * intervalMs) / 1000;
       const osc = audioCtx.createOscillator();
       const envelope = audioCtx.createGain();
 
       if (i === 0) {
-        osc.frequency.value = 700;
-        envelope.gain.value = 0.22;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
         osc.type = "sine";
       } else if (i === 1) {
-        osc.frequency.value = 1400;
-        envelope.gain.value = 0.25;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
         osc.type = "sine";
       } else {
-        osc.frequency.value = 1600;
-        envelope.gain.value = 0.3;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
       }
 
       osc.connect(envelope);
       envelope.connect(audioCtx.destination);
       osc.start(t);
-      osc.stop(t + (i === 1 ? 0.09 : 0.06));
+      osc.stop(t + COUNT_IN_CONFIG.STEP_DURATIONS[i]);
     }
 
     setTimeout(() => resolve(), Math.ceil(intervalMs * steps) + 30);

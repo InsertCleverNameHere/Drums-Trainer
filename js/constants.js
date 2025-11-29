@@ -57,7 +57,41 @@ export const TIME_SIGNATURE_LIMITS = {
 export const SCHEDULER_CONFIG = {
   SCHEDULE_AHEAD_TIME: 0.1, // seconds to schedule ahead
   SCHEDULER_INTERVAL_MS: 5, // how often to check schedule (ms)
+  SIMPLE_SCHEDULER_INTERVAL_MS: 25, // how often to check simple scheduler (ms)
   ADJUSTMENT_PAUSE_MS: 1700, // pause after cycle end (ms)
+};
+
+// ===================================
+// Visual Timing
+// ===================================
+
+/**
+ * Durations for UI animations and visual feedback
+ */
+export const VISUAL_TIMING = {
+  FLASH_DURATION_MS: 120, // beat dot/text flash duration
+  INVALID_INPUT_FLASH_MS: 400, // red flash on invalid input
+  BPM_CHANGE_FLASH_MS: 150, // yellow flash on BPM adjust
+  HOTKEY_LOCK_MS: 120, // debounce for non-repeatable hotkeys
+  FOOTER_FADE_OUT_MS: 600, // footer opacity transition
+  FOOTER_DISPLAY_MS: 5000, // how long footer stays visible
+  FOOTER_CANCELED_DISPLAY_MS: 4000, // footer display after cancel
+};
+
+// ===================================
+// Count-in Configuration
+// ===================================
+
+/**
+ * Count-in audio properties (performCountIn function)
+ */
+export const COUNT_IN_CONFIG = {
+  STEPS: 3, // number of count-in beats (3-2-1)
+  FIXED_INTERVAL_MS: 1000, // fixed interval when not tempo-synced
+  HEADROOM_SECONDS: 0.02, // slight delay before first beep
+  STEP_DURATIONS: [0.06, 0.09, 0.06], // duration per step (oscillator stop time)
+  FREQUENCIES: [700, 1400, 1600], // frequencies for each step
+  GAINS: [0.22, 0.25, 0.3], // gain values for each step
 };
 
 // ===================================

@@ -2,7 +2,11 @@
 // Depends on metronomeCore functions passed in at init.
 
 import { debugLog } from "./debug.js";
-import { INPUT_LIMITS, getUserQuantizationPreference } from "./constants.js";
+import {
+  INPUT_LIMITS,
+  getUserQuantizationPreference,
+  VISUAL_TIMING,
+} from "./constants.js";
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
@@ -227,7 +231,7 @@ window.addEventListener("keydown", (event) => {
   if (!allowRepeat) {
     if (_hotkeyLock) return;
     _hotkeyLock = true;
-    setTimeout(() => (_hotkeyLock = false), 120);
+    setTimeout(() => (_hotkeyLock = false), VISUAL_TIMING.HOTKEY_LOCK_MS);
   }
 
   if (
@@ -299,7 +303,10 @@ window.addEventListener("keydown", (event) => {
     adj.dispatchEvent(new Event("change", { bubbles: true }));
 
     adj.classList.add("bpm-flash");
-    setTimeout(() => adj.classList.remove("bpm-flash"), 150);
+    setTimeout(
+      () => adj.classList.remove("bpm-flash"),
+      VISUAL_TIMING.FLASH_DURATION_MS
+    );
   };
 
   const adjustSimpleBpm = (delta) => {
@@ -323,7 +330,10 @@ window.addEventListener("keydown", (event) => {
       simpleMetronome.setBpm(next);
     }
     el.classList.add("bpm-flash");
-    setTimeout(() => el.classList.remove("bpm-flash"), 150);
+    setTimeout(
+      () => el.classList.remove("bpm-flash"),
+      VISUAL_TIMING.BPM_CHANGE_FLASH_MS
+    );
     el.dispatchEvent(new Event("change", { bubbles: true }));
   };
 
@@ -1117,8 +1127,8 @@ export function updateFooterMessage(
     setTimeout(() => {
       footerEl.classList.add("footer-hidden");
       footerEl.style.visibility = "hidden";
-    }, 600); // match transition duration
-  }, 5000);
+    }, VISUAL_TIMING.FOOTER_FADE_OUT_MS); // match transition duration
+  }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
 
   if (!suppressMessage) {
     localStorage.setItem(key, shownCount + 1);
@@ -1222,7 +1232,7 @@ export function initUpdateUI() {
     setTimeout(() => {
       footerEl.classList.add("footer-hidden");
       footerEl.style.visibility = "hidden";
-    }, 600);
+    }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
   });
 
   // --- Check updates button (manual fetch + UI) ---
@@ -1244,8 +1254,8 @@ export function initUpdateUI() {
         setTimeout(() => {
           footerEl.classList.add("footer-hidden");
           footerEl.style.visibility = "hidden";
-        }, 600);
-      }, 5000);
+        }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+      }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
       return;
     }
 
@@ -1294,8 +1304,8 @@ export function initUpdateUI() {
                   setTimeout(() => {
                     footerEl.classList.add("footer-hidden");
                     footerEl.style.visibility = "hidden";
-                  }, 600);
-                }, 4000);
+                  }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+                }, VISUAL_TIMING.FOOTER_CANCELED_DISPLAY_MS);
               });
             }
           } else {
@@ -1311,8 +1321,8 @@ export function initUpdateUI() {
               setTimeout(() => {
                 footerEl.classList.add("footer-hidden");
                 footerEl.style.visibility = "hidden";
-              }, 600);
-            }, 5000);
+              }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+            }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
           }
 
           if (spinnerShown) {
@@ -1345,8 +1355,8 @@ export function initUpdateUI() {
             setTimeout(() => {
               footerEl.classList.add("footer-hidden");
               footerEl.style.visibility = "hidden";
-            }, 600);
-          }, 5000);
+            }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+          }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
 
           if (spinnerShown) {
             setTimeout(() => {
@@ -1421,7 +1431,10 @@ function attachInputValidation() {
       if (cleaned === limits.defaultValue && !/^[1-9]\\d*$/.test(text)) {
         e.preventDefault();
         input.classList.add("invalid-flash");
-        setTimeout(() => input.classList.remove("invalid-flash"), 400);
+        setTimeout(
+          () => input.classList.remove("invalid-flash"),
+          VISUAL_TIMING.INVALID_INPUT_FLASH_MS
+        );
       } else {
         e.preventDefault();
         input.value = cleaned;

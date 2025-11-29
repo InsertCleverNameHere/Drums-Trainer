@@ -2,7 +2,12 @@
 // Lightweight isolated metronome core for the simple metronome panel.
 // API-compatible with the existing metronomeCore functions used by the app.
 import { debugLog, DebugTimer } from "./debug.js";
-import { BPM_HARD_LIMITS, BPM_DEFAULTS } from "./constants.js";
+import {
+  BPM_HARD_LIMITS,
+  BPM_DEFAULTS,
+  SCHEDULER_CONFIG,
+  COUNT_IN_CONFIG,
+} from "./constants.js";
 import {
   playTick as playProfileTick,
   ensureAudio,
@@ -22,9 +27,9 @@ let bpm = 120;
 let timeSignature = { beats: 4, value: 4 };
 let ticksPerBeat = 1;
 
-const scheduleAheadTime = 0.1;
-const schedulerIntervalMs = 25;
-const adjustmentPauseMs = 1700;
+const scheduleAheadTime = SCHEDULER_CONFIG.SCHEDULE_AHEAD_TIME;
+const schedulerIntervalMs = SCHEDULER_CONFIG.SIMPLE_SCHEDULER_INTERVAL_MS;
+const adjustmentPauseMs = SCHEDULER_CONFIG.ADJUSTMENT_PAUSE_MS;
 
 let onBeatVisual = () => {};
 let endOfCycleRequested = false;
@@ -182,31 +187,33 @@ export function resumeMetronome() {
 }
 
 export function performCountIn(nextBpm = 120, tempoSynced = true) {
-  const steps = 3;
-  const intervalMs = tempoSynced ? 60000 / Math.max(1, nextBpm) : 1000;
+  const steps = COUNT_IN_CONFIG.STEPS;
+  const intervalMs = tempoSynced
+    ? 60000 / Math.max(1, nextBpm)
+    : COUNT_IN_CONFIG.FIXED_INTERVAL_MS;
   return new Promise((resolve) => {
     ensureAudio();
-    const now = audioCtx.currentTime + 0.02;
+    const now = audioCtx.currentTime + COUNT_IN_CONFIG.HEADROOM_SECONDS;
     for (let i = 0; i < steps; i++) {
       const t = now + (i * intervalMs) / 1000;
       const osc = audioCtx.createOscillator();
       const envelope = audioCtx.createGain();
       if (i === 0) {
-        osc.frequency.value = 700;
-        envelope.gain.value = 0.22;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
         osc.type = "sine";
       } else if (i === 1) {
-        osc.frequency.value = 1400;
-        envelope.gain.value = 0.25;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
         osc.type = "sine";
       } else {
-        osc.frequency.value = 1600;
-        envelope.gain.value = 0.3;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
       }
       osc.connect(envelope);
       envelope.connect(audioCtx.destination);
       osc.start(t);
-      osc.stop(t + (i === 1 ? 0.09 : 0.06));
+      osc.stop(t + COUNT_IN_CONFIG.STEP_DURATIONS[i]);
     }
     setTimeout(() => resolve(), Math.ceil(intervalMs * steps) + 30);
   });
