@@ -14,7 +14,7 @@
 ```bash
 📁 .github/
 └── 📁 workflows/
-└── versioning.yml 🔁 Automated version bump workflow
+    └── versioning.yml 🔁 Automated version bump workflow
 
 📁 css/
 └── styles.css 🎨 Main stylesheet (layout, theme, dropdowns)
@@ -28,6 +28,8 @@
 ├── uiController.js 🧩 Global UI binding and event management
 ├── utils.js ⚙️ Utility helpers (timing, randomization, formatting)
 ├── visuals.js 💡 Beat indicators and visual feedback
+├── debug.js 🐛 Runtime debug system with category flags
+├── constants.js 📦 Single source of truth for all constants
 └── main.js 🚀 Entry point — initializes modules, handles profile sync
 
 📄 index.html 🧱 App shell — includes both Simple & Groove metronome panels
@@ -35,9 +37,15 @@
 📄 service-worker.js ⚡ Offline caching and update logic
 📄 favicon.ico / icon-192.png / icon-512.png 🖼 App icons
 
-📄 README.md 📘 Main documentation
-📄 README-versioning.md 🗒 Versioning and release notes
-📄 roadmap.md 🧭 Development roadmap and milestones
+📁 docs/ 📚 Documentation
+├── ARCHITECTURE.md — System design & module hierarchy
+├── API_REFERENCE.md — Public API documentation
+├── DEBUGGING.md — Debug flags & profiling guide
+├── VISUALS_SYSTEM.md — Phrase-based rendering details
+├── VERSIONING.md — Version bump & service worker logic
+└── ROADMAP.md — This file
+
+📄 README.md 📘 Main project documentation
 📄 versioningMode.json ⚙️ Semantic versioning configuration
 📄 bumpVersion.js 🔧 Auto-increment build version script
 📄 commits.json 🕓 Commit history data
@@ -49,206 +57,227 @@
 
 ---
 
-## Phase 1 — Immediate / High Priority
+## ✅ Phase 1-3 — COMPLETED
 
 ### ✅ 1. Modular Refactor
 
-- Split JS into the structure above.
-- Keeps code maintainable, prepares for future features.
+- Split JS into clean module structure
+- Maintains code quality, prepares for future features
 
 ### ✅ 2. Pause / Resume Functionality + Tempo-Synced Countdown Integration
 
-**Goals:**
-
-- ✅ Make the currently disabled Pause button functional.
-- ✅ Ensure the current measure plays to the end before pausing or switching cycles.
-- ✅ Integrate the 3-2-1 tempo-synced countdown into both start and cycle transitions.
+- Functional Pause button
+- Ensures current measure plays to the end before pausing or switching cycles
+- 3-2-1 tempo-synced countdown integrated into both start and cycle transitions
 
 ### ✅ 3. Keyboard Shortcuts
 
-- ✅ Space → Start/Stop
-- ✅ P → Pause/Resume
-- ✅ Arrow keys → Adjust BPM
-- ✅ N → Next groove
+- Space → Start/Stop
+- P → Pause/Resume
+- Arrow keys → Adjust BPM
+- N → Next groove
+- H → Toggle help/hotkeys dialog
 
 ### ✅ 4. Footer & Cache Version Log
 
--✅ Move Hotkeys information from footer to a button that displays them on command, additionally make footer appear only briefly then disappear (maybe 10s?)
+- Hotkeys information moved to on-demand dialog
+- Footer displays app version and appears briefly (auto-hides after 10s)
+- **Update Available** message when new version detected
+- **Updated / Cached** message for successful cache updates
+- Color-coded version numbers for visibility
+- Tracks shown messages via localStorage to prevent repeated display
 
-- ✅ Display app version in footer.
-- ✅ Console log cache version for debugging:
+### ✅ 5. Intelligent Versioning System
 
-- Plan for two footer messages for PWA updates:
-  1. ✅ **Update Available** — shows when a new version is detected.
-  2. ✅ **Updated / Cached** — shows when a new version has been cached successfully (appears for a few launches, then disappears).
-- ✅ Color-code version numbers in the footer for visibility.
-- ✅ Track shown messages via localStorage to prevent repeated display.
+- Dynamic versioning using latest GitHub commit hash
+- Auto-increments minor version when new commit detected
+- Stores last seen hash and minor version in localStorage
+- Displays current version in footer with console logging
+- Assigns distinct color to each version (rotating automatically)
+- Avoids color similarity using color distance logic
+- Detects new version by comparing latest commit hash
+- Shows persistent "Update Available" banner with clickable "Update" button
+- Tracks message display via localStorage
 
-- ### ✅ 🔢 Intelligent Versioning System
+### ✅ 6. Procedural Sound Customization
 
-- ✅ Implement dynamic versioning using the latest GitHub commit hash.
-- ✅ Automatically increment the minor version (e.g. `v2.0.1`, `v2.0.2`) when a new commit is detected.
-- ✅ Store the last seen hash and minor version in `localStorage` to track changes across sessions.
-- ✅ Display the current version in the footer and console log.
-- ✅ Assign a distinct color to each version for visual recognition, rotating automatically when the version changes.
-- ✅ Avoid color similarity using color distance logic and cache the last used color.
-- ✅ Detect when a new version is available by comparing the latest commit hash to the stored one.
-- ✅ Show a persistent “Update Available” banner when a new version is detected.
-- ✅ Include a clickable “Update” button that forces a page refresh to load the latest version.
-- ✅ Track message display via `localStorage` to avoid repeated alerts.
+- Accent / normal beats generated via Web Audio API (no WAV/MP3 files)
+- Sound profiles: Digital, Soft, Ping, Bubble, Clave
+- Synchronized dropdowns in both Groove and Simple modes
 
----
+### ✅ 7. Tap Tempo
 
-### Phase 2 — Functional Enhancements
+- Minimal implementation: user taps button 3–4 times
+- BPM calculated from weighted average interval
+- Adaptive decay weighting for responsive feel
 
-1. ✅ **Procedural Sound Customization**  
-   Accent / normal beats generated via Web Audio API (no WAV/MP3 files).
+### ✅ 8. Input Validation
 
-2. ✅ **Tap Tempo**  
-   Minimal implementation: user taps button 3–4 times, BPM calculated from average interval.
+- Enforces `minBPM < maxBPM` with 5 BPM minimum margin
+- Reverts or corrects invalid inputs gracefully
+- Real-time validation on blur/change events
 
-3. ✅ **Input Validation**  
-   Enforce `minBPM < maxBPM`, revert or correct gracefully.
+### ✅ 9. Dual-Point BPM Slider
 
-4. ✅ **Dual-Point BPM Slider**  
-   Sync with numeric min/max BPM inputs.
+- Native noUiSlider implementation with unified styling
+- Syncs with numeric min/max BPM inputs
+- Active pip highlighting for current BPM values
+- Clickable pips for direct value selection
 
-5. ✅ **Note Type & Time Signature Customization**
-   - ✅ Add support for selecting subdivision types: quarter notes, eighths, sixteenths (and optionally triplets).
-   - ✅ Allow compound and irregular time signatures (e.g., 6/8, 12/16).
-   - ✅ Display smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth).
-   - ✅ Keep timing accurate using an internal subdivision multiplier (e.g., 16ths = 4 sub-ticks per beat).
-   - ✅ Display phonation text under circles (e.g., “1 &” for eighths, “1 e & a” for sixteenths, etc.) to aid rhythmic counting.
-   - ✅ Maintain lightweight logic and visuals using only procedural generation (no audio or image assets).
+### ✅ 10. Note Type & Time Signature Customization
 
----
+- Support for quarter notes, eighths, sixteenths
+- Compound and irregular time signatures (6/8, 7/8, 12/8, etc.)
+- Smaller circles for subdivisions (visual scaling: quarter > eighth > sixteenth)
+- Accurate timing using internal subdivision multiplier
+- Phonation text under circles ("1 &" for eighths, "1 e & a" for sixteenths)
+- Lightweight logic with procedural generation only (no assets)
 
-## Phase 3 — Visual & UX Improvements
+### ✅ 11. Dark Mode Toggle
 
-1. ✅ **Dark Mode Toggle**
+- Mobile-friendly, persisted via localStorage
+- Smooth transitions between themes
+- Respects system preference on first visit
 
-   Mobile-friendly, persisted via `localStorage`.
+### ✅ 12. Light Design Polish
 
-2. ✅ **Cycle Summary Popup**
+- Subtle background gradients
+- Hover effects and rounded buttons
+- Maintains lightweight and performant design
 
-   Show session stats: total cycles, total time, average BPM.
+### ✅ 13. Enhanced PWA Features
 
-3. ✅ **Light Design Polish**
+- Standalone launch on mobile
+- Auto-update service worker
+- "Update available" and "updated" footer messages with version color-coding
 
-   Subtle background gradients, hover effects, rounded buttons.
+### ✅ 14. Settings Persistence
 
-   Keep lightweight and performant.
+- Saves user preferences (BPM range, grooves, beats/bar, countdown mode, etc.) to localStorage
 
-## Phase 4 — Technical Enhancements
+### ✅ 15. Debug System
 
-### 1. Performance Profiling & Max-BPM Clamping
-
-- Detect timing drift; enforce safe maximum BPM.
-
-### 2. Enhanced PWA Features
-
-- ✅ Stanndalone launch on mobile.
-- ✅ Auto-update service worker.
-- Optional banner suppression.
-- ✅ Add “update available” and “updated” footer messages with version color-coding.
-
-### 3. Settings Persistence
-
-- ✅ Save user preferences (BPM range, grooves, beats/bar, countdown mode, etc.) to localStorage.
+- Runtime debug control via `DEBUG` flags
+- Category-based logging (audio, visuals, ownership, hotkeys, timing, state)
+- Performance timing helpers with threshold warnings
 
 ---
 
-### Phase 5 — Advanced Mode & Groove Editing
+## 🚧 Phase 4 — CURRENT (Documentation & Code Quality)
 
-1. **Simple vs Advanced Mode Toggle**
+### 🔄 In Progress
 
-   - Simple Mode:
-     - Dual tempo slider (values clamped to multiples of 5).
-     - Time-based sessions only (no cycles option).
-     - Minimal interface: BPM range, total time, start/stop.
-   - Advanced Mode:
-     - Manual BPM input (any integer value).
-     - Full time-signature and groove-definition options.
-     - Optional enforcement toggle for grooves that differ from selected signature.
-     - Four visual rows representing drum parts:
-       - Hi-Hat / Cymbal
-       - Kick
-       - Snare
-       - Hi-Hat Control (open/closed)
-     - Each row displayed as a sequence of unlit circles the user can **tap or click** to activate beats.
-     - Active circles light up and play in sync with the metronome.
-     - Grooves are **not tied to a fixed BPM**, allowing them to be reused across tempo changes.
+- [x] Create `/docs` folder structure
+- [x] `docs/ARCHITECTURE.md` — System design & module hierarchy
+- [x] `docs/API_REFERENCE.md` — Public API documentation
+- [x] `docs/DEBUGGING.md` — Debug flags & profiling guide
+- [x] Move `VISUALS_SYSTEM.md` → `docs/`
+- [x] Move `VERSIONING.md` → `docs/`
+- [x] Update `ROADMAP.md` (this file) → `docs/`
+- [ ] Add JSDoc comments to all core modules
+- [ ] Update root `README.md` to reference new docs structure
 
-2. **Groove Pattern Editor**
+### ⏳ Pending
 
-   - Visual editor for defining patterns:
-     - Click / tap to toggle hits on or off per instrument row.
-     - Optional preview playback for quick testing.
-     - Supports grooves that span **multiple measures** (e.g. Bossa Nova = 2 bars).
-   - Add a small note reminding users that some grooves naturally require more than one measure.
-
-3. **User Groove Persistence**
-
-   - Users can **save, edit, rename, and delete** grooves.
-   - Saved to `localStorage` as JSON (lightweight, offline-ready).
-   - Example stored structure:
-     ```json
-     {
-       "userGrooves": {
-         "My Funk Groove": {
-           "timeSignature": "4/4",
-           "patterns": {
-             "hihat": [1, 0, 1, 0, 1, 0, 1, 0],
-             "snare": [0, 0, 1, 0, 0, 0, 1, 0],
-             "kick": [1, 0, 0, 0, 1, 0, 0, 1]
-           },
-           "measures": 1
-         }
-       }
-     }
-     ```
-   - Automatically reload last-used groove at startup.
-   - Optional _“Reset to Defaults”_ button.
-
-4. **Default Groove Library (Optional Reference)**
-
-   - Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA.
-   - Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove).
-   - Users can enable or import these as reference templates.
-
-5. **Accessibility Layer (Lightweight)**
-   - Keyboard-navigable controls (`Tab`, `Enter`).
-   - `aria-label` attributes for all buttons and sliders.
-   - Visuals (beat circles) include accessible text descriptions for screen readers.
-   - Accent vs. normal beat colors chosen for **high contrast** and **color-blind safety**.
+- [ ] Performance profiling & max-BPM clamping
+- [ ] Automated testing setup (unit tests for utils.js)
+- [ ] Visual regression tests
 
 ---
 
-### Phase 6 — Groove Sharing, Import / Export, and Collaboration (Future)
+## 🔮 Phase 5 — Advanced Mode & Groove Editing (Future)
 
-1. **Export User Grooves**
+### 1. Simple vs Advanced Mode Toggle
 
-   - Allow export of selected or all user-defined grooves as a single downloadable `.json` file.
-   - Keeps structure consistent with `userGrooves` object used internally.
+- **Simple Mode**:
+  - Dual tempo slider (values clamped to multiples of 5)
+  - Time-based sessions only (no cycles option)
+  - Minimal interface: BPM range, total time, start/stop
+- **Advanced Mode**:
+  - Manual BPM input (any integer value)
+  - Full time-signature and groove-definition options
+  - Optional enforcement toggle for grooves that differ from selected signature
+  - Four visual rows representing drum parts:
+    - Hi-Hat / Cymbal
+    - Kick
+    - Snare
+    - Hi-Hat Control (open/closed)
+  - Each row displayed as a sequence of unlit circles the user can **tap or click** to activate beats
+  - Active circles light up and play in sync with the metronome
+  - Grooves are **not tied to a fixed BPM**, allowing them to be reused across tempo changes
 
-2. **Import Groove Files**
+### 2. Groove Pattern Editor
 
-   - Enable drag-and-drop or file-picker import of JSON groove files.
-   - Merge imported grooves with existing ones (prompt user on name conflicts).
+- Visual editor for defining patterns:
+  - Click / tap to toggle hits on or off per instrument row
+  - Optional preview playback for quick testing
+  - Supports grooves that span **multiple measures** (e.g. Bossa Nova = 2 bars)
+- Add a small note reminding users that some grooves naturally require more than one measure
 
-3. **Share Groove Links (Optional)**
+### 3. User Groove Persistence
 
-   - Generate a shareable JSON or encoded link (local only; no server).
-   - Example: `groovetrainer.app#share=<encodedJSON>`
+- Users can **save, edit, rename, and delete** grooves
+- Saved to `localStorage` as JSON (lightweight, offline-ready)
+- Example stored structure:
+  ```json
+  {
+    "userGrooves": {
+      "My Funk Groove": {
+        "timeSignature": "4/4",
+        "patterns": {
+          "hihat": [1, 0, 1, 0, 1, 0, 1, 0],
+          "snare": [0, 0, 1, 0, 0, 0, 1, 0],
+          "kick": [1, 0, 0, 0, 1, 0, 0, 1]
+        },
+        "measures": 1
+      }
+    }
+  }
+  ```
+- Automatically reload last-used groove at startup
+- Optional _"Reset to Defaults"_ button
 
-4. **Preset Management Tools**
+### 4. Default Groove Library (Optional Reference)
 
-   - Option to **backup / restore** grooves across browsers via manual file handling.
-   - May later extend to QR-based sharing for mobile convenience.
+- Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA
+- Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove)
+- Users can enable or import these as reference templates
 
-5. **Privacy & Lightweight Principles**
-   - No online accounts or cloud storage — all data remains client-side.
-   - Import/export handled purely within the PWA sandbox.
+### 5. Accessibility Layer (Lightweight)
+
+- Keyboard-navigable controls (`Tab`, `Enter`)
+- `aria-label` attributes for all buttons and sliders
+- Visuals (beat circles) include accessible text descriptions for screen readers
+- Accent vs. normal beat colors chosen for **high contrast** and **color-blind safety**
+
+---
+
+## 🌐 Phase 6 — Groove Sharing, Import / Export, and Collaboration (Future)
+
+### 1. Export User Grooves
+
+- Allow export of selected or all user-defined grooves as a single downloadable `.json` file
+- Keeps structure consistent with `userGrooves` object used internally
+
+### 2. Import Groove Files
+
+- Enable drag-and-drop or file-picker import of JSON groove files
+- Merge imported grooves with existing ones (prompt user on name conflicts)
+
+### 3. Share Groove Links (Optional)
+
+- Generate a shareable JSON or encoded link (local only; no server)
+- Example: `groovetrainer.app#share=<encodedJSON>`
+
+### 4. Preset Management Tools
+
+- Option to **backup / restore** grooves across browsers via manual file handling
+- May later extend to QR-based sharing for mobile convenience
+
+### 5. Privacy & Lightweight Principles
+
+- No online accounts or cloud storage — all data remains client-side
+- Import/export handled purely within the PWA sandbox
 
 ---
 
@@ -256,5 +285,5 @@
 
 ---
 
-> **Notes:** Optional features like visual-only mode, presets, and “about” modals are deferred to keep the app lightweight.  
+> **Notes:** Optional features like visual-only mode, presets, and "about" modals are deferred to keep the app lightweight.  
 > All future additions should respect the offline-first, lightweight philosophy.
