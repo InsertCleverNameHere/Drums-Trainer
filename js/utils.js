@@ -2,7 +2,11 @@
 // Small helper functions used by the UI and others
 
 // === Core metronome helpers ===
-// Returns a random integer between min and max (inclusive)
+/**
+ * @fileoverview Utility helper functions for the Random Groove Trainer.
+ * @module utils
+ */
+
 import { debugLog } from "./debug.js";
 import {
   BPM_HARD_LIMITS,
@@ -10,14 +14,34 @@ import {
   getUserQuantizationPreference,
 } from "./constants.js";
 
+/**
+ * Returns a random integer between min and max (inclusive).
+ * 
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @returns {number} Random integer
+ */
 export function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/**
+ * Quantizes a value to the nearest step.
+ * 
+ * @param {number} value - Value to quantize
+ * @param {number} [step=5] - Quantization step
+ * @returns {number} Quantized value
+ */
 export function quantizeToStep(value, step = 5) {
   return Math.round(value / step) * step;
 }
 
+/**
+ * Sanitizes quantization step to valid range (1-100).
+ * 
+ * @param {number} value - Step value to sanitize
+ * @returns {number} Clamped step value
+ */
 export function sanitizeQuantizationStep(value) {
   // Step must be 1–100, default to 5
   const step = sanitizePositiveInteger(value, {
@@ -33,7 +57,13 @@ export const QUANTIZATION = {
   groove: 5,
 };
 
-// Converts unit user chooses (minutes or hours) to seconds for internal logic
+/**
+ * Converts time value to seconds.
+ * 
+ * @param {number} value - Time value
+ * @param {string} unit - 'seconds', 'minutes', or 'hours'
+ * @returns {number} Time in seconds
+ */
 export function convertToSeconds(value, unit) {
   const n = parseInt(value);
   if (isNaN(n) || n <= 0) return 0;
@@ -42,12 +72,29 @@ export function convertToSeconds(value, unit) {
   return n;
 }
 
-// Clamps a value between a minimum and maximum range
+/**
+ * Clamps a value between min and max.
+ * 
+ * @param {number} value - Value to clamp
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @returns {number} Clamped value
+ */
 export function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-// Randomly selects a groove and BPM within the specified ranges
+/**
+ * Randomly selects a groove and BPM within specified ranges.
+ * 
+ * @param {string} groovesText - Newline-separated groove names
+ * @param {number} bpmMin - Minimum BPM
+ * @param {number} bpmMax - Maximum BPM
+ * @returns {{bpm: number, groove: string}} Random groove and BPM
+ * @example
+ * const result = randomizeGroove('Rock\nFunk\nJazz', 60, 120);
+ * // { bpm: 85, groove: 'Funk' }
+ */
 export function randomizeGroove(groovesText, bpmMin, bpmMax) {
   const grooves = groovesText
     .split("\n")
@@ -104,13 +151,23 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
   return { bpm: randomBpm, groove: randomGroove };
 }
 
-// Picks a random element from an array (returns empty string if invalid)
+/**
+ * Picks a random element from an array.
+ * 
+ * @param {Array} arr - Array to pick from
+ * @returns {*} Random element or empty string if invalid
+ */
 export function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Extracts a groove name from a multiline grooves text
+/**
+ * Extracts a random groove name from multiline text.
+ * 
+ * @param {string} groovesText - Newline-separated groove names
+ * @returns {string} Random groove name
+ */
 export function getGrooveNameFromText(groovesText) {
   if (!groovesText) return "No groove selected";
 
@@ -126,7 +183,15 @@ export function getGrooveNameFromText(groovesText) {
   return grooveName || "No groove selected";
 }
 
-// Time unit helpers
+/**
+ * Formats seconds as human-readable time string.
+ * 
+ * @param {number} seconds - Duration in seconds
+ * @returns {string} Formatted time (e.g., '1h 23m 45s')
+ * @example
+ * formatTime(300); // '5m 0s'
+ * formatTime(3665); // '1h 1m 5s'
+ */
 export function formatTime(seconds) {
   if (seconds < 60) return `${seconds}s`;
 
@@ -144,8 +209,12 @@ export function formatTime(seconds) {
 
 // === Meta app helpers ===
 
-// Version coloring:
-// Generates a unique HSL color based on version string
+/**
+ * Generates a unique color based on version string.
+ * 
+ * @param {string} version - Version string (e.g., 'v1.2.3')
+ * @returns {string} Hex color code
+ */
 export function generateColorFromVersion(version) {
   const palette = [
     "#e6194b",
@@ -180,7 +249,14 @@ export function generateColorFromVersion(version) {
   return palette[index];
 }
 
-// === Tap tempo logic ===
+/**
+ * Calculates BPM from tap timing (maintains internal state).
+ * Resets after 1.5s idle.
+ * 
+ * @returns {number|null} Calculated BPM or null if <2 taps
+ * @example
+ * const bpm = calculateTapTempo(); // 120
+ */
 export function calculateTapTempo() {
   const now = performance.now();
   if (!calculateTapTempo._taps) calculateTapTempo._taps = [];
@@ -236,8 +312,14 @@ export function calculateTapTempo() {
 // =============================================================
 
 /**
- * Sanitize a value to be a whole, positive, non-zero integer.
- * Clamps to min/max and falls back to defaultValue if invalid.
+ * Sanitizes value to positive integer.
+ * 
+ * @param {string|number} value - Value to sanitize
+ * @param {Object} options - Options object
+ * @param {number} [options.min=1] - Minimum value
+ * @param {number} [options.max=Infinity] - Maximum value
+ * @param {number} [options.defaultValue=min] - Fallback value
+ * @returns {number} Sanitized positive integer
  */
 export function sanitizePositiveInteger(
   value,
@@ -258,6 +340,17 @@ export function sanitizePositiveInteger(
   return num;
 }
 
+/**
+ * Sanitizes and quantizes BPM range.
+ * 
+ * @param {number} bpmMin - Minimum BPM
+ * @param {number} bpmMax - Maximum BPM
+ * @param {number} quantizationStep - Quantization step
+ * @returns {{bpmMin: number, bpmMax: number, step: number}} Sanitized range
+ * @example
+ * const result = sanitizeBpmRange(32, 248, 5);
+ * // { bpmMin: 35, bpmMax: 245, step: 5 }
+ */
 export function sanitizeBpmRange(bpmMin, bpmMax, quantizationStep) {
   // Use provided step, fallback to user preference, fallback to constant
   const step = quantizationStep || getUserQuantizationPreference();

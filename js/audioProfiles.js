@@ -54,7 +54,11 @@ let activeProfileName = "digital";
 // Public API
 // =========================
 
-// Initialize shared audio context (if needed)
+/**
+ * Initializes the shared AudioContext if it doesn't exist.
+ * 
+ * @returns {AudioContext} Shared audio context instance
+ */
 export function ensureAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -62,12 +66,25 @@ export function ensureAudio() {
   return audioCtx;
 }
 
-// Allows metronome cores to sync their scheduling time
+/**
+ * Syncs the scheduling time with metronome cores.
+ * 
+ * @param {number} time - Audio context time for next tick
+ * @returns {void}
+ * @internal
+ */
 export function setNextNoteTime(time) {
   nextNoteTime = time;
 }
 
-// Change the active profile dynamically
+/**
+ * Sets the active sound profile.
+ * 
+ * @param {string} name - Profile name (digital, soft, ping, bubble, clave)
+ * @returns {void}
+ * @example
+ * setActiveProfile('soft');
+ */
 export function setActiveProfile(name) {
   if (SOUND_PROFILES[name]) {
     activeProfileName = name;
@@ -76,16 +93,34 @@ export function setActiveProfile(name) {
     debugLog("audio", `⚠️ Unknown sound profile: ${name}`);
   }
 }
+/**
+ * Returns the current active sound profile name.
+ * 
+ * @returns {string} Active profile name
+ */
 export function getActiveProfile() {
   return activeProfileName;
 }
 
-// Retrieve list of all available profiles
+/**
+ * Returns list of all available sound profiles.
+ * 
+ * @returns {string[]} Array of profile names
+ * @example
+ * const profiles = getAvailableProfiles();
+ * // ['digital', 'soft', 'ping', 'bubble', 'clave']
+ */
 export function getAvailableProfiles() {
   return Object.keys(SOUND_PROFILES);
 }
 
-// Core sound generation function
+/**
+ * Generates a procedural audio tick.
+ * 
+ * @param {boolean} isAccent - True for accent (downbeat), false for normal
+ * @returns {void}
+ * @internal
+ */
 export function playTick(isAccent) {
   if (!audioCtx) return;
 

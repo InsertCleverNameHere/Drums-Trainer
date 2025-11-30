@@ -1,5 +1,9 @@
 // js/simpleMetronome.js
-// Simple metronome UI module backed by js/simpleMetronomeCore.js
+/**
+ * @fileoverview Simple metronome UI module backed by simpleMetronomeCore.js.
+ * Manages UI state, button logic, and ownership coordination for the simple metronome panel.
+ * @module simpleMetronome
+ */
 
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleCore from "./simpleMetronomeCore.js";
@@ -34,6 +38,17 @@ function updateSimpleDisplayBpm() {
   el.textContent = `BPM: ${bpm || "—"}`;
 }
 
+/**
+ * Initializes the simple metronome module.
+ * 
+ * @public
+ * @param {Object} [opts={}] - Configuration options
+ * @param {number} [opts.initialBpm] - Initial BPM value
+ * @returns {void}
+ * 
+ * @example
+ * initSimpleMetronome({ initialBpm: 120 });
+ */
 export function initSimpleMetronome(opts = {}) {
   if (opts.initialBpm) bpm = Number(opts.initialBpm) || bpm;
 
@@ -72,18 +87,59 @@ document.addEventListener("metronome:ownerChanged", (e) => {
   }
 });
 
+/**
+ * Checks if simple metronome is currently running.
+ * 
+ * @public
+ * @returns {boolean} True if running (even if paused)
+ * 
+ * @example
+ * if (isRunning()) {
+ *   console.log('Simple metronome is active');
+ * }
+ */
 export function isRunning() {
   return running;
 }
 
+/**
+ * Checks if simple metronome is currently paused.
+ * 
+ * @public
+ * @returns {boolean} True if paused
+ * 
+ * @example
+ * if (isPaused()) {
+ *   console.log('Simple metronome is paused');
+ * }
+ */
 export function isPaused() {
   return paused;
 }
 
+/**
+ * Returns current BPM.
+ * 
+ * @public
+ * @returns {number} Current tempo
+ * 
+ * @example
+ * const tempo = getBpm(); // 120
+ */
 export function getBpm() {
   return bpm;
 }
 
+/**
+ * Updates tempo and syncs with UI input.
+ * 
+ * @public
+ * @param {number} newBpm - New tempo (20-300)
+ * @returns {number} Clamped BPM value
+ * 
+ * @example
+ * setBpm(140); // Sets tempo to 140 BPM
+ */
 export function setBpm(newBpm) {
   const n = Number(newBpm);
   if (Number.isFinite(n) && n >= 20 && n <= 300) bpm = n;
@@ -104,6 +160,16 @@ export function setBpm(newBpm) {
   return bpm;
 }
 
+/**
+ * Starts the simple metronome.
+ * Claims ownership and starts audio core.
+ * 
+ * @public
+ * @returns {Promise<boolean>} Success/failure
+ * 
+ * @example
+ * await start(); // Starts metronome at current BPM
+ */
 export function start() {
   const owner =
     typeof sessionEngine.getActiveModeOwner === "function"
@@ -160,6 +226,15 @@ export function start() {
   return Promise.resolve(true);
 }
 
+/**
+ * Pauses the simple metronome.
+ * 
+ * @public
+ * @returns {void}
+ * 
+ * @example
+ * pause(); // Pauses playback
+ */
 export function pause() {
   if (!running || paused) return;
   if (typeof simpleCore.pauseMetronome === "function")
@@ -176,6 +251,15 @@ export function pause() {
   );
 }
 
+/**
+ * Resumes the simple metronome from paused state.
+ * 
+ * @public
+ * @returns {void}
+ * 
+ * @example
+ * resume(); // Resumes playback
+ */
 export function resume() {
   if (!running || !paused) return;
   if (typeof simpleCore.resumeMetronome === "function")
@@ -192,6 +276,15 @@ export function resume() {
   );
 }
 
+/**
+ * Stops the simple metronome and releases ownership.
+ * 
+ * @public
+ * @returns {void}
+ * 
+ * @example
+ * stop(); // Stops playback completely
+ */
 export function stop() {
   if (!running) return;
   if (typeof simpleCore.stopMetronome === "function")

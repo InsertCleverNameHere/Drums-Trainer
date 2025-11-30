@@ -40,7 +40,16 @@ let isPaused = false;
 let pauseWallTime = 0; // audioCtx.currentTime snapshot when paused
 let pauseAudioOffset = 0; // nextNoteTime offset preserved across pause
 
-// Registers a visual callback to be triggered on each beat
+/**
+ * Registers a visual callback to be triggered on each beat.
+ * 
+ * @param {Function} cb - Callback function receiving (tickIndex, isPrimaryAccent, isMainBeat)
+ * @returns {void}
+ * @example
+ * window.metronome.registerVisualCallback((tick, accent, beat) => {
+ *   console.log(`Tick ${tick}, Accent: ${accent}`);
+ * });
+ */
 export function registerVisualCallback(cb) {
   if (typeof cb === "function") onBeatVisual = cb;
 }
@@ -134,9 +143,14 @@ function scheduler() {
   schedulerTimer = setTimeout(scheduler, 5);
 }
 
-// --- public functions ---
-// Starts the metronome with the given BPM
-
+/**
+ * Starts the groove metronome audio scheduler.
+ * 
+ * @param {number} [newBpm=120] - Tempo in beats per minute (30-300, clamped to hard limits)
+ * @returns {void}
+ * @example
+ * window.metronome.startMetronome(120);
+ */
 export function startMetronome(newBpm = 120) {
   if (isMetronomePlaying) {
     debugLog("audio", "⚠️ Metronome already playing — start skipped");
@@ -162,10 +176,16 @@ export function startMetronome(newBpm = 120) {
   );
 }
 
-// --- Count-in helper ---
-// Plays a 3-2-1 count-in using the provided BPM to determine interval when
-// tempoSynced is true. Returns a Promise that resolves when the count-in
-// completes.
+/**
+ * Plays a 3-2-1 count-in using procedural audio.
+ * 
+ * @param {number} [nextBpm=120] - Tempo for count-in timing
+ * @param {boolean} [tempoSynced=true] - Use tempo-based intervals (true) or fixed 1s intervals (false)
+ * @returns {Promise<void>} Resolves when count-in completes
+ * @example
+ * await window.metronome.performCountIn(120, true);
+ * console.log('Count-in finished');
+ */
 export function performCountIn(nextBpm = 120, tempoSynced = true) {
   const steps = COUNT_IN_CONFIG.STEPS;
   const intervalMs = tempoSynced
@@ -205,7 +225,13 @@ export function performCountIn(nextBpm = 120, tempoSynced = true) {
   });
 }
 
-// Stops the metronome and clears scheduler
+/**
+ * Stops the metronome and clears all timers.
+ * 
+ * @returns {void}
+ * @example
+ * window.metronome.stopMetronome();
+ */
 export function stopMetronome() {
   isMetronomePlaying = false;
   if (schedulerTimer) clearTimeout(schedulerTimer);
@@ -213,13 +239,27 @@ export function stopMetronome() {
   debugLog("audio", "Metronome stopped");
 }
 
+/**
+ * Resets the playback flag (allows restarting after stop).
+ * 
+ * @returns {void}
+ * @internal Used by session engine to handle restart scenarios
+ */
 export function resetPlaybackFlag() {
   // Necessary to handle restarting the metronome in new modules
   isMetronomePlaying = false;
 }
 
-// --- NEW time signature and subdivision config ---
-
+/**
+ * Updates the time signature (e.g., 4/4, 7/8).
+ * Blocked during active playback - must pause first.
+ * 
+ * @param {number} beats - Numerator (1-16)
+ * @param {number} value - Denominator (2, 4, 8, or 16)
+ * @returns {void}
+ * @example
+ * window.metronome.setTimeSignature(7, 8); // 7/8 time
+ */
 export function setTimeSignature(beats, value) {
   // 🛡️ GUARD: Block changes during active playback
   if (isMetronomePlaying && !isPaused) {
@@ -268,10 +308,27 @@ export function setTimeSignature(beats, value) {
   );
 }
 
+/**
+ * Returns the current time signature.
+ * 
+ * @returns {{beats: number, value: number}} Time signature object
+ * @example
+ * const sig = window.metronome.getTimeSignature();
+ * // { beats: 4, value: 4 }
+ */
 export function getTimeSignature() {
   return { ...timeSignature }; // Return a copy
 }
 
+/**
+ * Sets subdivision level (1=none, 2=8ths, 4=16ths).
+ * Blocked during active playback - must pause first.
+ * 
+ * @param {number} n - Ticks per beat (1, 2, or 4)
+ * @returns {void}
+ * @example
+ * window.metronome.setTicksPerBeat(4); // 16th note subdivisions
+ */
 export function setTicksPerBeat(n) {
   // 🛡️ GUARD: Block changes during active playback
   if (isMetronomePlaying && !isPaused) {
@@ -286,20 +343,46 @@ export function setTicksPerBeat(n) {
   debugLog("state", `Ticks per beat set to ${ticksPerBeat}`);
 }
 
+/**
+ * Returns the current subdivision level.
+ * 
+ * @returns {number} Ticks per beat (1, 2, or 4)
+ * @example
+ * const ticks = window.metronome.getTicksPerBeat(); // 4 (16ths)
+ */
 export function getTicksPerBeat() {
   return ticksPerBeat;
 }
 
-// expose current bpm
+/**
+ * Returns the current tempo.
+ * 
+ * @returns {number} Current BPM
+ * @example
+ * const tempo = window.metronome.getBpm(); // 120
+ */
 export function getBpm() {
   return bpm;
 }
 
+/**
+ * Returns whether the metronome is currently paused.
+ * 
+ * @returns {boolean} True if paused, false otherwise
+ * @example
+ * if (window.metronome.getPauseState()) console.log('Paused');
+ */
 export function getPauseState() {
   return !!isPaused;
 }
 
-// --- Pause/Resume control ---
+/**
+ * Pauses audio scheduling without resetting state.
+ * 
+ * @returns {void}
+ * @example
+ * window.metronome.pauseMetronome();
+ */
 export function pauseMetronome() {
   if (!isMetronomePlaying || isPaused) return;
   isPaused = true;
@@ -314,6 +397,13 @@ export function pauseMetronome() {
   debugLog("audio", `⏸️ Metronome paused at ${pauseWallTime.toFixed(3)}s`);
 }
 
+/**
+ * Resumes audio scheduling from paused state.
+ * 
+ * @returns {void}
+ * @example
+ * window.metronome.resumeMetronome();
+ */
 export function resumeMetronome() {
   if (!isPaused || !audioCtx) return;
   isPaused = false;
@@ -324,7 +414,16 @@ export function resumeMetronome() {
   debugLog("audio", "▶️ Metronome resumed after pause");
 }
 
-// --- Cycle completion handling ---
+/**
+ * Requests graceful stop at next bar boundary.
+ * 
+ * @param {Function} callback - Called after bar completes
+ * @returns {void}
+ * @example
+ * window.metronome.requestEndOfCycle(() => {
+ *   console.log('Bar finished cleanly');
+ * });
+ */
 export function requestEndOfCycle(callback) {
   if (!isMetronomePlaying || endOfCycleRequested) return;
 
