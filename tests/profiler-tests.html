@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Profiler Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+        background: #1a1a1a;
+        color: #e0e0e0;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .pass {
+        background: #d4edda;
+        color: #155724;
+      }
+      .fail {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      button {
+        margin: 5px;
+        padding: 10px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 6px;
+        border: none;
+        background: #4a90e2;
+        color: white;
+      }
+      button:hover {
+        background: #357abd;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔬 Profiler Tests</h1>
+    <div id="results"></div>
+
+    <h2>Manual Tests</h2>
+    <button onclick="testBasicStart()">Test 1: Basic Start/Stop</button>
+    <button onclick="testOverlay()">Test 2: Toggle Overlay</button>
+    <button onclick="testReport()">Test 3: Generate Report</button>
+    <button onclick="testLongTask()">Test 4: Detect Long Task</button>
+
+    <script type="module">
+      import { Profiler } from "../js/profiler.js";
+      window.Profiler = Profiler;
+
+      const results = document.getElementById("results");
+
+      function addResult(name, passed, message = "") {
+        const div = document.createElement("div");
+        div.className = `test ${passed ? "pass" : "fail"}`;
+        div.innerHTML = `
+        <strong>${passed ? "✅" : "❌"} ${name}</strong>
+        ${message ? `<br><small>${message}</small>` : ""}
+      `;
+        results.appendChild(div);
+      }
+
+      // Test 1: Profiler exposes API correctly
+      const hasStart = typeof Profiler.start === "function";
+      const hasStop = typeof Profiler.stop === "function";
+      const hasReport = typeof Profiler.report === "function";
+      const hasToggle = typeof Profiler.toggleOverlay === "function";
+
+      addResult(
+        "Profiler API exposed",
+        hasStart && hasStop && hasReport && hasToggle
+      );
+
+      // Manual test functions
+      window.testBasicStart = () => {
+        try {
+          Profiler.start();
+          setTimeout(() => {
+            Profiler.stop();
+            const report = Profiler.report();
+            addResult(
+              "Basic start/stop",
+              report.duration !== undefined,
+              `Duration: ${report.duration}`
+            );
+          }, 2000);
+        } catch (e) {
+          addResult("Basic start/stop", false, e.message);
+        }
+      };
+
+      window.testOverlay = () => {
+        try {
+          Profiler.start({ overlay: true });
+          setTimeout(() => {
+            const overlayExists =
+              document.getElementById("profiler-overlay") !== null;
+            Profiler.toggleOverlay();
+            const overlayHidden =
+              document.getElementById("profiler-overlay") === null;
+            Profiler.stop();
+            addResult(
+              "Toggle overlay",
+              overlayExists && overlayHidden,
+              "Overlay shown and hidden successfully"
+            );
+          }, 1000);
+        } catch (e) {
+          addResult("Toggle overlay", false, e.message);
+        }
+      };
+
+      window.testReport = () => {
+        try {
+          Profiler.start();
+          setTimeout(() => {
+            Profiler.stop();
+            const jsonReport = Profiler.report("json");
+            const mdReport = Profiler.report("markdown");
+            const hasJSON = typeof jsonReport === "object";
+            const hasMD =
+              typeof mdReport === "string" &&
+              mdReport.includes("# Performance Report");
+            addResult(
+              "Generate reports",
+              hasJSON && hasMD,
+              "JSON and Markdown formats generated"
+            );
+            console.log("Markdown Report:\n", mdReport);
+          }, 2000);
+        } catch (e) {
+          addResult("Generate reports", false, e.message);
+        }
+      };
+
+      window.testLongTask = () => {
+        try {
+          Profiler.start();
+
+          // Simulate long task
+          Profiler.mark("longTaskStart");
+          const start = performance.now();
+          while (performance.now() - start < 60) {} // Block for 60ms
+          Profiler.mark("longTaskEnd");
+          Profiler.measure("longTask", "longTaskStart", "longTaskEnd");
+
+          setTimeout(() => {
+            Profiler.stop();
+            const report = Profiler.report();
+            const detected = report.longTasks.count > 0;
+            addResult(
+              "Detect long task",
+              detected,
+              `Detected ${report.longTasks.count} long task(s)`
+            );
+          }, 1000);
+        } catch (e) {
+          addResult("Detect long task", false, e.message);
+        }
+      };
+    </script>
+  </body>
+</html>

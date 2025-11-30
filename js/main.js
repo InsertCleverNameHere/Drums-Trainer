@@ -5,6 +5,10 @@ import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as uiController from "./uiController.js";
+import { Profiler } from "./profiler.js";
+
+// Expose explicitly (redundant but safe)
+window.Profiler = Profiler;
 
 // Expose for visuals and console debugging
 window.metronome = metronome;

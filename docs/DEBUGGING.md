@@ -255,6 +255,124 @@ window.simpleMetronome.start(); // Should succeed
 
 ---
 
+## 🔬 Performance Profiler
+
+The app includes a lightweight performance profiler for detecting bottlenecks and memory leaks.
+
+### Basic Usage
+
+```javascript
+// Start profiling with live overlay
+Profiler.start({ overlay: true });
+
+// Run metronome for 30-60 seconds...
+
+// Stop and view report
+Profiler.stop();
+console.log(Profiler.report("markdown"));
+```
+
+### API Reference
+
+| Method                      | Description                                                       |
+| --------------------------- | ----------------------------------------------------------------- |
+| `start(config)`             | Begin monitoring. Pass `{ overlay: true }` for real-time display. |
+| `stop()`                    | Stop monitoring and finalize metrics.                             |
+| `report(format)`            | Generate report (`'json'` or `'markdown'`).                       |
+| `toggleOverlay()`           | Show/hide real-time performance overlay.                          |
+| `mark(label)`               | Create custom timing mark.                                        |
+| `measure(name, start, end)` | Measure interval between marks.                                   |
+
+### Metrics Tracked
+
+- **FPS** - Frame rate (target: 60fps)
+
+  - Green: 58-60fps ✅
+  - Yellow: 50-57fps ⚠️
+  - Red: <50fps ❌
+
+- **Memory** - Heap size (Chrome only)
+
+  - Tracks `usedJSHeapSize` and `totalJSHeapSize`
+  - Reports average and peak usage
+
+- **Long Tasks** - Operations >50ms
+  - Captures name, duration, and timestamp
+  - Identifies blocking operations
+
+### Example Output
+
+```markdown
+# Performance Report
+
+**Duration**: 45230.45ms
+
+## FPS
+
+- **Average**: 59.8
+- **Min**: 58
+- **Max**: 60
+- **Samples**: 45
+
+## Memory
+
+- **Avg Heap Used**: 12.34 MB
+- **Peak Heap Used**: 15.67 MB
+
+## Long Tasks (>50ms)
+
+- **Count**: 2
+- **Total Time**: 105.67ms
+- **Worst**: scheduleNote (52.34ms)
+```
+
+### Performance Targets
+
+| Metric        | Target     | Warning | Critical |
+| ------------- | ---------- | ------- | -------- |
+| FPS           | 60         | <58     | <50      |
+| Memory Growth | <2 MB/5min | 2-5 MB  | >5 MB    |
+| Long Tasks    | 0          | 1-5     | >5       |
+
+### Common Profiling Scenarios
+
+#### Test 1: Normal BPM (60-120)
+
+```javascript
+Profiler.start({ overlay: true });
+// Run metronome at 120 BPM for 5 minutes
+// Expected: FPS=60, Memory<2MB growth, LongTasks=0
+```
+
+#### Test 2: High BPM (180-240)
+
+```javascript
+Profiler.start({ overlay: true });
+// Run metronome at 240 BPM with 16th subdivisions
+// Expected: FPS=58-60, Memory<4MB growth, LongTasks<3
+```
+
+#### Test 3: Extreme BPM (300+)
+
+```javascript
+Profiler.start({ overlay: true });
+// Run metronome at 300 BPM with 16th subdivisions
+// Expected: FPS=55-60, Memory<6MB growth, LongTasks<10
+```
+
+### Troubleshooting
+
+**Issue**: Overlay not appearing  
+**Solution**: Ensure profiler was started with `{ overlay: true }`, or call `Profiler.toggleOverlay()` manually.
+
+**Issue**: Memory metrics show "N/A"  
+**Solution**: Memory API only available in Chrome-based browsers. Use Chrome/Edge for memory profiling.
+
+**Issue**: No long tasks detected despite stuttering  
+**Solution**: Long tasks are only detected via `PerformanceObserver`. Check browser compatibility (Chrome 58+, Edge 79+).
+
+---
+
 ## 🔍 Performance Profiling
 
 ### Chrome DevTools Performance Tab
