@@ -69,5 +69,6 @@
   // === GIT ===
   "git.confirmSync": false,
   "git.autofetch": true,
-  "git.enableSmartCommit": true
+  "git.enableSmartCommit": true,
+  "cSpell.words": ["Flaticon", "Freepik", "iconos", "Metrónomo"]
 }

@@ -219,6 +219,7 @@
 - Users can **save, edit, rename, and delete** grooves
 - Saved to `localStorage` as JSON (lightweight, offline-ready)
 - Example stored structure:
+
   ```json
   {
     "userGrooves": {
@@ -234,6 +235,7 @@
     }
   }
   ```
+
 - Automatically reload last-used groove at startup
 - Optional _"Reset to Defaults"_ button
 
@@ -285,5 +287,5 @@
 
 ---
 
-> **Notes:** Optional features like visual-only mode, presets, and "about" modals are deferred to keep the app lightweight.  
+> **Notes:** Optional features like visual-only mode, presets, and "about" modals are deferred to keep the app lightweight.
 > All future additions should respect the offline-first, lightweight philosophy.

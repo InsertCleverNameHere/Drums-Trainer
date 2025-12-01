@@ -97,7 +97,7 @@ python -m http.server 8080
 
 ## 🧩 Project Structure
 
-```
+```bash
 📁 Drums-Trainer/
 ├── 📁 js/               # Core modules (ES6 modules)
 │   ├── main.js          # Entry point
