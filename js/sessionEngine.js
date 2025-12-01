@@ -5,11 +5,30 @@
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
 import { showNotice } from "./uiController.js";
+import { debugLog } from "./debug.js";
 
 let activeModeOwner = null; // "groove" | "simple" | null
 
+/**
+ * Sets the active mode owner (groove/simple/null).
+ * Dispatches 'metronome:ownerChanged' event.
+ *
+ * @param {string|null} owner - 'groove', 'simple', or null
+ * @returns {void}
+ */
 export function setActiveModeOwner(owner) {
-  activeModeOwner = owner || null;
+  const newOwner = owner || null;
+
+  // ✅ Only change if different (prevents spam)
+  if (newOwner === activeModeOwner) {
+    return; // No-op, don't dispatch event
+  }
+
+  const previous = activeModeOwner;
+  activeModeOwner = newOwner;
+
+  debugLog("ownership", `Owner changed: ${previous} → ${activeModeOwner}`);
+
   // dispatch a DOM event so other code can react immediately
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", {
@@ -18,6 +37,11 @@ export function setActiveModeOwner(owner) {
   );
 }
 
+/**
+ * Returns the current mode owner.
+ *
+ * @returns {string|null} 'groove', 'simple', or null
+ */
 export function getActiveModeOwner() {
   return activeModeOwner;
 }
@@ -29,7 +53,14 @@ let sessionConfig = {};
 let timers = {};
 let flags = {};
 
-// === Setup ===
+/**
+ * Initializes the session engine with metronome and UI dependencies.
+ *
+ * @param {Object} deps - Dependency injection object
+ * @param {Object} deps.metronome - Metronome core functions
+ * @param {Object} deps.ui - UI element references
+ * @returns {void}
+ */
 export function initSessionEngine(deps) {
   // Store injected dependencies
   metronome = deps.metronome;
@@ -75,20 +106,36 @@ export function initSessionEngine(deps) {
         "tempoSyncedCountIn",
         sessionConfig.tempoSynced ? "true" : "false"
       );
-      console.info("tempoSyncedCountIn set to", sessionConfig.tempoSynced);
+      debugLog(
+        "state",
+        `tempoSyncedCountIn set to ${sessionConfig.tempoSynced}`
+      );
     };
   } else {
-    console.warn("tempoSyncedToggle not found — no UI toggle available.");
+    debugLog(
+      "state",
+      "⚠️ tempoSyncedToggle not found — no UI toggle available"
+    );
   }
 }
 
-// === Public API ===
+/**
+ * Starts a groove training session.
+ * Handles ownership claim, count-in, and cycle timing.
+ *
+ * @returns {void}
+ * @example
+ * window.sessionEngine.startSession();
+ */
 export function startSession() {
   // Ownership guard: refuse to start groove if another owner is active
   const currentOwner =
     typeof getActiveModeOwner === "function" ? getActiveModeOwner() : null;
   if (currentOwner && currentOwner !== "groove") {
-    console.warn("Cannot start groove session: owner is", currentOwner);
+    debugLog(
+      "ownership",
+      `⚠️ Cannot start groove session: owner is ${currentOwner}`
+    );
     return false;
   }
 
@@ -104,7 +151,7 @@ export function startSession() {
   if (flags.sessionActive) {
     // ⏹️ Stop session if already running
     if (flags.isCountingIn || flags.isFinishingBar) {
-      console.warn("⏳ Cannot stop during countdown or finishing bar");
+      debugLog("state", "⚠️ Cannot stop during countdown or finishing bar");
       return;
     }
     stopSession("🛑 Stopped by user");
@@ -150,7 +197,7 @@ export function startSession() {
 
     timers.sessionInterval = setInterval(() => {
       if (flags.isPaused || flags.isCountingIn) {
-        console.log("⏳ Session tick skipped — counting in or paused");
+        debugLog("state", "⏳ Session tick skipped — counting in or paused");
         return;
       }
 
@@ -171,11 +218,13 @@ export function startSession() {
         ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
-          console.log(
+          debugLog(
+            "state",
             "🟡 Session time reached — requesting end of current bar..."
           );
           metronome.requestEndOfCycle(() => {
-            console.log(
+            debugLog(
+              "state",
               "✅ Final cycle finished cleanly — stopping session (time limit reached)."
             );
             setFinishingBar(false);
@@ -186,7 +235,8 @@ export function startSession() {
             ui.pauseBtn.disabled = true;
           });
         } else {
-          console.log(
+          debugLog(
+            "state",
             "🔴 requestEndOfCycle not available — stopping immediately."
           );
           setFinishingBar(false);
@@ -205,9 +255,14 @@ export function startSession() {
   }
 }
 
+/**
+ * Pauses the current session.
+ *
+ * @returns {void}
+ */
 export function pauseSession() {
   if (flags.isCountingIn || flags.isFinishingBar) {
-    console.warn("⏳ Cannot pause during countdown or finishing bar");
+    debugLog("state", "⚠️ Cannot pause during countdown or finishing bar");
     return;
   }
 
@@ -240,7 +295,7 @@ export function pauseSession() {
     }, 1000);
 
     ui.pauseBtn.textContent = "Pause";
-    console.log("▶️ Resumed metronome");
+    debugLog("state", "▶️ Resumed metronome");
   } else {
     // ⏸️ Pause
     flags.isPaused = true;
@@ -250,21 +305,27 @@ export function pauseSession() {
     flags.pausedRemaining = flags.remaining;
 
     ui.pauseBtn.textContent = "Resume";
-    console.log(
-      "⏸️ Paused metronome at " + flags.pausedRemaining + "s remaining"
+    debugLog(
+      "state",
+      `⏸️ Paused metronome at ${flags.pausedRemaining}s remaining`
     );
   }
 }
 
+/**
+ * Skips to the next groove immediately.
+ *
+ * @returns {void}
+ */
 export function nextCycle() {
   if (!flags.sessionActive) return;
 
   if (flags.isCountingIn || flags.isFinishingBar) {
-    console.warn("⏭️ Cannot skip during countdown or finishing bar");
+    debugLog("state", "⚠️ Cannot skip during countdown or finishing bar");
     return;
   }
 
-  console.log("⏭️ Skipping to next cycle");
+  debugLog("state", "⏭️ Skipping to next cycle");
 
   metronome.pauseMetronome();
   metronome.resetPlaybackFlag(); // ✅ allows clean restart
@@ -279,6 +340,12 @@ export function nextCycle() {
   // updateButtonStates(); // optional, once implemented
 }
 
+/**
+ * Stops the session gracefully.
+ *
+ * @param {string} [message=''] - Reason for stopping
+ * @returns {void}
+ */
 export function stopSession(message = "") {
   // Ownership release: clear active mode owner
   if (typeof setActiveModeOwner === "function") setActiveModeOwner(null);
@@ -343,7 +410,7 @@ export function stopSession(message = "") {
     step: "",
   });
 
-  console.log(message || "Session stopped");
+  debugLog("state", message || "Session stopped");
   // Re-enable groove slider when session stops
   if (typeof window.toggleGrooveSliderDisabled === "function") {
     window.toggleGrooveSliderDisabled(false);
@@ -352,7 +419,23 @@ export function stopSession(message = "") {
 
 // === Internal Helpers ===
 
-// Starts a new cycle with randomized groove and BPM, handles count-in and timers
+/**
+ * Starts a new cycle with randomized groove and BPM, handles count-in and timers.
+ *
+ * This is the heart of the session engine - it:
+ * - Sanitizes BPM range
+ * - Randomizes groove and tempo
+ * - Plays count-in (if enabled)
+ * - Starts metronome
+ * - Manages cycle countdown
+ *
+ * @private
+ * @returns {void}
+ *
+ * @example
+ * // Called internally after session start or cycle completion
+ * runCycle(); // Picks random groove, plays count-in, starts metronome
+ */
 function runCycle() {
   // Check the toggle status at the start of the cycle
   const checkbox = document.getElementById("tempoSyncedToggle");
@@ -397,14 +480,15 @@ function runCycle() {
   ui.bpmMinEl.value = bpmMin;
   ui.bpmMaxEl.value = bpmMax;
 
-  // ✅ Notify user if the range was changed by quantization or clamping
+  // Notify user if the range was changed by quantization or clamping
   if (bpmMin !== originalMin || bpmMax !== originalMax) {
     if (typeof showNotice === "function") {
       showNotice(
         `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
       );
     } else {
-      console.info(
+      debugLog(
+        "state",
         `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
       );
     }
@@ -512,8 +596,23 @@ function runCycle() {
   }
 }
 
-// Called after a cycle finishes — updates state and starts next if needed
+/**
+ * Called after a cycle finishes — updates state and starts next if needed.
+ *
+ * Handles:
+ * - Incrementing cycle counter
+ * - Checking session limits
+ * - Triggering next cycle or stopping
+ *
+ * @public
+ * @returns {void}
+ *
+ * @example
+ * // Called internally after cycle timer reaches zero
+ * completeCycle(); // Increments counter, checks limits, continues or stops
+ */
 export function completeCycle() {
+  debugLog("state", `Cycle complete: ${flags.cyclesDone + 1}`);
   setFinishingBar(false);
   flags.cyclesDone++;
   ui.cyclesDoneEl.textContent = flags.cyclesDone;
@@ -540,8 +639,22 @@ export function completeCycle() {
   runCycle(); // Start next cycle
 }
 
-// Toggles the finishing bar badge and disables Next button during final bar
+/**
+ * Toggles the finishing bar badge and disables Next button during final bar.
+ *
+ * Visual feedback that the current measure is ending and session will stop/continue
+ * after the bar completes.
+ *
+ * @private
+ * @param {boolean} flag - True to show badge and disable Next, false to hide
+ * @returns {void}
+ *
+ * @example
+ * setFinishingBar(true);  // Shows "Finishing bar..." badge
+ * setFinishingBar(false); // Hides badge, re-enables Next button
+ */
 function setFinishingBar(flag) {
+  debugLog("state", `Finishing bar: ${flag ? "ACTIVE" : "CLEARED"}`);
   flags.isFinishingBar = Boolean(flag);
   if (ui.finishingBadgeEl)
     ui.finishingBadgeEl.classList.toggle("visible", flags.isFinishingBar);
@@ -549,7 +662,19 @@ function setFinishingBar(flag) {
   if (ui.nextBtn) ui.nextBtn.disabled = flags.isFinishingBar; // 🔒 Disable Next button during finishing bar
 }
 
-// Updates countdown badge with current step (3, 2, 1)
+/**
+ * Updates countdown badge with current step (3, 2, 1).
+ *
+ * Delegates to visuals.js for animation handling.
+ *
+ * @private
+ * @param {number} step - Count-in step (3, 2, or 1)
+ * @returns {void}
+ *
+ * @example
+ * showCountdownVisual(3); // Displays "3" with fade-in animation
+ * showCountdownVisual(1); // Displays "1"
+ */
 function showCountdownVisual(step) {
   visuals.updateCountdownBadge(document.getElementById("countdownBadge"), {
     step,
@@ -557,6 +682,17 @@ function showCountdownVisual(step) {
   });
 }
 
+/**
+ * Checks if a session is currently active.
+ *
+ * @public
+ * @returns {boolean} True if session is running (even if paused), false otherwise
+ *
+ * @example
+ * if (isSessionActive()) {
+ *   console.log("Session in progress");
+ * }
+ */
 export function isSessionActive() {
   return !!flags.sessionActive;
 }

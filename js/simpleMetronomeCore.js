@@ -1,6 +1,13 @@
 // js/simpleMetronomeCore.js
 // Lightweight isolated metronome core for the simple metronome panel.
 // API-compatible with the existing metronomeCore functions used by the app.
+import { debugLog, DebugTimer } from "./debug.js";
+import {
+  BPM_HARD_LIMITS,
+  BPM_DEFAULTS,
+  SCHEDULER_CONFIG,
+  COUNT_IN_CONFIG,
+} from "./constants.js";
 import {
   playTick as playProfileTick,
   ensureAudio,
@@ -20,14 +27,20 @@ let bpm = 120;
 let timeSignature = { beats: 4, value: 4 };
 let ticksPerBeat = 1;
 
-const scheduleAheadTime = 0.1;
-const schedulerIntervalMs = 25;
-const adjustmentPauseMs = 1700;
+const scheduleAheadTime = SCHEDULER_CONFIG.SCHEDULE_AHEAD_TIME;
+const schedulerIntervalMs = SCHEDULER_CONFIG.SIMPLE_SCHEDULER_INTERVAL_MS;
+const adjustmentPauseMs = SCHEDULER_CONFIG.ADJUSTMENT_PAUSE_MS;
 
 let onBeatVisual = () => {};
 let endOfCycleRequested = false;
 let onCycleComplete = null;
 
+/**
+ * Registers a visual callback to be triggered on each beat.
+ * 
+ * @param {Function} cb - Callback function receiving (tickIndex, isPrimaryAccent, isMainBeat)
+ * @returns {void}
+ */
 export function registerVisualCallback(cb) {
   if (typeof cb === "function") onBeatVisual = cb;
 }
@@ -40,6 +53,7 @@ function playTick(isAccent) {
 }
 
 function scheduleNote() {
+  const timer = new DebugTimer("scheduleNote", "audio");
   const totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
   const tickInMeasure = tickIndex % totalTicksInMeasure;
 
@@ -48,6 +62,11 @@ function scheduleNote() {
 
   // The primary accent is ALWAYS the very first tick of the measure.
   const isPrimaryAccent = tickInMeasure === 0;
+
+  debugLog(
+    "audio",
+    `Scheduling tick ${tickIndex} (measure tick ${tickInMeasure})`
+  );
 
   // --- CORRECTED LOGIC ---
   // We play a sound for EVERY tick.
@@ -83,11 +102,12 @@ function scheduleNote() {
       schedulerTimer = null;
     }
 
-    console.log("🟢 Cycle finished cleanly at bar boundary.");
+    debugLog("state", "🟢 Cycle finished cleanly at bar boundary.");
 
     if (typeof onCycleComplete === "function") {
       try {
-        console.info(
+        debugLog(
+          "state",
           `⏸️ Scheduling ${adjustmentPauseMs}ms adjustment pause before cycle-complete callback.`
         );
         setTimeout(() => {
@@ -102,6 +122,7 @@ function scheduleNote() {
       }
     }
   }
+  timer.end();
 }
 
 function scheduler() {
@@ -120,13 +141,23 @@ function stopInternalScheduling() {
   }
 }
 
+/**
+ * Starts the simple metronome audio scheduler.
+ * 
+ * @param {number} [newBpm=120] - Tempo in beats per minute (30-300)
+ * @returns {void}
+ */
 export function startMetronome(newBpm = 120) {
   if (isPlaying) {
-    console.warn("simpleMetronomeCore: already playing");
+    debugLog("audio", "⚠️ simpleMetronomeCore: already playing");
     return;
   }
   audioCtx = ensureAudio();
-  bpm = Math.max(20, Math.min(400, Number(newBpm) || bpm));
+  // Enforce hard limits (allow any integer within range)
+  bpm = Math.max(
+    BPM_HARD_LIMITS.MIN,
+    Math.min(BPM_HARD_LIMITS.MAX, Number(newBpm) || bpm)
+  );
   tickIndex = 0;
 
   // UPDATED: Use the new formula for the initial tick scheduling
@@ -137,16 +168,27 @@ export function startMetronome(newBpm = 120) {
   isPlaying = true;
   isPaused = false;
   scheduler();
-  console.log(
+  debugLog(
+    "audio",
     `simpleMetronomeCore started at ${bpm} BPM (ticksPerBeat=${ticksPerBeat})`
   );
 }
 
+/**
+ * Stops the simple metronome and clears all timers.
+ * 
+ * @returns {void}
+ */
 export function stopMetronome() {
   stopInternalScheduling();
-  console.log("simpleMetronomeCore stopped");
+  debugLog("audio", "simpleMetronomeCore stopped");
 }
 
+/**
+ * Pauses audio scheduling without resetting state.
+ * 
+ * @returns {void}
+ */
 export function pauseMetronome() {
   if (!isPlaying || isPaused) return;
   isPaused = true;
@@ -155,58 +197,97 @@ export function pauseMetronome() {
     schedulerTimer = null;
   }
   pauseAudioOffset = nextNoteTime - (audioCtx ? audioCtx.currentTime : 0);
-  console.info("simpleMetronomeCore paused");
+  debugLog("audio", "⏸️ simpleMetronomeCore paused");
 }
 
+/**
+ * Resumes audio scheduling from paused state.
+ * 
+ * @returns {void}
+ */
 export function resumeMetronome() {
   if (!isPaused || !audioCtx) return;
   isPaused = false;
   nextNoteTime = audioCtx.currentTime + pauseAudioOffset;
   scheduler();
-  console.info("simpleMetronomeCore resumed");
+  debugLog("audio", "▶️ simpleMetronomeCore resumed");
 }
 
+/**
+ * Plays a 3-2-1 count-in using procedural audio.
+ * 
+ * @param {number} [nextBpm=120] - Tempo for count-in timing
+ * @param {boolean} [tempoSynced=true] - Use tempo-based intervals
+ * @returns {Promise<void>} Resolves when count-in completes
+ */
 export function performCountIn(nextBpm = 120, tempoSynced = true) {
-  const steps = 3;
-  const intervalMs = tempoSynced ? 60000 / Math.max(1, nextBpm) : 1000;
+  const steps = COUNT_IN_CONFIG.STEPS;
+  const intervalMs = tempoSynced
+    ? 60000 / Math.max(1, nextBpm)
+    : COUNT_IN_CONFIG.FIXED_INTERVAL_MS;
   return new Promise((resolve) => {
     ensureAudio();
-    const now = audioCtx.currentTime + 0.02;
+    const now = audioCtx.currentTime + COUNT_IN_CONFIG.HEADROOM_SECONDS;
     for (let i = 0; i < steps; i++) {
       const t = now + (i * intervalMs) / 1000;
       const osc = audioCtx.createOscillator();
       const envelope = audioCtx.createGain();
       if (i === 0) {
-        osc.frequency.value = 700;
-        envelope.gain.value = 0.22;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
         osc.type = "sine";
       } else if (i === 1) {
-        osc.frequency.value = 1400;
-        envelope.gain.value = 0.25;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
         osc.type = "sine";
       } else {
-        osc.frequency.value = 1600;
-        envelope.gain.value = 0.3;
+        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
+        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
       }
       osc.connect(envelope);
       envelope.connect(audioCtx.destination);
       osc.start(t);
-      osc.stop(t + (i === 1 ? 0.09 : 0.06));
+      osc.stop(t + COUNT_IN_CONFIG.STEP_DURATIONS[i]);
     }
     setTimeout(() => resolve(), Math.ceil(intervalMs * steps) + 30);
   });
 }
 
+/**
+ * Requests graceful stop at next bar boundary.
+ * 
+ * @param {Function} callback - Called after bar completes
+ * @returns {void}
+ */
 export function requestEndOfCycle(callback) {
   if (!isPlaying || endOfCycleRequested) return;
   endOfCycleRequested = true;
   if (typeof callback === "function") onCycleComplete = callback;
-  console.log("simpleMetronomeCore: end-of-cycle requested");
+  debugLog("state", "⏳ simpleMetronomeCore: end-of-cycle requested");
 }
 
-// --- NEW time signature and subdivision config ---
-
+/**
+ * Updates the time signature (e.g., 4/4, 7/8).
+ * Blocked during active playback.
+ * 
+ * @param {number} beats - Numerator (1-16)
+ * @param {number} value - Denominator (2, 4, 8, or 16)
+ * @returns {void}
+ */
 export function setTimeSignature(beats, value) {
+  // 🛡️ GUARD: Block changes during active playback
+  if (isPlaying && !isPaused) {
+    debugLog(
+      "state",
+      "⚠️ setTimeSignature blocked - Simple metronome is playing"
+    );
+    return;
+  }
+
+  debugLog(
+    "state",
+    `Time signature changing: ${timeSignature.beats}/${timeSignature.value} → ${beats}/${value}`
+  );
   const newBeats = Math.max(1, Math.round(beats));
   const newValue = [2, 4, 8, 16].includes(value) ? value : 4; // Sanitize value
 
@@ -225,37 +306,85 @@ export function setTimeSignature(beats, value) {
 
   if (denominatorChanged) {
     setTicksPerBeat(1);
-    console.log(
+    debugLog(
+      "state",
       `Time signature set to ${timeSignature.beats}/${timeSignature.value}, subdivisions reset`
     );
   } else {
-    console.log(
+    debugLog(
+      "state",
       `Time signature set to ${timeSignature.beats}/${timeSignature.value}, subdivisions preserved`
     );
   }
+  debugLog(
+    "state",
+    `Time signature set to ${timeSignature.beats}/${timeSignature.value}`
+  );
 }
 
+/**
+ * Returns the current time signature.
+ * 
+ * @returns {{beats: number, value: number}} Time signature object
+ */
 export function getTimeSignature() {
   return { ...timeSignature }; // Return a copy
 }
 
+/**
+ * Sets subdivision level (1=none, 2=8ths, 4=16ths).
+ * Blocked during active playback.
+ * 
+ * @param {number} n - Ticks per beat
+ * @returns {void}
+ */
 export function setTicksPerBeat(n) {
+  // 🛡️ GUARD: Block changes during active playback
+  if (isPlaying && !isPaused) {
+    debugLog(
+      "state",
+      "⚠️ setTicksPerBeat blocked - Simple metronome is playing"
+    );
+    return;
+  }
+
   ticksPerBeat = Math.max(1, Math.round(n));
-  console.log(`simpleMetronomeCore: ticksPerBeat set to ${ticksPerBeat}`);
+  debugLog("state", `simpleMetronomeCore: ticksPerBeat set to ${ticksPerBeat}`);
 }
 
+/**
+ * Returns the current subdivision level.
+ * 
+ * @returns {number} Ticks per beat
+ */
 export function getTicksPerBeat() {
   return ticksPerBeat;
 }
 
+/**
+ * Returns the current tempo.
+ * 
+ * @returns {number} Current BPM
+ */
 export function getBpm() {
   return bpm;
 }
 
+/**
+ * Returns whether the metronome is paused.
+ * 
+ * @returns {boolean} True if paused
+ */
 export function getPauseState() {
   return !!isPaused;
 }
 
+/**
+ * Resets the playback flag.
+ * 
+ * @returns {void}
+ * @internal
+ */
 export function resetPlaybackFlag() {
   isPlaying = false;
 }

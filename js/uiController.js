@@ -1,6 +1,12 @@
 // uiController.js
 // Depends on metronomeCore functions passed in at init.
 
+import { debugLog } from "./debug.js";
+import {
+  INPUT_LIMITS,
+  getUserQuantizationPreference,
+  VISUAL_TIMING,
+} from "./constants.js";
 import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
@@ -27,12 +33,14 @@ if (typeof window.QUANTIZATION === "undefined") {
 
 // Initialization function to sanitize and set defaults
 export function initQuantization() {
-  if (!window.QUANTIZATION) window.QUANTIZATION = {};
+  if (!window.QUANTIZATION)
+    window.QUANTIZATION = { groove: getUserQuantizationPreference() };
 
   // Auto-correct using utils.sanitizeQuantizationStep
   const safeGroove = utils.sanitizeQuantizationStep(window.QUANTIZATION.groove);
   if (safeGroove !== window.QUANTIZATION.groove) {
-    console.warn(
+    debugLog(
+      "state",
       `⚠️ Corrected invalid QUANTIZATION.groove from ${window.QUANTIZATION.groove} → ${safeGroove}`
     );
     window.QUANTIZATION.groove = safeGroove;
@@ -49,7 +57,7 @@ export function initDarkMode() {
   const moonIcon = document.querySelector(".moon-svg");
 
   if (!btn || !sunIcon || !moonIcon) {
-    console.warn("⚠️ Dark mode button elements not found in DOM");
+    debugLog("state", "⚠️ Dark mode button elements not found in DOM");
     return;
   }
 
@@ -75,7 +83,8 @@ export function initDarkMode() {
     isDark ? "dark" : "light"
   );
 
-  console.info(
+  debugLog(
+    "state",
     `🌙 Dark mode initialized: ${isDark ? "ON" : "OFF"} (${
       saved !== null ? "saved preference" : "system default"
     })`
@@ -97,7 +106,7 @@ export function initDarkMode() {
     );
     localStorage.setItem("darkMode", newIsDark ? "true" : "false");
 
-    console.info(`🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
+    debugLog("state", `🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
 
     // Remove animation after it completes
     setTimeout(() => {
@@ -116,7 +125,8 @@ export function initDarkMode() {
           "data-theme",
           e.matches ? "dark" : "light"
         );
-        console.info(
+        debugLog(
+          "state",
           `🌙 Dark mode auto-switched to system preference: ${
             e.matches ? "ON" : "OFF"
           }`
@@ -136,12 +146,15 @@ export function getSafeQuantization() {
   // If the sanitized value differs, fix it in place
   if (safeGroove !== window.QUANTIZATION.groove) {
     window.QUANTIZATION.groove = safeGroove;
-    console.warn(
-      `💡 Quantization groove corrected to safe value: ${safeGroove}`
+    debugLog(
+      "state",
+      `⚠️ Quantization groove corrected to safe value: ${safeGroove}`
     );
   }
 
-  return window.QUANTIZATION;
+  return {
+    groove: getUserQuantizationPreference(),
+  };
 }
 
 // Auto-run after DOM is ready
@@ -156,7 +169,7 @@ if (document.readyState === "loading") {
 export function initOwnershipGuards() {
   const startBtn = document.getElementById("startBtn");
   if (!startBtn) {
-    console.warn("⚠️ Start button not found for ownership guard");
+    debugLog("state", "⚠️ Start button not found for ownership guard");
     return;
   }
 
@@ -171,9 +184,9 @@ export function initOwnershipGuards() {
       if (owner && owner !== "groove") {
         ev.preventDefault();
         ev.stopImmediatePropagation();
-        console.warn(
-          "🚫 Cannot start Groove metronome — current owner:",
-          owner
+        debugLog(
+          "ownership",
+          `🚫 Cannot start Groove metronome — current owner: ${owner}`
         );
         return;
       }
@@ -186,7 +199,6 @@ export function initOwnershipGuards() {
 // Hotkey handling early
 let _hotkeyLock = false;
 window.__adjustingTarget = window.__adjustingTarget || "min";
-let adjustingTarget = "min";
 
 // Global hotkeys: owner-first; arrows repeatable
 window.addEventListener("keydown", (event) => {
@@ -218,7 +230,7 @@ window.addEventListener("keydown", (event) => {
   if (!allowRepeat) {
     if (_hotkeyLock) return;
     _hotkeyLock = true;
-    setTimeout(() => (_hotkeyLock = false), 120);
+    setTimeout(() => (_hotkeyLock = false), VISUAL_TIMING.HOTKEY_LOCK_MS);
   }
 
   if (
@@ -290,7 +302,10 @@ window.addEventListener("keydown", (event) => {
     adj.dispatchEvent(new Event("change", { bubbles: true }));
 
     adj.classList.add("bpm-flash");
-    setTimeout(() => adj.classList.remove("bpm-flash"), 150);
+    setTimeout(
+      () => adj.classList.remove("bpm-flash"),
+      VISUAL_TIMING.FLASH_DURATION_MS
+    );
   };
 
   const adjustSimpleBpm = (delta) => {
@@ -314,12 +329,20 @@ window.addEventListener("keydown", (event) => {
       simpleMetronome.setBpm(next);
     }
     el.classList.add("bpm-flash");
-    setTimeout(() => el.classList.remove("bpm-flash"), 150);
+    setTimeout(
+      () => el.classList.remove("bpm-flash"),
+      VISUAL_TIMING.BPM_CHANGE_FLASH_MS
+    );
     el.dispatchEvent(new Event("change", { bubbles: true }));
   };
 
+  debugLog(
+    "hotkeys",
+    `Key pressed: ${code}, owner: ${owner}, target: ${target}`
+  );
   switch (code) {
     case "Space":
+      debugLog("hotkeys", `Space pressed - ${target} mode`);
       if (target === "groove") {
         if (!grooveStartBtn || grooveStartBtn.disabled) break;
         grooveStartBtn.click();
@@ -345,6 +368,7 @@ window.addEventListener("keydown", (event) => {
       break;
 
     case "KeyP":
+      debugLog("hotkeys", `P pressed - ${target} mode`);
       if (target === "groove") {
         if (typeof sessionEngine.pauseSession === "function")
           sessionEngine.pauseSession();
@@ -367,32 +391,51 @@ window.addEventListener("keydown", (event) => {
       break;
 
     case "KeyN":
+      debugLog("hotkeys", `N pressed - ${target} mode`);
       if (grooveNextBtn && !grooveNextBtn.disabled) grooveNextBtn.click();
       break;
 
     case "KeyH":
+      debugLog("hotkeys", `H pressed - ${target} mode`);
       document.dispatchEvent(new Event("toggleTooltip"));
       break;
 
     case "ArrowRight":
-      window.__adjustingTarget = "max";
-      console.log("🎚️ Adjusting target: MAX BPM");
-      break;
+    case "ArrowLeft": {
+      // ✅ GUARD: Only allow target switching in Groove mode
+      const groovePanel = document.getElementById("panel-groove");
+      const isGrooveVisible =
+        groovePanel && !groovePanel.classList.contains("hidden");
 
-    case "ArrowLeft":
-      window.__adjustingTarget = "min";
-      console.log("🎚️ Adjusting target: MIN BPM");
+      if (!isGrooveVisible) {
+        debugLog("hotkeys", `⚠️ Left/Right arrow blocked - not in Groove mode`);
+        return;
+      }
+
+      const newTarget = code === "ArrowRight" ? "max" : "min";
+      window.__adjustingTarget = newTarget;
+      debugLog(
+        "hotkeys",
+        `🎚️ Adjusting target: ${newTarget.toUpperCase()} BPM`
+      );
       break;
+    }
 
     case "ArrowUp":
-      if (target === "groove") adjustGrooveInput(+1);
-      else adjustSimpleBpm(+1);
-      break;
+    case "ArrowDown": {
+      // ✅ GUARD: Block BPM changes during playback
+      const owner = sessionEngine.getActiveModeOwner();
+      if (owner) {
+        debugLog("hotkeys", `⚠️ BPM adjustment blocked - ${owner} is active`);
+        showNotice("⚠️ Cannot adjust BPM during playback");
+        return;
+      }
 
-    case "ArrowDown":
-      if (target === "groove") adjustGrooveInput(-1);
-      else adjustSimpleBpm(-1);
+      const delta = code === "ArrowUp" ? +1 : -1;
+      if (target === "groove") adjustGrooveInput(delta);
+      else adjustSimpleBpm(delta);
       break;
+    }
   }
 });
 
@@ -594,11 +637,12 @@ export function initUI(deps) {
         "tempoSyncedCountIn",
         tempoSynced ? "true" : "false"
       );
-      console.info("tempoSyncedCountIn set to", tempoSynced);
+      debugLog("state", "tempoSyncedCountIn set to", tempoSynced);
     };
   } else {
-    console.warn(
-      "tempoSyncedToggle not found in DOM — count-in preference will still work but no UI toggle is available."
+    debugLog(
+      "state",
+      "⚠️ tempoSyncedToggle not found in DOM — count-in preference will still work but no UI toggle is available."
     );
   }
 
@@ -668,7 +712,7 @@ export function initSoundProfileUI() {
   const simpleProfileEl = document.getElementById("soundProfileSimple");
 
   if (!grooveProfileEl || !simpleProfileEl) {
-    console.warn("⚠️ Sound profile dropdowns not found in DOM");
+    debugLog("state", "⚠️ Sound profile dropdowns not found in DOM");
     return;
   }
 
@@ -686,7 +730,7 @@ export function initSoundProfileUI() {
     simpleProfileEl.value = profileName;
     audioProfiles.setActiveProfile(profileName);
     localStorage.setItem("activeSoundProfile", profileName); // Save to localStorage
-    console.log(`🎚 Sound profile set to: ${profileName}`);
+    debugLog("state", `🎚 Sound profile set to: ${profileName}`);
   }
 
   // Load persisted profile first
@@ -717,7 +761,7 @@ export function initPanningModeUI() {
   );
 
   if (!grooveToggle || !simpleToggle) {
-    console.warn("⚠️ Panning mode toggles not found in DOM");
+    debugLog("state", "⚠️ Panning mode toggles not found in DOM");
     return;
   }
 
@@ -729,7 +773,8 @@ export function initPanningModeUI() {
 
   // If corrupted, fix it immediately
   if (!isValidStored && stored !== null) {
-    console.warn(
+    debugLog(
+      "state",
       "⚠️ Corrupted intelligentPanningMode value, resetting to default (true)"
     );
     localStorage.setItem("intelligentPanningMode", "true");
@@ -755,7 +800,10 @@ export function initPanningModeUI() {
       })
     );
 
-    console.info(`🎯 Panning mode: ${sourceValue ? "Intelligent" : "Forced"}`);
+    debugLog(
+      "state",
+      `🎯 Panning mode: ${sourceValue ? "Intelligent" : "Forced"}`
+    );
   }
 
   // Wire up listeners
@@ -785,7 +833,8 @@ export function initSimplePanelControls() {
   const ownerPanelEventTarget = document;
 
   if (!startBtn) {
-    console.warn(
+    debugLog(
+      "state",
       "⚠️ simpleStartBtn not found; check DOM ID or ensure this script runs after the element."
     );
     return;
@@ -817,10 +866,9 @@ export function initSimplePanelControls() {
         ? sessionEngine.getActiveModeOwner()
         : null;
     if (owner && owner !== "simple") {
-      console.warn(
-        "🚫 Cannot start simple metronome while",
-        owner,
-        "is active"
+      debugLog(
+        "state",
+        `🚫 Cannot start simple metronome while ${owner} is active`
       );
       return;
     }
@@ -875,7 +923,7 @@ export function initSimplePanelControls() {
       const isRunning = simpleMetronome.isRunning?.();
       const isPaused = simpleMetronome.isPaused?.();
       if (isRunning && !isPaused) {
-        console.warn("🚫 Tap tempo only works when stopped or paused.");
+        debugLog("hotkeys", "⚠️ Tap tempo only works when stopped or paused");
         return;
       }
 
@@ -896,7 +944,7 @@ export function initSimplePanelControls() {
           setTimeout(() => bpmInput.classList.remove("bpm-flash"), 150);
         }
 
-        console.log(`🎯 Tap Tempo BPM set to ${newBpm}`);
+        debugLog("state", `🎯 Tap Tempo BPM set to ${newBpm}`);
       }
     });
   }
@@ -915,7 +963,7 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
   const panelMet = document.getElementById("panel-metronome");
 
   if (!tabGroove || !tabMet || !panelGroove || !panelMet) {
-    console.warn("⚠️ Mode tab elements not found in DOM");
+    debugLog("state", "⚠️ Mode tab elements not found in DOM");
     return;
   }
 
@@ -1078,14 +1126,12 @@ export function updateFooterMessage(
     setTimeout(() => {
       footerEl.classList.add("footer-hidden");
       footerEl.style.visibility = "hidden";
-    }, 600); // match transition duration
-  }, 5000);
+    }, VISUAL_TIMING.FOOTER_FADE_OUT_MS); // match transition duration
+  }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
 
   if (!suppressMessage) {
     localStorage.setItem(key, shownCount + 1);
   }
-  if (typeof window !== "undefined")
-    window.updateFooterMessage = updateFooterMessage;
 }
 
 // =====================================
@@ -1183,7 +1229,7 @@ export function initUpdateUI() {
     setTimeout(() => {
       footerEl.classList.add("footer-hidden");
       footerEl.style.visibility = "hidden";
-    }, 600);
+    }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
   });
 
   // --- Check updates button (manual fetch + UI) ---
@@ -1205,8 +1251,8 @@ export function initUpdateUI() {
         setTimeout(() => {
           footerEl.classList.add("footer-hidden");
           footerEl.style.visibility = "hidden";
-        }, 600);
-      }, 5000);
+        }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+      }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
       return;
     }
 
@@ -1255,8 +1301,8 @@ export function initUpdateUI() {
                   setTimeout(() => {
                     footerEl.classList.add("footer-hidden");
                     footerEl.style.visibility = "hidden";
-                  }, 600);
-                }, 4000);
+                  }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+                }, VISUAL_TIMING.FOOTER_CANCELED_DISPLAY_MS);
               });
             }
           } else {
@@ -1272,8 +1318,8 @@ export function initUpdateUI() {
               setTimeout(() => {
                 footerEl.classList.add("footer-hidden");
                 footerEl.style.visibility = "hidden";
-              }, 600);
-            }, 5000);
+              }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+            }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
           }
 
           if (spinnerShown) {
@@ -1291,7 +1337,7 @@ export function initUpdateUI() {
       })
       .catch((err) => {
         clearTimeout(spinnerTimeout);
-        console.warn("Manual update check failed:", err);
+        debugLog("state", `⚠️ Manual update check failed: ${err.message}`);
 
         const showError = () => {
           footerEl.innerHTML = `⚠️ Could not check for updates — network error`;
@@ -1306,8 +1352,8 @@ export function initUpdateUI() {
             setTimeout(() => {
               footerEl.classList.add("footer-hidden");
               footerEl.style.visibility = "hidden";
-            }, 600);
-          }, 5000);
+            }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+          }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
 
           if (spinnerShown) {
             setTimeout(() => {
@@ -1328,32 +1374,6 @@ export function initUpdateUI() {
 // =============================================================
 // Input Validation Logic (strict numeric enforcement)
 // =============================================================
-
-// Define input constraints per field (from index.html)
-const INPUT_LIMITS = {
-  bpmMin: { min: 5, max: 300, defaultValue: 30 },
-  bpmMax: { min: 5, max: 300, defaultValue: 60 },
-  cycleDuration: { min: 1, max: 9999, defaultValue: 60 },
-  totalCycles: { min: 1, max: 9999, defaultValue: 5 },
-  totalTime: { min: 1, max: 9999, defaultValue: 300 },
-  simpleBpm: { min: 20, max: 300, defaultValue: 120 },
-
-  // --- NEW VALIDATION RULES ---
-  grooveCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
-  grooveCustomDenominator: {
-    min: 2,
-    max: 16,
-    defaultValue: 4,
-    allowed: [2, 4, 8, 16],
-  },
-  simpleCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
-  simpleCustomDenominator: {
-    min: 2,
-    max: 16,
-    defaultValue: 4,
-    allowed: [2, 4, 8, 16],
-  },
-};
 
 // Validate and sanitize numeric input
 function validateNumericInput(input) {
@@ -1408,7 +1428,10 @@ function attachInputValidation() {
       if (cleaned === limits.defaultValue && !/^[1-9]\\d*$/.test(text)) {
         e.preventDefault();
         input.classList.add("invalid-flash");
-        setTimeout(() => input.classList.remove("invalid-flash"), 400);
+        setTimeout(
+          () => input.classList.remove("invalid-flash"),
+          VISUAL_TIMING.INVALID_INPUT_FLASH_MS
+        );
       } else {
         e.preventDefault();
         input.value = cleaned;
@@ -1679,3 +1702,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+/**
+ * Updates BPM input step attributes based on user preference
+ * TODO: Call this when user changes quantization setting in future
+ */
+export function updateBpmInputSteps() {
+  const step = getUserQuantizationPreference();
+
+  const inputs = [
+    document.getElementById("bpmMin"),
+    document.getElementById("bpmMax"),
+    document.getElementById("simpleBpm"),
+  ];
+
+  inputs.forEach((input) => {
+    if (input?.hasAttribute("data-dynamic-step")) {
+      input.setAttribute("step", step);
+    }
+  });
+
+  // Also update noUiSlider configurations if they support dynamic step
+  // TODO: Research if noUiSlider supports runtime step changes
+  debugLog("state", `Updated BPM input steps to ${step}`);
+}

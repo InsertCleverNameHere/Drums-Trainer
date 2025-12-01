@@ -1,9 +1,14 @@
 // js/simpleMetronome.js
-// Simple metronome UI module backed by js/simpleMetronomeCore.js
+/**
+ * @fileoverview Simple metronome UI module backed by simpleMetronomeCore.js.
+ * Manages UI state, button logic, and ownership coordination for the simple metronome panel.
+ * @module simpleMetronome
+ */
 
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
+import { debugLog } from "./debug.js";
 import * as utils from "./utils.js";
 
 export const core = simpleCore;
@@ -33,6 +38,17 @@ function updateSimpleDisplayBpm() {
   el.textContent = `BPM: ${bpm || "—"}`;
 }
 
+/**
+ * Initializes the simple metronome module.
+ * 
+ * @public
+ * @param {Object} [opts={}] - Configuration options
+ * @param {number} [opts.initialBpm] - Initial BPM value
+ * @returns {void}
+ * 
+ * @example
+ * initSimpleMetronome({ initialBpm: 120 });
+ */
 export function initSimpleMetronome(opts = {}) {
   if (opts.initialBpm) bpm = Number(opts.initialBpm) || bpm;
 
@@ -56,25 +72,74 @@ document.addEventListener("metronome:ownerChanged", (e) => {
   if (owner && owner !== "simple" && running) {
     try {
       stop();
-      console.info("simpleMetronome stopped because owner changed to", owner);
+      debugLog(
+        "ownership",
+        "simpleMetronome stopped because owner changed to",
+        owner
+      );
     } catch (err) {
-      console.warn("simpleMetronome failed to stop on owner change:", err);
+      debugLog(
+        "ownership",
+        "simpleMetronome failed to stop on owner change:",
+        err
+      );
     }
   }
 });
 
+/**
+ * Checks if simple metronome is currently running.
+ * 
+ * @public
+ * @returns {boolean} True if running (even if paused)
+ * 
+ * @example
+ * if (isRunning()) {
+ *   console.log('Simple metronome is active');
+ * }
+ */
 export function isRunning() {
   return running;
 }
 
+/**
+ * Checks if simple metronome is currently paused.
+ * 
+ * @public
+ * @returns {boolean} True if paused
+ * 
+ * @example
+ * if (isPaused()) {
+ *   console.log('Simple metronome is paused');
+ * }
+ */
 export function isPaused() {
   return paused;
 }
 
+/**
+ * Returns current BPM.
+ * 
+ * @public
+ * @returns {number} Current tempo
+ * 
+ * @example
+ * const tempo = getBpm(); // 120
+ */
 export function getBpm() {
   return bpm;
 }
 
+/**
+ * Updates tempo and syncs with UI input.
+ * 
+ * @public
+ * @param {number} newBpm - New tempo (20-300)
+ * @returns {number} Clamped BPM value
+ * 
+ * @example
+ * setBpm(140); // Sets tempo to 140 BPM
+ */
 export function setBpm(newBpm) {
   const n = Number(newBpm);
   if (Number.isFinite(n) && n >= 20 && n <= 300) bpm = n;
@@ -95,13 +160,26 @@ export function setBpm(newBpm) {
   return bpm;
 }
 
+/**
+ * Starts the simple metronome.
+ * Claims ownership and starts audio core.
+ * 
+ * @public
+ * @returns {Promise<boolean>} Success/failure
+ * 
+ * @example
+ * await start(); // Starts metronome at current BPM
+ */
 export function start() {
   const owner =
     typeof sessionEngine.getActiveModeOwner === "function"
       ? sessionEngine.getActiveModeOwner()
       : null;
   if (owner && owner !== "simple") {
-    console.warn("Cannot start simple metronome: owner is", owner);
+    debugLog(
+      "ownership",
+      `⚠️ Cannot start simple metronome: owner is ${owner}`
+    );
     return Promise.resolve(false);
   }
 
@@ -120,7 +198,7 @@ export function start() {
     if (typeof simpleCore.startMetronome === "function") {
       simpleCore.startMetronome(bpm);
     } else {
-      console.warn("simpleMetronomeCore.startMetronome missing");
+      debugLog("audio", "⚠️ simpleMetronomeCore.startMetronome missing");
       return Promise.resolve(false);
     }
   } catch (err) {
@@ -144,10 +222,19 @@ export function start() {
   document.getElementById("simpleCustomDenominator").disabled = true;
   document.getElementById("simpleSubdivisionSelect").disabled = true;
 
-  console.log("simpleMetronome started at BPM", bpm);
+  debugLog("audio", "simpleMetronome started at BPM", bpm);
   return Promise.resolve(true);
 }
 
+/**
+ * Pauses the simple metronome.
+ * 
+ * @public
+ * @returns {void}
+ * 
+ * @example
+ * pause(); // Pauses playback
+ */
 export function pause() {
   if (!running || paused) return;
   if (typeof simpleCore.pauseMetronome === "function")
@@ -164,6 +251,15 @@ export function pause() {
   );
 }
 
+/**
+ * Resumes the simple metronome from paused state.
+ * 
+ * @public
+ * @returns {void}
+ * 
+ * @example
+ * resume(); // Resumes playback
+ */
 export function resume() {
   if (!running || !paused) return;
   if (typeof simpleCore.resumeMetronome === "function")
@@ -180,6 +276,15 @@ export function resume() {
   );
 }
 
+/**
+ * Stops the simple metronome and releases ownership.
+ * 
+ * @public
+ * @returns {void}
+ * 
+ * @example
+ * stop(); // Stops playback completely
+ */
 export function stop() {
   if (!running) return;
   if (typeof simpleCore.stopMetronome === "function")
@@ -199,7 +304,7 @@ export function stop() {
       detail: { running: false, paused: false },
     })
   );
-  console.log("simpleMetronome stopped");
+  debugLog("audio", "simpleMetronome stopped");
   toggleSliderDisabled(false);
   document.getElementById("simpleBpm").disabled = false;
   document.getElementById("simplePresetSelect").disabled = false;

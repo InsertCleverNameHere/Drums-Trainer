@@ -1,5 +1,6 @@
 // audioProfiles.js
 // Centralized WebAudio tick generator and sound profile manager
+import { debugLog } from "./debug.js";
 
 let audioCtx;
 let nextNoteTime = 0; // The scheduling time will be managed externally by each metronome
@@ -53,7 +54,11 @@ let activeProfileName = "digital";
 // Public API
 // =========================
 
-// Initialize shared audio context (if needed)
+/**
+ * Initializes the shared AudioContext if it doesn't exist.
+ * 
+ * @returns {AudioContext} Shared audio context instance
+ */
 export function ensureAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -61,30 +66,61 @@ export function ensureAudio() {
   return audioCtx;
 }
 
-// Allows metronome cores to sync their scheduling time
+/**
+ * Syncs the scheduling time with metronome cores.
+ * 
+ * @param {number} time - Audio context time for next tick
+ * @returns {void}
+ * @internal
+ */
 export function setNextNoteTime(time) {
   nextNoteTime = time;
 }
 
-// Change the active profile dynamically
+/**
+ * Sets the active sound profile.
+ * 
+ * @param {string} name - Profile name (digital, soft, ping, bubble, clave)
+ * @returns {void}
+ * @example
+ * setActiveProfile('soft');
+ */
 export function setActiveProfile(name) {
   if (SOUND_PROFILES[name]) {
     activeProfileName = name;
-    console.info(`🎧 Active sound profile set to: ${name}`);
+    debugLog("audio", `🎧 Active sound profile set to: ${name}`);
   } else {
-    console.warn(`Unknown sound profile: ${name}`);
+    debugLog("audio", `⚠️ Unknown sound profile: ${name}`);
   }
 }
+/**
+ * Returns the current active sound profile name.
+ * 
+ * @returns {string} Active profile name
+ */
 export function getActiveProfile() {
   return activeProfileName;
 }
 
-// Retrieve list of all available profiles
+/**
+ * Returns list of all available sound profiles.
+ * 
+ * @returns {string[]} Array of profile names
+ * @example
+ * const profiles = getAvailableProfiles();
+ * // ['digital', 'soft', 'ping', 'bubble', 'clave']
+ */
 export function getAvailableProfiles() {
   return Object.keys(SOUND_PROFILES);
 }
 
-// Core sound generation function
+/**
+ * Generates a procedural audio tick.
+ * 
+ * @param {boolean} isAccent - True for accent (downbeat), false for normal
+ * @returns {void}
+ * @internal
+ */
 export function playTick(isAccent) {
   if (!audioCtx) return;
 
@@ -131,10 +167,3 @@ export const AudioProfiles = {
   getAvailableProfiles,
   playTick,
 };
-
-// Make a small, intentional global API for debugging / console control
-if (typeof window !== "undefined") {
-  window.setActiveProfile = setActiveProfile;
-  window.getActiveProfile = getActiveProfile;
-  window.getAvailableProfiles = getAvailableProfiles;
-}
