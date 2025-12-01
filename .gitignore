@@ -1,2 +1,14 @@
 node_modules/
 service_worker.js
+
+# VSCode debug profiles (temporary browser data)
+.vscode/chrome-debug-profile/
+.vscode/edge-debug-profile/
+.vscode/firefox-debug-profile/
+
+# Keep .vscode/ folder itself
+!.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/snippets/

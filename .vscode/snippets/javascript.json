@@ -1,0 +1,120 @@
+{
+  "Debug Log": {
+    "prefix": "dlog",
+    "body": [
+      "debugLog('${1|audio,visuals,ownership,hotkeys,timing,state|}', '${2:message}', ${3:data});"
+    ],
+    "description": "Insert debugLog statement with category"
+  },
+
+  "Debug Timer": {
+    "prefix": "dtimer",
+    "body": [
+      "const timer = new DebugTimer('${1:label}', '${2|audio,visuals,timing|}');",
+      "${3:// ... operation ...}",
+      "timer.end(${4:16.67}); // ${5:threshold in ms}"
+    ],
+    "description": "Insert DebugTimer block"
+  },
+
+  "JSDoc Function": {
+    "prefix": "jsdocfn",
+    "body": [
+      "/**",
+      " * ${1:Description}",
+      " * ",
+      " * @param {${2:type}} ${3:paramName} - ${4:Parameter description}",
+      " * @returns {${5:type}} ${6:Return description}",
+      " * ",
+      " * @example",
+      " * ${7:// Usage example}",
+      " */",
+      "${8:function} ${9:functionName}(${3:paramName}) {",
+      "  ${0:// Implementation}",
+      "}"
+    ],
+    "description": "Insert JSDoc function template"
+  },
+
+  "JSDoc Module": {
+    "prefix": "jsdocmod",
+    "body": [
+      "/**",
+      " * @fileoverview ${1:Module description}",
+      " * ",
+      " * @module ${2:moduleName}",
+      " * @example",
+      " * ${3:// Usage example}",
+      " */",
+      "",
+      "${0}"
+    ],
+    "description": "Insert JSDoc module template"
+  },
+
+  "Export Const": {
+    "prefix": "expc",
+    "body": [
+      "/**",
+      " * ${1:Description}",
+      " * ",
+      " * @constant",
+      " * @type {${2:type}}",
+      " */",
+      "export const ${3:NAME} = ${4:value};"
+    ],
+    "description": "Export constant with JSDoc"
+  },
+
+  "Import Debug": {
+    "prefix": "impdbg",
+    "body": ["import { debugLog, DebugTimer } from './debug.js';"],
+    "description": "Import debug utilities"
+  },
+
+  "Import Constants": {
+    "prefix": "impconst",
+    "body": ["import { ${1:CONSTANT_NAME} } from './constants.js';"],
+    "description": "Import from constants.js"
+  },
+
+  "Profiler Block": {
+    "prefix": "profile",
+    "body": [
+      "Profiler.mark('${1:start}');",
+      "${2:// ... operation ...}",
+      "Profiler.mark('${3:end}');",
+      "Profiler.measure('${4:operationName}', '${1:start}', '${3:end}');"
+    ],
+    "description": "Insert Profiler measurement block"
+  },
+
+  "Try-Catch Block": {
+    "prefix": "trylog",
+    "body": [
+      "try {",
+      "  ${1:// Operation}",
+      "} catch (err) {",
+      "  debugLog('${2|audio,state,ownership|}', '⚠️ ${3:Error description}:', err);",
+      "  ${4:// Fallback}",
+      "}"
+    ],
+    "description": "Try-catch with debug logging"
+  },
+
+  "Audio Context Check": {
+    "prefix": "actxcheck",
+    "body": [
+      "if (!audioCtx) {",
+      "  audioCtx = new (window.AudioContext || window.webkitAudioContext)();",
+      "}"
+    ],
+    "description": "Audio context initialization check"
+  },
+
+  "Performance Mark": {
+    "prefix": "perfmark",
+    "body": ["performance.mark('${1:label}');"],
+    "description": "Insert performance mark"
+  }
+}

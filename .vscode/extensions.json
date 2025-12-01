@@ -1,0 +1,35 @@
+{
+  "recommendations": [
+    // === ESSENTIAL ===
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ritwickdey.liveserver",
+
+    // === JAVASCRIPT/WEB ===
+    "christian-kohler.path-intellisense",
+    "christian-kohler.npm-intellisense",
+    "formulahendry.auto-rename-tag",
+    "formulahendry.auto-close-tag",
+
+    // === GIT ===
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // === DEBUGGING ===
+    "ms-vscode.vscode-js-profile-flame",
+    "firefox-devtools.vscode-firefox-debug",
+
+    // === PRODUCTIVITY ===
+    "gruntfuggly.todo-tree",
+    "streetsidesoftware.code-spell-checker",
+    "wayou.vscode-todo-highlight",
+
+    // === PWA/WEB AUDIO ===
+    "pwa-builder.pwa-studio",
+    "vincaslt.highlight-matching-tag",
+
+    // === MARKDOWN ===
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint"
+  ]
+}

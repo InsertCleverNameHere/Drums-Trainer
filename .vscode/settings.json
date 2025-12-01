@@ -1,0 +1,73 @@
+{
+  // === EDITOR SETTINGS ===
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "on",
+  "editor.minimap.enabled": false,
+
+  // === FILE SETTINGS ===
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.associations": {
+    "*.mjs": "javascript",
+    "*.webmanifest": "json"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true
+  },
+
+  // === ESLINT ===
+  "eslint.enable": true,
+  "eslint.validate": ["javascript", "javascriptreact"],
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+
+  // === JAVASCRIPT/TYPESCRIPT ===
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "javascript.suggest.autoImports": true,
+  "javascript.suggest.completeFunctionCalls": true,
+  "javascript.inlayHints.parameterNames.enabled": "all",
+
+  // === SEARCH ===
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/libs": true
+  },
+
+  // === LIVE SERVER ===
+  "liveServer.settings.root": "/",
+  "liveServer.settings.port": 8080,
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.donotShowInfoMsg": true,
+
+  // === PRETTIER ===
+  "prettier.singleQuote": false,
+  "prettier.semi": true,
+  "prettier.trailingComma": "es5",
+  "prettier.printWidth": 80,
+  "prettier.tabWidth": 2,
+
+  // === EMMET ===
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact"
+  },
+
+  // === GIT ===
+  "git.confirmSync": false,
+  "git.autofetch": true,
+  "git.enableSmartCommit": true
+}
