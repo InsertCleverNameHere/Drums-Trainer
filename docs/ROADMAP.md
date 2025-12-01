@@ -174,12 +174,12 @@
 - [x] Move `VISUALS_SYSTEM.md` → `docs/`
 - [x] Move `VERSIONING.md` → `docs/`
 - [x] Update `ROADMAP.md` (this file) → `docs/`
-- [ ] Add JSDoc comments to all core modules
-- [ ] Update root `README.md` to reference new docs structure
+- [x] Add JSDoc comments to all core modules
+- [x] Update root `README.md` to reference new docs structure
+- [x] Performance profiling & max-BPM clamping
 
 ### ⏳ Pending
 
-- [ ] Performance profiling & max-BPM clamping
 - [ ] Automated testing setup (unit tests for utils.js)
 - [ ] Visual regression tests
 
