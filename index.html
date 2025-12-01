@@ -367,6 +367,7 @@
             max="300"
             value="30"
             step="5"
+            data-dynamic-step="true"
           />
         </div>
         <div class="col">
@@ -378,6 +379,7 @@
             max="300"
             value="60"
             step="5"
+            data-dynamic-step="true"
           />
         </div>
       </div>
@@ -571,7 +573,11 @@ Funk
         max="300"
         value="120"
         step="5"
+        data-dynamic-step="true"
       />
+      <!-- NOTE: data-dynamic-step marks inputs for future JS-driven step updates
+     When user changes quantization preference, JS will update these step attributes -->
+
       <!-- Simple Slider -->
       <div id="simple-slider-container" class="bpm-slider-box">
         <div id="simple-slider-wrapper">

@@ -11,20 +11,10 @@
 // - Normal BPMs (60-120): ~1-2 MB memory growth per 5 minutes
 // - Extreme BPMs (300+ with 16ths): ~6 MB per 3 minutes (acceptable)
 // - No resize bugs due to transform-based positioning
-//
-// DEBUGGING:
-// - Set DEBUG_VISUALS = true for verbose boundary detection logs
-// - Production default: false (quiet console)
 
-// === DEBUG CONFIGURATION ===
-const DEBUG_VISUALS = false; // Set to true for verbose logging
+import { debugLog } from "./debug.js";
+import { VISUAL_TIMING } from "./constants.js";
 
-// Debug logging helper
-function debugLog(panelId, ...args) {
-  if (DEBUG_VISUALS) {
-    console.log(`[${panelId}]`, ...args);
-  }
-}
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
 
 /**
@@ -186,7 +176,7 @@ function updatePhraseLabels(container, measureLayout, phrase, cachedElements) {
 
   // Safety check: ensure we have cached elements
   if (!cachedElements || cachedElements.length === 0) {
-    console.warn("⚠️ updatePhraseLabels called with no cached elements");
+    debugLog("visuals", "⚠️ updatePhraseLabels called with no cached elements");
     return;
   }
 
@@ -270,7 +260,10 @@ function flashActiveDot(
   // Get the active dot wrapper for this tick
   const activeWrapper = dotElements[tickInPhrase];
   if (!activeWrapper) {
-    console.warn(`⚠️ No wrapper found for tickInPhrase: ${tickInPhrase}`);
+    debugLog(
+      "visuals",
+      `[${panelId}] ⚠️ No wrapper found for tickInPhrase: ${tickInPhrase}`
+    );
     return flashTimeoutRef;
   }
 
@@ -280,8 +273,9 @@ function flashActiveDot(
 
   // Safety check: ensure all elements exist
   if (!dot || !text || !dotInfo) {
-    console.warn(
-      `⚠️ Missing elements for flash: dot=${!!dot}, text=${!!text}, dotInfo=${!!dotInfo}`
+    debugLog(
+      "visuals",
+      `[${panelId}] ⚠️ Missing elements for flash: dot=${!!dot}, text=${!!text}, dotInfo=${!!dotInfo}`
     );
     return flashTimeoutRef;
   }
@@ -301,7 +295,7 @@ function flashActiveDot(
   const newTimeout = setTimeout(() => {
     dot.classList.remove("flashing", "accent-flash", "normal-flash");
     text.className = "phonation-text";
-  }, 120);
+  }, VISUAL_TIMING.FLASH_DURATION_MS);
 
   return newTimeout;
 }
@@ -439,7 +433,8 @@ export function createVisualCallback(panelId = "groove") {
   // Listen for toggle changes and update our local state
   document.addEventListener("panningModeChanged", (e) => {
     intelligentPanning = e.detail.intelligent;
-    console.log(
+    debugLog(
+      "visuals",
       `🎯 [${panelId}] Panning mode changed to: ${
         intelligentPanning ? "Intelligent" : "Forced"
       }`
@@ -451,7 +446,8 @@ export function createVisualCallback(panelId = "groove") {
   const stored = localStorage.getItem("intelligentPanningMode");
   const isValidStored = stored === "true" || stored === "false";
   intelligentPanning = isValidStored ? stored === "true" : true;
-  console.log(
+  debugLog(
+    "visuals",
     `🎯 [${panelId}] Initial panning mode: ${
       intelligentPanning ? "Intelligent" : "Forced"
     }`
@@ -504,11 +500,13 @@ export function createVisualCallback(panelId = "groove") {
         lastRenderedSignature = signatureKey;
         lastRenderedTicksPerBeat = ticksPerBeat;
 
-        console.log(
+        debugLog(
+          "visuals",
           `🎼 [${panelId}] Layout rebuilt: ${signatureKey}, ${totalTicksInMeasure} ticks`
         );
-        console.log(`📊 [${panelId}] Phrases:`, phrases);
-        console.log(
+        debugLog("visuals", `📊 [${panelId}] Phrases:`, phrases);
+        debugLog(
+          "visuals",
           `🔄 [${panelId}] Visual reset: container cleared, forcing re-render`
         );
       }
@@ -519,8 +517,9 @@ export function createVisualCallback(panelId = "groove") {
       );
 
       if (newPhraseIndex === -1) {
-        console.warn(
-          `⚠️ [${panelId}] Tick ${currentTickInMeasure} not in any phrase!`
+        debugLog(
+          "visuals",
+          `[${panelId}] ⚠️ Tick ${currentTickInMeasure} not in any phrase!`
         );
         return;
       }
@@ -548,8 +547,8 @@ export function createVisualCallback(panelId = "groove") {
         const isRealPhraseBoundary = newPhraseIndex !== prevPhraseIndex;
 
         debugLog(
-          panelId,
-          `\n🎯 === ${
+          "visuals",
+          `[${panelId}] \n🎯 === ${
             shouldForceRender ? "MEASURE" : "PHRASE"
           } BOUNDARY DETECTED ===`
         );
@@ -562,21 +561,24 @@ export function createVisualCallback(panelId = "groove") {
 
           if (prevPhraseIndex === -1) {
             debugLog(
-              panelId,
-              `   Previous phrase: -1 (first tick, comparing to phrase ${actualPrevIndex}: ticks ${prevPhrase.start}-${prevPhrase.end})`
+              "visuals",
+              `[${panelId}]   Previous phrase: -1 (first tick, comparing to phrase ${actualPrevIndex}: ticks ${prevPhrase.start}-${prevPhrase.end})`
             );
           } else {
             debugLog(
-              panelId,
-              `   Previous phrase: ${prevPhraseIndex} (ticks ${prevPhrase.start}-${prevPhrase.end})`
+              "visuals",
+              `[${panelId}]   Previous phrase: ${prevPhraseIndex} (ticks ${prevPhrase.start}-${prevPhrase.end})`
             );
           }
 
           debugLog(
-            panelId,
-            `   New phrase: ${newPhraseIndex} (ticks ${currentPhrase.start}-${currentPhrase.end})`
+            "visuals",
+            `[${panelId}]   New phrase: ${newPhraseIndex} (ticks ${currentPhrase.start}-${currentPhrase.end})`
           );
-          debugLog(panelId, `   Tick in new phrase: ${tickInPhrase}`);
+          debugLog(
+            "visuals",
+            `[${panelId}]   Tick in new phrase: ${tickInPhrase}`
+          );
 
           // === DECISION LOGIC ===
           if (intelligentPanning) {
@@ -586,14 +588,18 @@ export function createVisualCallback(panelId = "groove") {
               currentPhrase
             );
 
-            debugLog(panelId, `   Pattern comparison:`, comparison);
+            debugLog(
+              "visuals",
+              `[${panelId}]   Pattern comparison:`,
+              comparison
+            );
 
             if (comparison.labelMatch) {
               if (prevPhraseIndex === -1) {
                 // First phrase ever - must render even if it matches the "previous" (last) phrase
                 debugLog(
-                  panelId,
-                  `   ➡️ Decision: INITIAL RENDER (first phrase)`
+                  "visuals",
+                  `[${panelId}]   ➡️ Decision: INITIAL RENDER (first phrase)`
                 );
                 dotElements = renderNewPhrase(
                   container,
@@ -603,20 +609,23 @@ export function createVisualCallback(panelId = "groove") {
                   dotElements
                 );
               } else {
-                debugLog(panelId, `   ➡️ Decision: NO UPDATE (complete match)`);
+                debugLog(
+                  "visuals",
+                  `[${panelId}]   ➡️ Decision: NO UPDATE (complete match)`
+                );
                 // Keep existing phrase visible
               }
             } else if (comparison.hierarchyMatch) {
               debugLog(
-                panelId,
-                `   ➡️ Decision: LABEL UPDATE ONLY (hierarchy match)`
+                "visuals",
+                `[${panelId}]   ➡️ Decision: LABEL UPDATE ONLY (hierarchy match)`
               );
 
               // Guard: ensure we have cached elements before attempting label update
               if (dotElements.length === 0) {
                 debugLog(
-                  panelId,
-                  `   ⚠️ No cached elements yet - performing initial render instead`
+                  "visuals",
+                  `[${panelId}]   ⚠️ No cached elements yet - performing initial render instead`
                 );
                 dotElements = renderNewPhrase(
                   container,
@@ -634,7 +643,10 @@ export function createVisualCallback(panelId = "groove") {
                 );
               }
             } else {
-              debugLog(panelId, `   ➡️ Decision: FULL PAN (structure differs)`);
+              debugLog(
+                "visuals",
+                `[${panelId}]   ➡️ Decision: FULL PAN (structure differs)`
+              );
               dotElements = renderNewPhrase(
                 container,
                 measureLayout,
@@ -646,8 +658,8 @@ export function createVisualCallback(panelId = "groove") {
           } else {
             // Forced mode with real phrase boundary
             debugLog(
-              panelId,
-              `   ➡️ Decision: FULL PAN (forced mode - phrase boundary)`
+              "visuals",
+              `[${panelId}]   ➡️ Decision: FULL PAN (forced mode - phrase boundary)`
             );
             dotElements = renderNewPhrase(
               container,
@@ -660,16 +672,16 @@ export function createVisualCallback(panelId = "groove") {
         } else if (shouldForceRender) {
           // This is NOT a phrase boundary, but a measure boundary in single-phrase forced mode
           debugLog(
-            panelId,
-            `   Measure boundary in single-phrase measure (phrase stays at ${newPhraseIndex})`
+            "visuals",
+            `[${panelId}]   Measure boundary in single-phrase measure (phrase stays at ${newPhraseIndex})`
           );
           debugLog(
-            panelId,
-            `   Current phrase: ticks ${currentPhrase.start}-${currentPhrase.end}`
+            "visuals",
+            `[${panelId}]   Current phrase: ticks ${currentPhrase.start}-${currentPhrase.end}`
           );
           debugLog(
-            panelId,
-            `   ➡️ Decision: FULL PAN (forced mode - measure boundary)`
+            "visuals",
+            `[${panelId}]   ➡️ Decision: FULL PAN (forced mode - measure boundary)`
           );
           dotElements = renderNewPhrase(
             container,
@@ -680,7 +692,10 @@ export function createVisualCallback(panelId = "groove") {
           );
         }
 
-        debugLog(panelId, `========================================\n`);
+        debugLog(
+          "visuals",
+          `[${panelId}] ========================================\n`
+        );
       }
 
       // === WITHIN-PHRASE: Ensure phrase is rendered and flash active dot ===

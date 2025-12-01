@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Debug System Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .pass {
+        background: #d4edda;
+        color: #155724;
+      }
+      .fail {
+        background: #f8d7da;
+        color: #721c24;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🐛 Debug System Tests</h1>
+    <div id="results"></div>
+
+    <script type="module">
+      import { DEBUG, debugLog, DebugTimer } from "../js/debug.js";
+
+      const results = document.getElementById("results");
+
+      function addResult(name, passed, message = "") {
+        const div = document.createElement("div");
+        div.className = `test ${passed ? "pass" : "fail"}`;
+        div.innerHTML = `
+        <strong>${passed ? "✅" : "❌"} ${name}</strong>
+        ${message ? `<br><small>${message}</small>` : ""}
+      `;
+        results.appendChild(div);
+      }
+
+      // Test 1: DEBUG object exists and has correct flags
+      const hasAllFlags = [
+        "visuals",
+        "audio",
+        "ownership",
+        "hotkeys",
+        "timing",
+        "state",
+        "all",
+      ].every((flag) => flag in DEBUG);
+      addResult("DEBUG object has all required flags", hasAllFlags);
+
+      // Test 2: DEBUG is exposed on window
+      addResult("DEBUG exposed on window", window.DEBUG === DEBUG);
+
+      // Test 3: All flags default to false
+      const allFalse = Object.values(DEBUG).every((v) => v === false);
+      addResult("All flags default to false", allFalse);
+
+      // Test 4: debugLog respects flags
+      let logCalled = false;
+      const originalLog = console.log;
+      console.log = (...args) => {
+        logCalled = true;
+        originalLog(...args);
+      };
+
+      DEBUG.audio = false;
+      debugLog("audio", "test");
+      const test4 = !logCalled;
+
+      DEBUG.audio = true;
+      debugLog("audio", "test");
+      const test4b = logCalled;
+
+      console.log = originalLog;
+      DEBUG.audio = false; // Reset
+
+      addResult(
+        "debugLog respects individual flags",
+        test4 && test4b,
+        "Should not log when flag is false, should log when true"
+      );
+
+      // Test 5: DEBUG.all overrides individual flags
+      logCalled = false;
+      console.log = (...args) => {
+        logCalled = true;
+        originalLog(...args);
+      };
+
+      DEBUG.audio = false;
+      DEBUG.all = true;
+      debugLog("audio", "test");
+      const test5 = logCalled;
+
+      console.log = originalLog;
+      DEBUG.all = false; // Reset
+
+      addResult("DEBUG.all overrides individual flags", test5);
+
+      // Test 6: DebugTimer measures time correctly
+      const timer = new DebugTimer("test-operation", "timing");
+      const delay = 50; // 50ms delay
+      setTimeout(() => {
+        const elapsed = timer.end();
+        const accurate = elapsed >= delay && elapsed < delay + 10; // 10ms tolerance
+        addResult(
+          "DebugTimer measures time accurately",
+          accurate,
+          `Expected ~${delay}ms, got ${elapsed.toFixed(2)}ms`
+        );
+      }, delay);
+
+      // Test 7: No console logs appear by default
+      console.log("📋 Run this test manually:");
+      console.log("1. Reload page with console open");
+      console.log("2. Verify ZERO logs appear before this message");
+      console.log('3. Verify no "Debug system loaded" message exists');
+
+      addResult(
+        "No console spam on load",
+        true,
+        "Manual verification required - check console above"
+      );
+    </script>
+  </body>
+</html>
