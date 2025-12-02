@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hotkey Guard Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+        background: #f8f9fa;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 12px;
+        border-radius: 6px;
+        border-left: 4px solid #ccc;
+        background: white;
+      }
+      .pass {
+        background: #d4edda;
+        color: #155724;
+        border-left-color: #28a745;
+      }
+      .fail {
+        background: #f8d7da;
+        color: #721c24;
+        border-left-color: #dc3545;
+      }
+      .section {
+        margin-top: 30px;
+        padding: 15px;
+        background: #e9ecef;
+        border-radius: 8px;
+        font-weight: bold;
+        border-bottom: 2px solid #dee2e6;
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 20px;
+        background: #e7f3ff;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 1.1rem;
+      }
+      #mock-ui {
+        opacity: 0.5;
+        pointer-events: none;
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px dashed #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>⌨️ Hotkey Guard & Logic Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <!-- MOCK UI ELEMENTS -->
+    <div id="mock-ui">
+      <!-- Panels (Classes used for visibility check) -->
+      <div id="panel-groove" class=""></div>
+      <div id="panel-metronome" class="hidden"></div>
+
+      <!-- Buttons -->
+      <button id="startBtn">Start</button>
+      <button id="nextBtn">Next</button>
+
+      <!-- Inputs (IDs match hotkeys.js) -->
+      <div>
+        <label>Groove Min:</label> <input id="bpmMin" value="60" />
+        <label>Groove Max:</label> <input id="bpmMax" value="120" />
+        <label>Simple BPM:</label> <input id="simpleBpm" value="120" />
+      </div>
+
+      <!-- Notification Area -->
+      <div class="ui-notice hidden"></div>
+
+      <!-- Sliders containers to satisfy sliders.js import -->
+      <div id="groove-slider"></div>
+      <div id="simpleMetronomeSlider"></div>
+      <div id="simple-slider-wrapper"></div>
+      <div id="groove-slider-wrapper"></div>
+    </div>
+
+    <script>
+      // 1. GLOBAL MOCKS (Dependencies expected by imported modules)
+
+      // Mock noUiSlider (used by sliders.js) to prevent crash on load
+      window.noUiSlider = {
+        create: () => ({
+          on: () => {},
+          destroy: () => {},
+          set: () => {},
+          get: () => [60, 120],
+          disable: () => {},
+          enable: () => {},
+        }),
+      };
+
+      // Mock simpleMetronome global (used by hotkeys.js directly)
+      window.simpleMetronome = {
+        setBpm: (val) => {},
+        isRunning: () => false,
+        isPaused: () => false,
+        start: async () => {},
+        stop: () => {},
+        pause: () => {},
+        resume: () => {},
+      };
+    </script>
+
+    <script type="module">
+      import { setupHotkeys } from "../js/ui/hotkeys.js";
+      import * as sessionEngine from "../js/sessionEngine.js";
+
+      const results = document.getElementById("results");
+      const summary = document.getElementById("summary");
+      let passCount = 0;
+      let failCount = 0;
+
+      // --- HELPERS ---
+
+      function addSection(title) {
+        const section = document.createElement("div");
+        section.className = "section";
+        section.innerHTML = `<h2>${title}</h2>`;
+        results.appendChild(section);
+      }
+
+      function addResult(name, passed, message = "") {
+        const div = document.createElement("div");
+        div.className = `test ${passed ? "pass" : "fail"}`;
+        div.innerHTML = `
+          <strong>${passed ? "✅" : "❌"} ${name}</strong>
+          ${message ? `<br><small>${message}</small>` : ""}
+        `;
+        results.appendChild(div);
+
+        if (passed) passCount++;
+        else failCount++;
+      }
+
+      function updateSummary() {
+        const total = passCount + failCount;
+        const percentage =
+          total > 0 ? ((passCount / total) * 100).toFixed(1) : 0;
+        summary.innerHTML = `
+          <strong>Test Results:</strong>
+          ${passCount} passed, ${failCount} failed
+          (${percentage}% success rate)
+        `;
+      }
+
+      function pressKey(code) {
+        const event = new KeyboardEvent("keydown", {
+          code: code,
+          key: code,
+          bubbles: true,
+          cancelable: true,
+        });
+        window.dispatchEvent(event);
+      }
+
+      // Helper to wait for debounce timers (hotkeys.js has 120ms lock)
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      // --- SETUP ---
+      setupHotkeys();
+
+      // Ensure defaults
+      if (typeof window.__adjustingTarget === "undefined") {
+        window.__adjustingTarget = "min";
+      }
+
+      // --- ASYNC TEST RUNNER ---
+      async function runTests() {
+        // ===============================================
+        // SECTION 1: Navigation Logic
+        // ===============================================
+        addSection("1️⃣ Target Navigation (Left/Right)");
+
+        // Reset
+        window.__adjustingTarget = "min";
+
+        // Test 1.1
+        pressKey("ArrowRight");
+        addResult(
+          "ArrowRight switches to MAX",
+          window.__adjustingTarget === "max",
+          `Target: ${window.__adjustingTarget}`
+        );
+
+        await wait(150); // Wait for hotkey lock to clear
+
+        // Test 1.2
+        pressKey("ArrowLeft");
+        addResult(
+          "ArrowLeft switches to MIN",
+          window.__adjustingTarget === "min",
+          `Target: ${window.__adjustingTarget}`
+        );
+
+        await wait(150);
+
+        // Test 1.3: Hidden Panel Guard
+        const groovePanel = document.getElementById("panel-groove");
+        groovePanel.classList.add("hidden"); // Hide panel
+        window.__adjustingTarget = "min"; // Ensure start at min
+
+        pressKey("ArrowRight"); // Should be blocked
+
+        addResult(
+          "Navigation blocked when Groove Panel hidden",
+          window.__adjustingTarget === "min",
+          "Target should remain 'min'"
+        );
+
+        groovePanel.classList.remove("hidden"); // Reset
+        await wait(150);
+
+        // ===============================================
+        // SECTION 2: BPM Adjustment
+        // ===============================================
+        addSection("2️⃣ BPM Adjustment (Up/Down)");
+
+        const minInput = document.getElementById("bpmMin");
+        const maxInput = document.getElementById("bpmMax");
+
+        // Test 2.1: Increment Min
+        minInput.value = "60";
+        window.__adjustingTarget = "min";
+        pressKey("ArrowUp");
+
+        addResult(
+          "ArrowUp increments Groove Min (+5)",
+          minInput.value === "65",
+          `60 -> ${minInput.value}`
+        );
+
+        // Test 2.2: Decrement Max
+        maxInput.value = "120";
+        window.__adjustingTarget = "max";
+        pressKey("ArrowDown");
+
+        addResult(
+          "ArrowDown decrements Groove Max (-5)",
+          maxInput.value === "115",
+          `120 -> ${maxInput.value}`
+        );
+
+        // ===============================================
+        // SECTION 3: Margin Guard
+        // ===============================================
+        addSection("3️⃣ Margin Safety (Min/Max overlap)");
+
+        // Set values 5 BPM apart (the limit)
+        minInput.value = "90";
+        maxInput.value = "95";
+        window.__adjustingTarget = "min";
+
+        // Try to increase Min (would hit 95 == Max)
+        // Guard logic: if (next >= otherVal - margin + 1) -> Block
+        // 95 >= 95 - 5 + 1 (91) -> True, Blocked.
+        pressKey("ArrowUp");
+
+        addResult(
+          "Block Min from hitting Max",
+          minInput.value === "90",
+          `Value should stay 90. Actual: ${minInput.value}`
+        );
+
+        // ===============================================
+        // SECTION 4: Playback Guards (Requirement 5.5)
+        // ===============================================
+        addSection("4️⃣ Playback Guards (Ownership)");
+
+        // Test 4.1: Groove Mode Guard
+        sessionEngine.setActiveModeOwner("groove");
+        minInput.value = "60";
+
+        pressKey("ArrowUp");
+
+        addResult(
+          "Block BPM change when Groove playing",
+          minInput.value === "60",
+          "Value should not change during playback"
+        );
+
+        // Check for visual notification
+        const notice = document.querySelector(".ui-notice");
+        const noticeVisible = notice && notice.classList.contains("show");
+        const textCorrect =
+          notice && notice.textContent.includes("Cannot adjust BPM");
+
+        addResult(
+          "Notification shown on block",
+          noticeVisible || textCorrect, // Accept either visual state or text content
+          notice ? notice.textContent : "No notice found"
+        );
+
+        sessionEngine.setActiveModeOwner(null); // Reset
+
+        // Test 4.2: Simple Mode Guard
+        sessionEngine.setActiveModeOwner("simple");
+        const simpleInput = document.getElementById("simpleBpm");
+        simpleInput.value = "100";
+
+        // Even though we are in Simple mode, arrow keys might trigger logic.
+        // hotkeys.js checks owner globally at the start of ArrowUp/Down handler.
+        pressKey("ArrowUp");
+
+        addResult(
+          "Block Simple BPM change when Simple playing",
+          simpleInput.value === "100",
+          `Value remained ${simpleInput.value}`
+        );
+
+        sessionEngine.setActiveModeOwner(null); // Reset
+
+        // ===============================================
+        // SECTION 5: Input Safety
+        // ===============================================
+        addSection("5️⃣ Input Focus Safety");
+
+        // Simulate user typing in an input field
+        minInput.value = "50";
+        minInput.focus();
+
+        // Dispatch event directly to input (bubbling)
+        const inputEvent = new KeyboardEvent("keydown", {
+          code: "ArrowUp",
+          key: "ArrowUp",
+          bubbles: true,
+        });
+
+        // We can't easily mock document.activeElement in pure JS unit tests reliably
+        // without user interaction in some browsers, but let's try defining the getter logic
+        // or just trusting the logic:
+        // if (active.tagName === "INPUT") return;
+
+        // We will test if the VALUE changed by 5 (hotkey) or 0 (native mock doesn't do logic)
+        // In this mock environment, native ArrowUp does nothing.
+        // If hotkey listener runs, it ADDS 5. If it returns early, it adds 0.
+
+        minInput.dispatchEvent(inputEvent);
+
+        // Note: dispatchEvent is synchronous.
+        // However, hotkeys.js listens on 'window'. Bubbling happens sync.
+
+        addResult(
+          "Hotkey ignored when Input has focus",
+          minInput.value === "50",
+          `Value should stay 50. Actual: ${minInput.value}`
+        );
+
+        // Finalize
+        updateSummary();
+      }
+
+      runTests();
+    </script>
+  </body>
+</html>
