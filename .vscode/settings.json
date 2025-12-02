@@ -70,5 +70,17 @@
   "git.confirmSync": false,
   "git.autofetch": true,
   "git.enableSmartCommit": true,
-  "cSpell.words": ["Flaticon", "Freepik", "iconos", "Metrónomo"]
+  "cSpell.words": [
+    "beforeinstallprompt",
+    "Flaticon",
+    "Freepik",
+    "iconos",
+    "infobar",
+    "longtask",
+    "longtasks",
+    "Metrónomo",
+    "resetminor",
+    "tweens",
+    "WCAG"
+  ]
 }

@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 // js/visuals.js
 // Phrase-based metronome visualizer with intelligent panning
 //

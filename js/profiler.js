@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * @fileoverview Lightweight performance profiler for detecting bottlenecks and memory leaks.
  * Tracks FPS, memory usage, and long tasks (>50ms operations).

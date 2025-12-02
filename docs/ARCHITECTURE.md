@@ -143,33 +143,140 @@ The Random Groove Trainer follows these core principles:
 
 ### **UI & Interaction**
 
-#### `js/uiController.js`
+#### `js/uiController.js` (Orchestrator)
 
-**Purpose**: Global UI bindings and event handling
+**Purpose**: Main UI orchestrator - coordinates all UI submodules
 
 **Responsibilities**:
 
-- Input validation (numeric, BPM ranges)
-- Hotkey system (Space, P, N, arrows, H)
-- Dark mode toggle
-- Sound profile UI sync
-- Mode tab switching
-- Slider initialization (noUiSlider)
-- Time signature dropdown logic
-- Footer/version display
-- Update notifications
+- Imports and initializes all UI submodules
+- Session button wiring (Start, Pause, Next)
+- Tooltip toggle logic
+- Footer message updates
+- Update check UI
+- Simple metronome UI sync
+- Ownership guards
 
 **Key Functions**:
 
-- `initUI(deps)` - Wire up all UI events
-- `initDarkMode()` - Theme system
-- `initSoundProfileUI()` - Profile dropdowns
+- `initUI(deps)` - Wire up session controls and tooltips
 - `initOwnershipGuards()` - Prevent mode conflicts
-- `initModeTabs()` - Groove/Simple switching
-- `initTimeSignatureUI()` - Time sig controls
-- `showNotice(message)` - Floating UI notifications
+- `updateFooterMessage()` - Version display with fade animation
+- `initUpdateUI()` - Update check button and notifications
+- `initAllUI()` - Initialize all submodules (hotkeys + sliders)
 
-**Dependencies**: All modules (orchestrates everything)
+**Dependencies**: All UI submodules, `sessionEngine.js`, `simpleMetronome.js`
+
+---
+
+#### `js/ui/theme.js`
+
+**Purpose**: Theme and quantization initialization
+
+**Responsibilities**:
+
+- Dark mode toggle with system preference detection
+- Quantization setup and safety checks
+- Theme persistence (localStorage)
+- Icon animation on toggle
+
+**Key Functions**:
+
+- `initDarkMode()` - Theme toggle system
+- `initQuantization()` - Setup quantization with auto-correction
+- `getSafeQuantization()` - Get validated quantization settings
+- `getQuantizationLevel()` - Get current level with fallback
+
+**Dependencies**: `debug.js`, `constants.js`, `utils.js`
+
+---
+
+#### `js/ui/hotkeys.js`
+
+**Purpose**: Global keyboard shortcuts
+
+**Responsibilities**:
+
+- Space, P, N, arrows, H hotkey handling
+- Owner-aware routing (groove vs simple)
+- BPM adjustment with margin enforcement
+- Hotkey lock to prevent rapid-fire
+- Input validation helpers
+
+**Key Functions**:
+
+- `setupHotkeys()` - Register all keyboard event listeners
+- Private helpers: `validateNumericInput()`, `adjustGrooveInput()`, `adjustSimpleBpm()`
+
+**Dependencies**: `debug.js`, `constants.js`, `sessionEngine.js`, `simpleMetronome.js`, `sliders.js`
+
+---
+
+#### `js/ui/sliders.js`
+
+**Purpose**: BPM range sliders and input validation
+
+**Responsibilities**:
+
+- Dual-point and single-point noUiSlider initialization
+- Active pip highlighting
+- Clickable pips for direct value selection
+- Numeric input validation with clamping
+- Cross-check BPM min/max with 5 BPM margin
+- UI notice system (floating notifications)
+
+**Key Functions**:
+
+- `initSliders()` - Create and wire up both sliders
+- `updateBpmInputSteps()` - Dynamic step attribute updates
+- `showNotice(message, duration)` - Floating UI notifications
+- Private helpers: `validateNumericInput()`, `attachInputValidation()`, `createMetronomeSlider()`
+
+**Dependencies**: `debug.js`, `constants.js`, `utils.js`, noUiSlider
+
+---
+
+#### `js/ui/controls.js`
+
+**Purpose**: Sound profiles, panning mode, and time signature controls
+
+**Responsibilities**:
+
+- Synchronized sound profile dropdowns (Groove & Simple)
+- Synchronized panning mode toggles
+- Time signature preset and custom input handling
+- Subdivision visibility logic
+- Profile and mode persistence (localStorage)
+
+**Key Functions**:
+
+- `initSoundProfileUI()` - Profile dropdown sync and persistence
+- `initPanningModeUI()` - Panning toggle sync and events
+- `initTimeSignatureUI()` - Time signature controls for both panels
+
+**Dependencies**: `debug.js`, `audioProfiles.js`, `simpleMetronome.js`
+
+---
+
+#### `js/ui/panels.js`
+
+**Purpose**: Mode tabs and simple metronome panel
+
+**Responsibilities**:
+
+- Groove/Simple mode tab switching
+- Tab enable/disable based on ownership
+- Simple metronome Start/Stop/Pause button logic
+- Tap tempo feature
+- Slider enable/disable during playback
+
+**Key Functions**:
+
+- `initModeTabs(sessionEngine, simpleMetronome)` - Mode switching logic
+- `initSimplePanelControls()` - Simple metronome UI wiring
+- Private helpers: `setTabEnabled()`, `setActiveMode()`, `updateSimpleUI()`
+
+**Dependencies**: `debug.js`, `sessionEngine.js`, `simpleMetronome.js`, `utils.js`
 
 ---
 
@@ -475,19 +582,22 @@ See [`docs/VISUALS_SYSTEM.md`](./VISUALS_SYSTEM.md) for detailed documentation.
 
 ## 🔮 Future Architecture Plans
 
-### Phase 4: UI Modularization
+### Phase 4: UI Modularization ✅ COMPLETED
 
-Break `uiController.js` (~1800 lines) into:
+`uiController.js` has been successfully modularized from ~1800 lines into:
 
-- `js/ui/theme.js`
-- `js/ui/hotkeys.js`
-- `js/ui/sliders.js`
-- `js/ui/inputs.js`
-- `js/ui/modals.js`
-- `js/ui/tabs.js`
-- `js/ui/footer.js`
-- `js/ui/panels.js`
-- `js/ui/timeSignature.js`
+- ✅ `js/uiController.js` (~440 lines) - Main orchestrator
+- ✅ `js/ui/theme.js` (~133 lines) - Dark mode & quantization
+- ✅ `js/ui/hotkeys.js` (~235 lines) - Keyboard shortcuts
+- ✅ `js/ui/sliders.js` (~308 lines) - BPM sliders & validation
+- ✅ `js/ui/controls.js` (~187 lines) - Sound profiles & time signatures
+- ✅ `js/ui/panels.js` (~234 lines) - Mode tabs & simple panel
+
+**Benefits**:
+- Improved code organization and maintainability
+- Clear separation of concerns
+- Easier testing and debugging
+- Faster onboarding for new contributors
 
 ### Phase 5: Advanced Features
 
