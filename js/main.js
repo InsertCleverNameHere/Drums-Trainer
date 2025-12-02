@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // main.js - simple bootstrap that wires modules together
 import * as metronome from "./metronomeCore.js";
 import { createVisualCallback, primeVisuals } from "./visuals.js";
@@ -5,6 +6,14 @@ import * as utils from "./utils.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as uiController from "./uiController.js";
+import { initDarkMode } from "./ui/theme.js";
+import {
+  initSoundProfileUI,
+  initPanningModeUI,
+  initTimeSignatureUI,
+} from "./ui/controls.js";
+import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
+import { debugLog } from "./debug.js";
 import { Profiler } from "./profiler.js";
 
 // Expose explicitly (redundant but safe)
@@ -111,12 +120,13 @@ if (document.readyState === "loading") {
     simpleMetronome.core.registerVisualCallback(simpleVisualsCallback);
 
     // 4. Initialize UI controllers
-    uiController.initDarkMode();
-    uiController.initSoundProfileUI();
+    initDarkMode();
+    initSoundProfileUI();
     uiController.initOwnershipGuards();
-    uiController.initSimplePanelControls();
-    uiController.initPanningModeUI();
-    uiController.initTimeSignatureUI();
+    initSimplePanelControls();
+    initPanningModeUI();
+    initTimeSignatureUI();
+    uiController.initAllUI(); // Hotkeys + sliders
   });
 } else {
   // DOM already loaded, initialize immediately
@@ -129,16 +139,17 @@ if (document.readyState === "loading") {
   metronome.registerVisualCallback(grooveVisualsCallback);
   simpleMetronome.core.registerVisualCallback(simpleVisualsCallback);
 
-  uiController.initDarkMode();
-  uiController.initSoundProfileUI();
+  initDarkMode();
+  initSoundProfileUI();
   uiController.initOwnershipGuards();
-  uiController.initSimplePanelControls();
-  uiController.initPanningModeUI();
-  uiController.initTimeSignatureUI();
+  initSimplePanelControls();
+  initPanningModeUI();
+  initTimeSignatureUI();
+  uiController.initAllUI(); // Hotkeys + sliders
 }
 
 // 4. Initialize the mode tabs.
-uiController.initModeTabs(sessionEngine, simpleMetronome);
+initModeTabs(sessionEngine, simpleMetronome);
 
 // === Version Fetch & App Footer Handling ===
 // Fetch latest commit hash + app version to display in footer
@@ -218,7 +229,9 @@ if ("serviceWorker" in navigator) {
           hash: latestHash,
         });
       }
-    } catch (err) {}
+    } catch (err) {
+      /* empty */
+    }
 
     // === Manual Update Button Logic ===
     // Checks if a newer version exists and triggers a refresh if found.
