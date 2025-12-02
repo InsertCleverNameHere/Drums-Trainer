@@ -16,7 +16,7 @@ import {
 
 /**
  * Returns a random integer between min and max (inclusive).
- * 
+ *
  * @param {number} min - Minimum value
  * @param {number} max - Maximum value
  * @returns {number} Random integer
@@ -27,7 +27,7 @@ export function randomInt(min, max) {
 
 /**
  * Quantizes a value to the nearest step.
- * 
+ *
  * @param {number} value - Value to quantize
  * @param {number} [step=5] - Quantization step
  * @returns {number} Quantized value
@@ -38,7 +38,7 @@ export function quantizeToStep(value, step = 5) {
 
 /**
  * Sanitizes quantization step to valid range (1-100).
- * 
+ *
  * @param {number} value - Step value to sanitize
  * @returns {number} Clamped step value
  */
@@ -59,7 +59,7 @@ export const QUANTIZATION = {
 
 /**
  * Converts time value to seconds.
- * 
+ *
  * @param {number} value - Time value
  * @param {string} unit - 'seconds', 'minutes', or 'hours'
  * @returns {number} Time in seconds
@@ -74,7 +74,7 @@ export function convertToSeconds(value, unit) {
 
 /**
  * Clamps a value between min and max.
- * 
+ *
  * @param {number} value - Value to clamp
  * @param {number} min - Minimum value
  * @param {number} max - Maximum value
@@ -86,7 +86,7 @@ export function clamp(value, min, max) {
 
 /**
  * Randomly selects a groove and BPM within specified ranges.
- * 
+ *
  * @param {string} groovesText - Newline-separated groove names
  * @param {number} bpmMin - Minimum BPM
  * @param {number} bpmMax - Maximum BPM
@@ -153,7 +153,7 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
 
 /**
  * Picks a random element from an array.
- * 
+ *
  * @param {Array} arr - Array to pick from
  * @returns {*} Random element or empty string if invalid
  */
@@ -164,7 +164,7 @@ export function pickRandom(arr) {
 
 /**
  * Extracts a random groove name from multiline text.
- * 
+ *
  * @param {string} groovesText - Newline-separated groove names
  * @returns {string} Random groove name
  */
@@ -185,7 +185,7 @@ export function getGrooveNameFromText(groovesText) {
 
 /**
  * Formats seconds as human-readable time string.
- * 
+ *
  * @param {number} seconds - Duration in seconds
  * @returns {string} Formatted time (e.g., '1h 23m 45s')
  * @example
@@ -211,7 +211,7 @@ export function formatTime(seconds) {
 
 /**
  * Generates a unique color based on version string.
- * 
+ *
  * @param {string} version - Version string (e.g., 'v1.2.3')
  * @returns {string} Hex color code
  */
@@ -252,7 +252,7 @@ export function generateColorFromVersion(version) {
 /**
  * Calculates BPM from tap timing (maintains internal state).
  * Resets after 1.5s idle.
- * 
+ *
  * @returns {number|null} Calculated BPM or null if <2 taps
  * @example
  * const bpm = calculateTapTempo(); // 120
@@ -313,7 +313,7 @@ export function calculateTapTempo() {
 
 /**
  * Sanitizes value to positive integer.
- * 
+ *
  * @param {string|number} value - Value to sanitize
  * @param {Object} options - Options object
  * @param {number} [options.min=1] - Minimum value
@@ -325,24 +325,32 @@ export function sanitizePositiveInteger(
   value,
   { min = 1, max = Infinity, defaultValue = min } = {}
 ) {
-  if (typeof value === "string") value = value.trim();
-  if (value === "" || value === null || value === undefined)
+  // 1. Handle empty inputs: Return default
+  if (value === null || value === undefined || value === "") {
     return defaultValue;
+  }
 
-  // Accept only whole nonzero positive numbers
-  const regex = /^[1-9]\d*$/;
-  if (!regex.test(value)) return defaultValue;
+  // 2. Convert to number
+  const num = Number(value);
 
-  let num = Number(value);
-  if (Number.isNaN(num)) return defaultValue;
-  if (num < min) return min;
-  if (num > max) return max;
-  return num;
+  // 3. Reject non-numbers (NaN): Return default
+  if (Number.isNaN(num)) {
+    return defaultValue;
+  }
+
+  // 4. Round to integer
+  const intVal = Math.round(num);
+
+  // 5. Clamp to range (The "Option A" logic)
+  if (intVal < min) return min;
+  if (intVal > max) return max;
+
+  return intVal;
 }
 
 /**
  * Sanitizes and quantizes BPM range.
- * 
+ *
  * @param {number} bpmMin - Minimum BPM
  * @param {number} bpmMax - Maximum BPM
  * @param {number} quantizationStep - Quantization step

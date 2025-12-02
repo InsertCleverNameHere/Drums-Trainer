@@ -14,7 +14,7 @@ The Random Groove Trainer follows these core principles:
 
 ## 📊 Module Hierarchy
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────┐
 │                      index.html                         │
 │                  (App Shell + UI)                       │
@@ -424,7 +424,7 @@ debugLog("audio", "Scheduling tick at", time);
 
 ### Groove Session Flow
 
-```
+```bash
 User clicks "Start"
     ↓
 sessionEngine.startSession()
@@ -459,7 +459,7 @@ Check session mode:
 
 ### Simple Metronome Flow
 
-```
+```bash
 User clicks "Start" (simple panel)
     ↓
 simpleMetronome.start()
@@ -520,6 +520,7 @@ Release ownership (null)
    ```
 
 4. **Mode Tabs** (`uiController.js`):
+
    ```javascript
    if (owner === "groove") {
      disableTab("metronome");
@@ -594,6 +595,7 @@ See [`docs/VISUALS_SYSTEM.md`](./VISUALS_SYSTEM.md) for detailed documentation.
 - ✅ `js/ui/panels.js` (~234 lines) - Mode tabs & simple panel
 
 **Benefits**:
+
 - Improved code organization and maintainability
 - Clear separation of concerns
 - Easier testing and debugging

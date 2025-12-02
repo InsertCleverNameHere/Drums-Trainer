@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Utils Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .pass {
+        background: #d4edda;
+        color: #155724;
+      }
+      .fail {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .section {
+        margin-top: 20px;
+        padding: 10px;
+        background: #f0f0f0;
+        border-radius: 4px;
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 15px;
+        background: #e7f3ff;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>⚙️ Utils.js Test Suite</h1>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script type="module">
+      import * as utils from "../js/utils.js";
+
+      const results = document.getElementById("results");
+      const summary = document.getElementById("summary");
+      let passCount = 0;
+      let failCount = 0;
+
+      function addSection(title) {
+        const section = document.createElement("div");
+        section.className = "section";
+        section.innerHTML = `<h2>${title}</h2>`;
+        results.appendChild(section);
+        return section;
+      }
+
+      function addResult(name, passed, message = "", parentElement = results) {
+        const div = document.createElement("div");
+        div.className = `test ${passed ? "pass" : "fail"}`;
+        div.innerHTML = `
+          <strong>${passed ? "✅" : "❌"} ${name}</strong>
+          ${message ? `<br><small>${message}</small>` : ""}
+        `;
+        parentElement.appendChild(div);
+
+        if (passed) passCount++;
+        else failCount++;
+      }
+
+      function updateSummary() {
+        const total = passCount + failCount;
+        const percentage = ((passCount / total) * 100).toFixed(1);
+        summary.innerHTML = `
+          <strong>Test Results:</strong>
+          ${passCount} passed, ${failCount} failed
+          (${percentage}% success rate)
+        `;
+      }
+
+      // ===============================================
+      // SECTION 1: Basic Utility Functions
+      // ===============================================
+      const section1 = addSection("1️⃣ Basic Utility Functions");
+
+      // Test 1.1: randomInt
+      const rand1 = utils.randomInt(5, 10);
+      addResult(
+        "randomInt returns value in range",
+        rand1 >= 5 && rand1 <= 10,
+        `Got ${rand1} (expected 5-10)`,
+        section1
+      );
+
+      // Test 1.2: quantizeToStep
+      addResult(
+        "quantizeToStep(42, 5) = 40",
+        utils.quantizeToStep(42, 5) === 40,
+        "",
+        section1
+      );
+      addResult(
+        "quantizeToStep(43, 5) = 45",
+        utils.quantizeToStep(43, 5) === 45,
+        "",
+        section1
+      );
+
+      // Test 1.3: clamp
+      addResult(
+        "clamp(5, 0, 10) = 5",
+        utils.clamp(5, 0, 10) === 5,
+        "",
+        section1
+      );
+      addResult(
+        "clamp(-5, 0, 10) = 0",
+        utils.clamp(-5, 0, 10) === 0,
+        "",
+        section1
+      );
+      addResult(
+        "clamp(15, 0, 10) = 10",
+        utils.clamp(15, 0, 10) === 10,
+        "",
+        section1
+      );
+
+      // Test 1.4: convertToSeconds
+      addResult(
+        "convertToSeconds(60, 'seconds') = 60",
+        utils.convertToSeconds(60, "seconds") === 60,
+        "",
+        section1
+      );
+      addResult(
+        "convertToSeconds(5, 'minutes') = 300",
+        utils.convertToSeconds(5, "minutes") === 300,
+        "",
+        section1
+      );
+      addResult(
+        "convertToSeconds(2, 'hours') = 7200",
+        utils.convertToSeconds(2, "hours") === 7200,
+        "",
+        section1
+      );
+
+      // ===============================================
+      // SECTION 2: Groove Randomization
+      // ===============================================
+      const section2 = addSection("2️⃣ Groove Randomization");
+
+      // Test 2.1: randomizeGroove basic
+      const result1 = utils.randomizeGroove("Rock\nFunk\nJazz", 60, 120);
+      addResult(
+        "randomizeGroove returns object with bpm and groove",
+        typeof result1 === "object" &&
+          typeof result1.bpm === "number" &&
+          typeof result1.groove === "string",
+        `Got: bpm=${result1.bpm}, groove="${result1.groove}"`,
+        section2
+      );
+
+      addResult(
+        "randomizeGroove BPM is in range",
+        result1.bpm >= 60 && result1.bpm <= 120,
+        `Expected 60-120, got ${result1.bpm}`,
+        section2
+      );
+
+      addResult(
+        "randomizeGroove BPM is quantized to step 5",
+        result1.bpm % 5 === 0,
+        `Expected multiple of 5, got ${result1.bpm}`,
+        section2
+      );
+
+      addResult(
+        "randomizeGroove returns valid groove name",
+        ["Rock", "Funk", "Jazz"].includes(result1.groove),
+        `Got "${result1.groove}"`,
+        section2
+      );
+
+      // Test 2.2: randomizeGroove edge cases
+      const result2 = utils.randomizeGroove("", 60, 120);
+      addResult(
+        "randomizeGroove handles empty groove list",
+        result2.groove === "No groove selected",
+        `Got "${result2.groove}"`,
+        section2
+      );
+
+      // Test 2.2: randomizeGroove edge cases
+      const result3 = utils.randomizeGroove("Rock", 32, 37);
+      addResult(
+        "randomizeGroove quantizes min/max correctly",
+        result3.bpm === 35 || result3.bpm === 40, // <--- CHANGED: Allow 40
+        `Expected 35 or 40, got ${result3.bpm}`,
+        section2
+      );
+
+      // Test 2.3: pickRandom
+      addResult(
+        "pickRandom returns element from array",
+        ["a", "b", "c"].includes(utils.pickRandom(["a", "b", "c"])),
+        "",
+        section2
+      );
+      addResult(
+        "pickRandom returns empty string for empty array",
+        utils.pickRandom([]) === "",
+        "",
+        section2
+      );
+
+      // Test 2.4: getGrooveNameFromText
+      const groove1 = utils.getGrooveNameFromText("Rock\nFunk\nJazz");
+      addResult(
+        "getGrooveNameFromText returns valid groove",
+        ["Rock", "Funk", "Jazz"].includes(groove1),
+        `Got "${groove1}"`,
+        section2
+      );
+      addResult(
+        "getGrooveNameFromText handles empty text",
+        utils.getGrooveNameFromText("") === "No groove selected",
+        "",
+        section2
+      );
+
+      // ===============================================
+      // SECTION 3: Time Formatting
+      // ===============================================
+      const section3 = addSection("3️⃣ Time Formatting");
+
+      addResult(
+        "formatTime(45) = '45s'",
+        utils.formatTime(45) === "45s",
+        "",
+        section3
+      );
+      addResult(
+        "formatTime(300) = '5m 0s'",
+        utils.formatTime(300) === "5m 0s",
+        "",
+        section3
+      );
+      addResult(
+        "formatTime(3665) = '1h 1m 5s'",
+        utils.formatTime(3665) === "1h 1m 5s",
+        "",
+        section3
+      );
+      addResult(
+        "formatTime(7261) = '2h 1m 1s'",
+        utils.formatTime(7261) === "2h 1m 1s",
+        "",
+        section3
+      );
+
+      // ===============================================
+      // SECTION 4: Version Color Generation
+      // ===============================================
+      const section4 = addSection("4️⃣ Version Color Generation");
+
+      const color1 = utils.generateColorFromVersion("v1.2.3");
+      const color2 = utils.generateColorFromVersion("v1.2.3");
+      const color3 = utils.generateColorFromVersion("v2.0.0");
+
+      addResult(
+        "generateColorFromVersion returns hex color",
+        /^#[0-9a-f]{6}$/.test(color1),
+        `Got "${color1}"`,
+        section4
+      );
+
+      addResult(
+        "generateColorFromVersion is deterministic",
+        color1 === color2,
+        `Same version produces same color: ${color1}`,
+        section4
+      );
+
+      addResult(
+        "generateColorFromVersion differs for different versions",
+        color1 !== color3,
+        `v1.2.3="${color1}", v2.0.0="${color3}"`,
+        section4
+      );
+
+      // ===============================================
+      // SECTION 5: Tap Tempo Calculation
+      // ===============================================
+      const section5 = addSection("5️⃣ Tap Tempo Calculation");
+
+      // 1. Reset State
+      utils.calculateTapTempo._taps = [];
+      utils.calculateTapTempo._lastTap = 0;
+
+      // 2. Mock performance.now() to control time
+      const originalNow = performance.now; // Backup original function
+      let mockTime = 10000; // Start at arbitrary time
+      performance.now = () => mockTime; // Override
+
+      // Tap 1
+      utils.calculateTapTempo();
+
+      // Advance time by 500ms (implies 120 BPM)
+      mockTime += 500;
+
+      // Tap 2
+      const bpm = utils.calculateTapTempo();
+
+      // Restore original performance.now immediately!
+      performance.now = originalNow;
+
+      addResult(
+        "calculateTapTempo calculates BPM from intervals",
+        bpm !== null && bpm >= 115 && bpm <= 125,
+        `Expected ~120 BPM, got ${bpm}`,
+        section5
+      );
+
+      addResult(
+        "calculateTapTempo quantizes to step 5",
+        bpm % 5 === 0,
+        `Expected multiple of 5, got ${bpm}`,
+        section5
+      );
+
+      // ===============================================
+      // SECTION 6: Input Sanitization
+      // ===============================================
+      const section6 = addSection("6️⃣ Input Sanitization");
+
+      // Test 6.1: sanitizePositiveInteger
+      addResult(
+        "sanitizePositiveInteger('42', {min:1, max:100}) = 42",
+        utils.sanitizePositiveInteger("42", { min: 1, max: 100 }) === 42,
+        "",
+        section6
+      );
+      addResult(
+        "sanitizePositiveInteger('-5', {min:1, max:100, defaultValue:1}) = 1",
+        utils.sanitizePositiveInteger("-5", {
+          min: 1,
+          max: 100,
+          defaultValue: 1,
+        }) === 1,
+        "Negative values default to fallback",
+        section6
+      );
+      addResult(
+        "sanitizePositiveInteger('150', {min:1, max:100}) = 100",
+        utils.sanitizePositiveInteger("150", { min: 1, max: 100 }) === 100,
+        "Values >max clamp to max",
+        section6
+      );
+      addResult(
+        "sanitizePositiveInteger('', {defaultValue:50}) = 50",
+        utils.sanitizePositiveInteger("", { defaultValue: 50 }) === 50,
+        "Empty string returns default",
+        section6
+      );
+      addResult(
+        "sanitizePositiveInteger('abc', {defaultValue:10}) = 10",
+        utils.sanitizePositiveInteger("abc", { defaultValue: 10 }) === 10,
+        "Invalid input returns default",
+        section6
+      );
+
+      // Test 6.2: sanitizeQuantizationStep
+      addResult(
+        "sanitizeQuantizationStep(5) = 5",
+        utils.sanitizeQuantizationStep(5) === 5,
+        "",
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(150) = 100",
+        utils.sanitizeQuantizationStep(150) === 100,
+        "Max is 100",
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(-5) = 1",
+        utils.sanitizeQuantizationStep(-5) === 1,
+        "Min is 1",
+        section6
+      );
+
+      // Test 6.3: sanitizeBpmRange
+      const range1 = utils.sanitizeBpmRange(60, 120, 5);
+      addResult(
+        "sanitizeBpmRange returns object with bpmMin, bpmMax, step",
+        typeof range1 === "object" &&
+          typeof range1.bpmMin === "number" &&
+          typeof range1.bpmMax === "number" &&
+          typeof range1.step === "number",
+        `Got: ${JSON.stringify(range1)}`,
+        section6
+      );
+
+      addResult(
+        "sanitizeBpmRange quantizes correctly",
+        range1.bpmMin === 60 && range1.bpmMax === 120 && range1.step === 5,
+        `Expected {60, 120, 5}, got ${JSON.stringify(range1)}`,
+        section6
+      );
+
+      const range2 = utils.sanitizeBpmRange(32, 37, 5);
+      addResult(
+        "sanitizeBpmRange handles close values",
+        range2.bpmMin === 35 && range2.bpmMax === 40,
+        `Input (32, 37) → ${JSON.stringify(range2)}`,
+        section6
+      );
+
+      const range3 = utils.sanitizeBpmRange(120, 60, 5);
+      addResult(
+        "sanitizeBpmRange swaps min/max if reversed",
+        range3.bpmMin === 60 && range3.bpmMax === 120,
+        `Input (120, 60) → ${JSON.stringify(range3)}`,
+        section6
+      );
+
+      const range4 = utils.sanitizeBpmRange(10, 400, 5);
+      addResult(
+        "sanitizeBpmRange enforces hard limits (30-300)",
+        range4.bpmMin === 30 && range4.bpmMax === 300,
+        `Input (10, 400) → ${JSON.stringify(range4)}`,
+        section6
+      );
+
+      // ===============================================
+      // SECTION 7: QUANTIZATION Constant
+      // ===============================================
+      const section7 = addSection("7️⃣ QUANTIZATION Constant");
+
+      addResult(
+        "QUANTIZATION.groove exists",
+        typeof utils.QUANTIZATION === "object",
+        "",
+        section7
+      );
+      addResult(
+        "QUANTIZATION.groove = 5",
+        utils.QUANTIZATION.groove === 5,
+        "",
+        section7
+      );
+
+      // ===============================================
+      // FINAL SUMMARY
+      // ===============================================
+      updateSummary();
+
+      console.log(`✅ Passed: ${passCount}`);
+      console.log(`❌ Failed: ${failCount}`);
+    </script>
+  </body>
+</html>
