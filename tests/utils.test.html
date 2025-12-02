@@ -232,6 +232,14 @@
         section2
       );
 
+      const swapTest = utils.randomizeGroove("Test", 120, 60);
+      addResult(
+        "randomizeGroove handles swapped Min/Max",
+        swapTest.bpm >= 60 && swapTest.bpm <= 120,
+        "Should auto-swap 120 and 60",
+        section2
+      );
+
       // ===============================================
       // SECTION 3: Time Formatting
       // ===============================================
@@ -258,6 +266,13 @@
       addResult(
         "formatTime(7261) = '2h 1m 1s'",
         utils.formatTime(7261) === "2h 1m 1s",
+        "",
+        section3
+      );
+
+      addResult(
+        "formatTime(0) = '0s'",
+        utils.formatTime(0) === "0s",
         "",
         section3
       );
@@ -433,6 +448,13 @@
         "sanitizeBpmRange enforces hard limits (30-300)",
         range4.bpmMin === 30 && range4.bpmMax === 300,
         `Input (10, 400) → ${JSON.stringify(range4)}`,
+        section6
+      );
+
+      addResult(
+        "sanitizePositiveInteger rounds decimals (4.9 -> 5)",
+        utils.sanitizePositiveInteger(4.9) === 5,
+        "Should round to nearest integer",
         section6
       );
 
