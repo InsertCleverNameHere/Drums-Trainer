@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // metronomeCore.js
 // Audio scheduling and metronome core logic (refactored from metronome.js)
 import { debugLog, DebugTimer } from "./debug.js";
@@ -42,7 +43,7 @@ let pauseAudioOffset = 0; // nextNoteTime offset preserved across pause
 
 /**
  * Registers a visual callback to be triggered on each beat.
- * 
+ *
  * @param {Function} cb - Callback function receiving (tickIndex, isPrimaryAccent, isMainBeat)
  * @returns {void}
  * @example
@@ -145,7 +146,7 @@ function scheduler() {
 
 /**
  * Starts the groove metronome audio scheduler.
- * 
+ *
  * @param {number} [newBpm=120] - Tempo in beats per minute (30-300, clamped to hard limits)
  * @returns {void}
  * @example
@@ -178,7 +179,7 @@ export function startMetronome(newBpm = 120) {
 
 /**
  * Plays a 3-2-1 count-in using procedural audio.
- * 
+ *
  * @param {number} [nextBpm=120] - Tempo for count-in timing
  * @param {boolean} [tempoSynced=true] - Use tempo-based intervals (true) or fixed 1s intervals (false)
  * @returns {Promise<void>} Resolves when count-in completes
@@ -227,7 +228,7 @@ export function performCountIn(nextBpm = 120, tempoSynced = true) {
 
 /**
  * Stops the metronome and clears all timers.
- * 
+ *
  * @returns {void}
  * @example
  * window.metronome.stopMetronome();
@@ -241,7 +242,7 @@ export function stopMetronome() {
 
 /**
  * Resets the playback flag (allows restarting after stop).
- * 
+ *
  * @returns {void}
  * @internal Used by session engine to handle restart scenarios
  */
@@ -253,7 +254,7 @@ export function resetPlaybackFlag() {
 /**
  * Updates the time signature (e.g., 4/4, 7/8).
  * Blocked during active playback - must pause first.
- * 
+ *
  * @param {number} beats - Numerator (1-16)
  * @param {number} value - Denominator (2, 4, 8, or 16)
  * @returns {void}
@@ -310,7 +311,7 @@ export function setTimeSignature(beats, value) {
 
 /**
  * Returns the current time signature.
- * 
+ *
  * @returns {{beats: number, value: number}} Time signature object
  * @example
  * const sig = window.metronome.getTimeSignature();
@@ -323,7 +324,7 @@ export function getTimeSignature() {
 /**
  * Sets subdivision level (1=none, 2=8ths, 4=16ths).
  * Blocked during active playback - must pause first.
- * 
+ *
  * @param {number} n - Ticks per beat (1, 2, or 4)
  * @returns {void}
  * @example
@@ -345,7 +346,7 @@ export function setTicksPerBeat(n) {
 
 /**
  * Returns the current subdivision level.
- * 
+ *
  * @returns {number} Ticks per beat (1, 2, or 4)
  * @example
  * const ticks = window.metronome.getTicksPerBeat(); // 4 (16ths)
@@ -356,7 +357,7 @@ export function getTicksPerBeat() {
 
 /**
  * Returns the current tempo.
- * 
+ *
  * @returns {number} Current BPM
  * @example
  * const tempo = window.metronome.getBpm(); // 120
@@ -367,7 +368,7 @@ export function getBpm() {
 
 /**
  * Returns whether the metronome is currently paused.
- * 
+ *
  * @returns {boolean} True if paused, false otherwise
  * @example
  * if (window.metronome.getPauseState()) console.log('Paused');
@@ -378,7 +379,7 @@ export function getPauseState() {
 
 /**
  * Pauses audio scheduling without resetting state.
- * 
+ *
  * @returns {void}
  * @example
  * window.metronome.pauseMetronome();
@@ -399,7 +400,7 @@ export function pauseMetronome() {
 
 /**
  * Resumes audio scheduling from paused state.
- * 
+ *
  * @returns {void}
  * @example
  * window.metronome.resumeMetronome();
@@ -416,7 +417,7 @@ export function resumeMetronome() {
 
 /**
  * Requests graceful stop at next bar boundary.
- * 
+ *
  * @param {Function} callback - Called after bar completes
  * @returns {void}
  * @example

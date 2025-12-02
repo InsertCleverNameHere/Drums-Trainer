@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // js/simpleMetronome.js
 /**
  * @fileoverview Simple metronome UI module backed by simpleMetronomeCore.js.
@@ -40,12 +41,12 @@ function updateSimpleDisplayBpm() {
 
 /**
  * Initializes the simple metronome module.
- * 
+ *
  * @public
  * @param {Object} [opts={}] - Configuration options
  * @param {number} [opts.initialBpm] - Initial BPM value
  * @returns {void}
- * 
+ *
  * @example
  * initSimpleMetronome({ initialBpm: 120 });
  */
@@ -89,10 +90,10 @@ document.addEventListener("metronome:ownerChanged", (e) => {
 
 /**
  * Checks if simple metronome is currently running.
- * 
+ *
  * @public
  * @returns {boolean} True if running (even if paused)
- * 
+ *
  * @example
  * if (isRunning()) {
  *   console.log('Simple metronome is active');
@@ -104,10 +105,10 @@ export function isRunning() {
 
 /**
  * Checks if simple metronome is currently paused.
- * 
+ *
  * @public
  * @returns {boolean} True if paused
- * 
+ *
  * @example
  * if (isPaused()) {
  *   console.log('Simple metronome is paused');
@@ -119,10 +120,10 @@ export function isPaused() {
 
 /**
  * Returns current BPM.
- * 
+ *
  * @public
  * @returns {number} Current tempo
- * 
+ *
  * @example
  * const tempo = getBpm(); // 120
  */
@@ -132,11 +133,11 @@ export function getBpm() {
 
 /**
  * Updates tempo and syncs with UI input.
- * 
+ *
  * @public
  * @param {number} newBpm - New tempo (20-300)
  * @returns {number} Clamped BPM value
- * 
+ *
  * @example
  * setBpm(140); // Sets tempo to 140 BPM
  */
@@ -163,10 +164,10 @@ export function setBpm(newBpm) {
 /**
  * Starts the simple metronome.
  * Claims ownership and starts audio core.
- * 
+ *
  * @public
  * @returns {Promise<boolean>} Success/failure
- * 
+ *
  * @example
  * await start(); // Starts metronome at current BPM
  */
@@ -228,10 +229,10 @@ export function start() {
 
 /**
  * Pauses the simple metronome.
- * 
+ *
  * @public
  * @returns {void}
- * 
+ *
  * @example
  * pause(); // Pauses playback
  */
@@ -253,10 +254,10 @@ export function pause() {
 
 /**
  * Resumes the simple metronome from paused state.
- * 
+ *
  * @public
  * @returns {void}
- * 
+ *
  * @example
  * resume(); // Resumes playback
  */
@@ -278,10 +279,10 @@ export function resume() {
 
 /**
  * Stops the simple metronome and releases ownership.
- * 
+ *
  * @public
  * @returns {void}
- * 
+ *
  * @example
  * stop(); // Stops playback completely
  */
