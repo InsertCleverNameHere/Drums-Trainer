@@ -4,7 +4,7 @@
 // === Imports ===
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
-import { showNotice } from "./uiController.js";
+import { showNotice } from "./ui/sliders.js";
 import { debugLog } from "./debug.js";
 
 let activeModeOwner = null; // "groove" | "simple" | null

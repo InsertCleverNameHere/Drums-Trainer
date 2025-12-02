@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>UI Controller Modularization Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+        background-color: #f4f4f9;
+        color: #333;
+      }
+      h1 {
+        margin-bottom: 20px;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 12px;
+        border-radius: 6px;
+        border-left: 5px solid #ccc;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .pass {
+        border-left-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+      }
+      .fail {
+        border-left-color: #dc3545;
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .info {
+        margin-top: 2rem;
+        font-weight: bold;
+        color: #555;
+        border-bottom: 2px solid #ddd;
+        padding-bottom: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🛠️ UI Controller Modularization Tests</h1>
+    <div id="results"></div>
+
+    <!-- Hidden Mock DOM Container to prevent UI Controller crashes during test -->
+    <div id="mock-dom" style="display: none"></div>
+
+    <script type="module">
+      // 1. Import the ENTIRE module as a namespace object
+      // This allows us to inspect exports without polluting the global window
+      import * as UI from "../js/uiController.js";
+
+      const results = document.getElementById("results");
+      const mockContainer = document.getElementById("mock-dom");
+
+      // Helper: Setup Mock DOM elements required by initUI()
+      // This prevents the code from erroring when it tries to addEventListeners
+      function setupMockDOM() {
+        const requiredIds = [
+          "startBtn",
+          "pauseBtn",
+          "nextBtn",
+          "tooltipTrigger",
+          "tooltipDialog",
+          "VersionNumber",
+          "checkUpdatesBtn",
+        ];
+        requiredIds.forEach((id) => {
+          const el = document.createElement("div");
+          el.id = id;
+          mockContainer.appendChild(el);
+        });
+      }
+
+      function addResult(name, passed, message = "") {
+        const div = document.createElement("div");
+        div.className = `test ${passed ? "pass" : "fail"}`;
+        div.innerHTML = `
+          <strong>${passed ? "✅" : "❌"} ${name}</strong>
+          ${message ? `<br><small>${message}</small>` : ""}
+        `;
+        results.appendChild(div);
+      }
+
+      function addHeader(text) {
+        const h2 = document.createElement("div");
+        h2.className = "info";
+        h2.textContent = text;
+        results.appendChild(h2);
+      }
+
+      // --- RUN TESTS ---
+
+      setupMockDOM();
+
+      // Group 1: Native Controller Functions
+      addHeader("Main Controller Functions");
+
+      const coreFunctions = [
+        "initUI",
+        "initOwnershipGuards",
+        "updateFooterMessage",
+        "initUpdateUI",
+        "initAllUI",
+      ];
+
+      coreFunctions.forEach((fn) => {
+        const exists = typeof UI[fn] === "function";
+        addResult(
+          `Export: ${fn}`,
+          exists,
+          exists
+            ? "Function successfully exported"
+            : "Function missing from export list"
+        );
+      });
+
+      // Group 2: Submodule Re-exports
+      addHeader("Submodule Re-exports (Modularization Check)");
+
+      const subModuleExports = [
+        { name: "initDarkMode", origin: "theme.js" },
+        { name: "getSafeQuantization", origin: "theme.js" },
+        { name: "showNotice", origin: "sliders.js" },
+        { name: "initSoundProfileUI", origin: "controls.js" },
+        { name: "initSimplePanelControls", origin: "panels.js" },
+      ];
+
+      subModuleExports.forEach((item) => {
+        const exists = typeof UI[item.name] === "function";
+        addResult(
+          `Re-export: ${item.name}`,
+          exists,
+          exists
+            ? `Correctly bridged from ${item.origin}`
+            : `Failed to re-export from ${item.origin}`
+        );
+      });
+
+      // Group 3: Scope Safety
+      addHeader("Scope & Safety Checks");
+
+      // Check if global scope is clean
+      const isGlobalPolluted =
+        window.initUI !== undefined || window.initAllUI !== undefined;
+      addResult(
+        "Global Window Namespace is Clean",
+        !isGlobalPolluted,
+        isGlobalPolluted
+          ? "Warning: Functions are leaking into window"
+          : "Great! No functions leaking into global window"
+      );
+
+      // Runtime Check
+      try {
+        // We pass empty mocks to see if it initializes without crashing
+        const deps = {
+          startMetronome: () => {},
+          stopMetronome: () => {},
+          // ... other deps mocked
+        };
+        const session = UI.initUI(deps);
+        addResult(
+          "Runtime: initUI() runs without errors",
+          typeof session === "object",
+          "Successfully initialized with mock DOM elements"
+        );
+      } catch (e) {
+        addResult("Runtime: initUI()", false, `Crashed: ${e.message}`);
+      }
+    </script>
+  </body>
+</html>

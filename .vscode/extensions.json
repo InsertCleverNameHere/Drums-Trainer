@@ -12,7 +12,6 @@
     "formulahendry.auto-close-tag",
 
     // === GIT ===
-    "eamodio.gitlens",
     "mhutchie.git-graph",
 
     // === DEBUGGING ===
