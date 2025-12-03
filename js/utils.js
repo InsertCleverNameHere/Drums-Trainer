@@ -600,7 +600,8 @@ export function getStyledVersionHTML(
         : colors.changeType === "minor"
         ? colors.minor
         : colors.patch;
-    versionHTML = `<span style="text-shadow: 0 0 12px ${glowColor}80, 0 0 8px ${glowColor}60, 0 0 4px ${glowColor}40;">${versionHTML}</span>`;
+    // Triple-layer glow for better dark mode visibility + larger size
+    versionHTML = `<span style="font-size: 1.5em; text-shadow: 0 0 12px ${glowColor}80, 0 0 8px ${glowColor}60, 0 0 4px ${glowColor}40;">${versionHTML}</span>`;
   }
 
   return versionHTML;
