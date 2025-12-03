@@ -575,7 +575,7 @@ export function getStyledVersionHTML(
 
   // Changed component style (bold + subtle underline)
   const changedStyle =
-    "font-weight: 700; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px;";
+    "font-weight: 700; text-decoration: underline; text-decoration-style: solid; text-underline-offset: 2px;";
 
   // Build styled components
   const majorHTML = `<span style="color:${colors.major};${baseStyle}${
@@ -600,7 +600,7 @@ export function getStyledVersionHTML(
         : colors.changeType === "minor"
         ? colors.minor
         : colors.patch;
-    versionHTML = `<span style="text-shadow: 0 0 8px ${glowColor}40, 0 0 4px ${glowColor}20;">${versionHTML}</span>`;
+    versionHTML = `<span style="text-shadow: 0 0 12px ${glowColor}80, 0 0 8px ${glowColor}60, 0 0 4px ${glowColor}40;">${versionHTML}</span>`;
   }
 
   return versionHTML;
