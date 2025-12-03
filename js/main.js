@@ -152,14 +152,8 @@ if (document.readyState === "loading") {
 initModeTabs(sessionEngine, simpleMetronome);
 
 // === Version Fetch & App Footer Handling ===
-// Fetch latest commit hash + app version to display in footer
-// and detect if a new version is available for the service worker.
 const footerEl = document.getElementById("VersionNumber");
 const versionKey = "lastSeenVersion";
-const colorKey = "versionColor";
-const messageKey = (status) =>
-  status.includes("Update") ? "updateMsgCount" : "cachedMsgCount";
-
 const hashKey = "lastSeenHash";
 
 fetch("./commits.json", { cache: "no-store" })
@@ -167,11 +161,13 @@ fetch("./commits.json", { cache: "no-store" })
   .then(({ latestHash, version }) => {
     appVersion = version;
 
-    const storedVersion = localStorage.getItem(versionKey);
+    const storedVersion = utils.migrateStoredVersion(
+      localStorage.getItem(versionKey)
+    );
     const isNewVersion = storedVersion !== appVersion;
 
-    // Always compute color from version (deterministic)
-    versionColor = utils.generateColorFromVersion(appVersion);
+    // Store new version AFTER we've captured the previous one
+    const previousVersion = storedVersion; // Capture before update
 
     if (isNewVersion) {
       localStorage.setItem(versionKey, appVersion);
@@ -180,31 +176,30 @@ fetch("./commits.json", { cache: "no-store" })
     }
 
     const lastSeenHash = localStorage.getItem(hashKey);
-    // Define an "actual update" as a scenario where a user has been here before
-    //    (lastSeenHash is not null) AND the hash has changed.
     const isActualUpdate = lastSeenHash && latestHash !== lastSeenHash;
 
-    // Use this new, smarter condition to decide which message to show.
     if (isActualUpdate) {
-      // This block now ONLY runs for returning users with an outdated version.
       localStorage.setItem(hashKey, latestHash);
       uiController.updateFooterMessage(
         footerEl,
         appVersion,
-        versionColor,
+        previousVersion, // Pass previous for color comparison
         "Update Available"
       );
     } else {
-      // This block now correctly runs on the first visit, or if the user is up-to-date.
-      // We still update the hash here for the first visit so the *next* check works.
       if (!lastSeenHash) {
         localStorage.setItem(hashKey, latestHash);
       }
-      uiController.updateFooterMessage(footerEl, appVersion, versionColor);
+      uiController.updateFooterMessage(
+        footerEl,
+        appVersion,
+        previousVersion // Pass previous for color comparison
+      );
     }
   })
   .catch((err) => {
-    uiController.updateFooterMessage(footerEl, appVersion, versionColor); // fallback
+    // Fallback: no previous version comparison on error
+    uiController.updateFooterMessage(footerEl, appVersion, null);
   });
 
 // === Service Worker Integration ===
