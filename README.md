@@ -19,6 +19,7 @@ A lightweight, offline-ready PWA for practicing drum grooves with randomized BPM
 - **🌙 Dark Mode** — Auto-detects system preference, persists across sessions
 - **📱 PWA Ready** — Install on any device, works fully offline
 - **🔄 Auto-Updates** — Smart versioning with user-friendly update prompts
+- **🎨 Hierarchical Version Colors** — Visual SemVer feedback with color inheritance
 
 ---
 
@@ -92,6 +93,15 @@ python -m http.server 8080
 2. Choose time signature and subdivisions
 3. Press **Space** or tap **Start**
 4. Use **Tap Tempo** to set BPM by tapping
+
+### Version Updates
+
+- **Visual feedback**: Version numbers use hierarchical colors based on update type
+  - Major updates: All components change color
+  - Minor updates: Minor + Patch components share new color
+  - Patch updates: Only patch component gets new color
+- **Smart styling**: Changed components are bold + underlined with glow effect
+- **No disruption**: Updates happen seamlessly without cache invalidation
 
 ---
 

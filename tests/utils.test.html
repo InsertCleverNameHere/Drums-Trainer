@@ -477,6 +477,167 @@
       );
 
       // ===============================================
+      // SECTION 8: Version Color System
+      // ===============================================
+      const section8 = addSection("8️⃣ Version Color System");
+
+      // Test 8.1: parseVersion
+      const parsed1 = utils.parseVersion("v8.1.0");
+      addResult(
+        "parseVersion handles standard format",
+        parsed1.major === 8 && parsed1.minor === 1 && parsed1.patch === 0,
+        `Got: ${parsed1.major}.${parsed1.minor}.${parsed1.patch}`,
+        section8
+      );
+
+      const parsed2 = utils.parseVersion("8.1.0");
+      addResult(
+        "parseVersion handles format without 'v' prefix",
+        parsed2.major === 8 && parsed2.minor === 1 && parsed2.patch === 0,
+        `Got: ${parsed2.major}.${parsed2.minor}.${parsed2.patch}`,
+        section8
+      );
+
+      const parsed3 = utils.parseVersion("v8.1.0-beta");
+      addResult(
+        "parseVersion handles pre-release tags",
+        parsed3.major === 8 && parsed3.minor === 1 && parsed3.patch === 0,
+        `Got: ${parsed3.major}.${parsed3.minor}.${parsed3.patch}`,
+        section8
+      );
+
+      const parsed4 = utils.parseVersion("");
+      addResult(
+        "parseVersion handles empty string",
+        parsed4.major === 0 && parsed4.minor === 0 && parsed4.patch === 0,
+        "Returns default 0.0.0",
+        section8
+      );
+
+      // Test 8.2: getVersionColors - Change Type Detection
+      const colorsPatch = utils.getVersionColors("v8.1.1", "v8.1.0");
+      addResult(
+        "getVersionColors detects patch change",
+        colorsPatch.changeType === "patch",
+        `Change type: ${colorsPatch.changeType}`,
+        section8
+      );
+
+      const colorsMinor = utils.getVersionColors("v8.1.0", "v8.0.0");
+      addResult(
+        "getVersionColors detects minor change",
+        colorsMinor.changeType === "minor",
+        `Change type: ${colorsMinor.changeType}`,
+        section8
+      );
+
+      const colorsMajor = utils.getVersionColors("v8.0.0", "v7.5.3");
+      addResult(
+        "getVersionColors detects major change",
+        colorsMajor.changeType === "major",
+        `Change type: ${colorsMajor.changeType}`,
+        section8
+      );
+
+      const colorsInitial = utils.getVersionColors("v8.1.0", null);
+      addResult(
+        "getVersionColors handles first-time user (no previous)",
+        colorsInitial.changeType === "initial",
+        `Change type: ${colorsInitial.changeType}`,
+        section8
+      );
+
+      // Test 8.3: getVersionColors - Color Hierarchy
+      const patchColors = utils.getVersionColors("v8.1.1", "v8.1.0");
+      addResult(
+        "Patch change: Patch different from Major and Minor",
+        patchColors.patch !== patchColors.major &&
+          patchColors.patch !== patchColors.minor,
+        `Major=${patchColors.major}, Minor=${patchColors.minor}, Patch=${patchColors.patch}`,
+        section8
+      );
+
+      const minorColors = utils.getVersionColors("v8.1.0", "v8.0.0");
+      addResult(
+        "Minor change: Major different, Minor+Patch same",
+        minorColors.major !== minorColors.minor &&
+          minorColors.minor === minorColors.patch,
+        `Major=${minorColors.major}, Minor=${minorColors.minor}, Patch=${minorColors.patch}`,
+        section8
+      );
+
+      const majorColors = utils.getVersionColors("v8.0.0", "v7.5.3");
+      addResult(
+        "Major change: All components same color",
+        majorColors.major === majorColors.minor &&
+          majorColors.minor === majorColors.patch,
+        `All colors: ${majorColors.major}`,
+        section8
+      );
+
+      // Test 8.4: getStyledVersionHTML
+      const styledHTML = utils.getStyledVersionHTML("v8.1.1", "v8.1.0", true);
+      addResult(
+        "getStyledVersionHTML returns HTML string",
+        typeof styledHTML === "string" && styledHTML.includes("<span"),
+        "Contains styled span elements",
+        section8
+      );
+
+      addResult(
+        "getStyledVersionHTML includes glow effect",
+        styledHTML.includes("text-shadow"),
+        "text-shadow property present",
+        section8
+      );
+
+      addResult(
+        "getStyledVersionHTML includes bold styling for changed component",
+        styledHTML.includes("font-weight: 700"),
+        "Bold applied to changed component",
+        section8
+      );
+
+      addResult(
+        "getStyledVersionHTML includes underline for changed component",
+        styledHTML.includes("text-decoration: underline"),
+        "Underline applied to changed component",
+        section8
+      );
+
+      addResult(
+        "getStyledVersionHTML includes size increase",
+        styledHTML.includes("font-size: 1.5em"),
+        "Version string 50% larger",
+        section8
+      );
+
+      // Test 8.5: migrateStoredVersion
+      const validMigration = utils.migrateStoredVersion("v8.1.0");
+      addResult(
+        "migrateStoredVersion accepts valid format",
+        validMigration === "v8.1.0",
+        "Returns input unchanged",
+        section8
+      );
+
+      const invalidMigration = utils.migrateStoredVersion("invalid-format");
+      addResult(
+        "migrateStoredVersion rejects invalid format",
+        invalidMigration === null,
+        "Returns null for invalid input",
+        section8
+      );
+
+      const nullMigration = utils.migrateStoredVersion(null);
+      addResult(
+        "migrateStoredVersion handles null input",
+        nullMigration === null,
+        "Returns null",
+        section8
+      );
+
+      // ===============================================
       // FINAL SUMMARY
       // ===============================================
       updateSummary();

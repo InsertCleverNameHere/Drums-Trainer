@@ -542,6 +542,63 @@ See [`docs/VISUALS_SYSTEM.md`](./VISUALS_SYSTEM.md) for detailed documentation.
 
 ---
 
+## 🎨 Hierarchical Version Color System
+
+**Purpose**: Provide visual feedback on version update type using color inheritance
+
+**Location**: `js/utils.js` (color generation), `js/uiController.js` (rendering)
+
+### Color Hierarchy Rules
+
+The version string (X.Y.Z) uses color inheritance based on SemVer change type:
+
+1. **Major Change** (X.0.0):
+
+   - All components display same new color
+   - Major component bold + underlined
+   - Example: `v7.5.3 → v8.0.0` - All red
+
+2. **Minor Change** (X.Y.0):
+
+   - Major component keeps original color
+   - Minor + Patch share new color
+   - Minor component bold + underlined
+   - Example: `v8.0.0 → v8.1.0` - `8` red, `1.0` blue
+
+3. **Patch Change** (X.Y.Z):
+
+   - Major + Minor keep original colors
+   - Patch gets new color
+   - Patch component bold + underlined
+   - Example: `v8.1.0 → v8.1.1` - `8.1` red, `1` blue
+
+4. **Initial Display** (First Visit):
+   - All components same color
+   - No bold/underline
+
+### Visual Enhancements
+
+- **Font size**: Version string 50% larger than surrounding text (`1.5em`)
+- **Glow effect**: Triple-layer text-shadow for visibility in dark mode
+- **Typography**: Bold + solid underline on changed components
+- **Color palette**: 30 vibrant colors optimized for light/dark mode
+
+### Key Functions
+
+- `parseVersion(version)` - Parses version string into components
+- `getVersionColors(version, previousVersion)` - Determines hierarchical colors
+- `getStyledVersionHTML(version, previousVersion, includeGlow)` - Generates styled HTML
+- `migrateStoredVersion(storedVersion)` - Validates stored version format
+
+### Implementation Notes
+
+- **Deterministic colors**: Hash-based selection ensures same version always gets same color
+- **Backward compatible**: Gracefully handles migration from old color system
+- **SemVer ready**: Works with current hash-based versioning and future SemVer tags
+- **No cache invalidation**: Smooth migration without requiring PWA reinstall
+
+---
+
 ## 📦 Build & Deployment
 
 ### Development
