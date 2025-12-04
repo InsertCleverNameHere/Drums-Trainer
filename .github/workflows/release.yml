@@ -1,0 +1,133 @@
+name: Automated Release & Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write # For creating releases and pushing commits
+  pages: write # For deploying to GitHub Pages
+  id-token: write # Required for GitHub Pages deployment
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ===========================
+      # Step 1: Checkout Repository
+      # ===========================
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for changelog generation
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ===========================
+      # Step 2: Setup Node.js
+      # ===========================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "npm"
+
+      # ===========================
+      # Step 3: Install Dependencies
+      # ===========================
+      - name: Install dependencies
+        run: npm ci
+
+      # ===========================
+      # Step 4: Parse Commit & Bump Version
+      # ===========================
+      - name: Parse commit message
+        id: parse
+        run: node scripts/parse-commit.js
+
+      - name: Bump version
+        id: version
+        run: node scripts/bump-version.js
+
+      # ===========================
+      # Step 5: Build Artifacts
+      # ===========================
+      - name: Build user and dev artifacts
+        run: node scripts/build-artifacts.js
+
+      # ===========================
+      # Step 6: Generate Changelog
+      # ===========================
+      - name: Generate changelog
+        run: node scripts/generate-changelog.js
+
+      # ===========================
+      # Step 7: Read Version for Later Steps
+      # ===========================
+      - name: Read version from commits.json
+        id: read_version
+        run: |
+          VERSION=$(cat commits.json | jq -r '.version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      # ===========================
+      # Step 8: Commit Version Changes Back to Main
+      # ===========================
+      - name: Commit version bump
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add commits.json service-worker.js CHANGELOG.md
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: Bump version to ${{ steps.read_version.outputs.version }}"
+            git push
+          fi
+
+      # ===========================
+      # Step 9: Create GitHub Release
+      # ===========================
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: steps.read_version.outputs.version != ''
+        with:
+          tag_name: ${{ steps.read_version.outputs.version }}
+          name: Release ${{ steps.read_version.outputs.version }}
+          body_path: CHANGELOG.md
+          files: |
+            dist/user.zip
+            dist/dev.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ===========================
+      # Step 10: Deploy User Artifact to GitHub Pages
+      # ===========================
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./dist/user"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ===========================
+  # Optional: Cleanup Job
+  # ===========================
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: release
+    if: always()
+
+    steps:
+      - name: Cleanup workspace
+        run: echo "✅ Workflow complete"
