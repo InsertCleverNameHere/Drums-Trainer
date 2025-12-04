@@ -2,6 +2,16 @@
 
 ## [v9.0.1] - 2025-12-04
 
+### 🧹 Chores
+
+- NONE: hopefully fix readme
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
+## [v9.0.1] - 2025-12-04
+
 ### ✨ Features
 
 - feat: migrate simple metronome slider to noUiSlider with identical groove slider functionality
