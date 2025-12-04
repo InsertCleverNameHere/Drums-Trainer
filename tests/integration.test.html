@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Integration Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+        background: #f8f9fa;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 12px;
+        border-radius: 6px;
+        border-left: 4px solid #ccc;
+      }
+      .pass {
+        background: #d4edda;
+        color: #155724;
+        border-left-color: #28a745;
+      }
+      .fail {
+        background: #f8d7da;
+        color: #721c24;
+        border-left-color: #dc3545;
+      }
+      .pending {
+        background: #fff3cd;
+        color: #856404;
+        border-left-color: #ffc107;
+      }
+      .section {
+        margin-top: 30px;
+        padding: 15px;
+        background: #e9ecef;
+        border-radius: 8px;
+        font-weight: bold;
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 20px;
+        background: #e7f3ff;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 1.1rem;
+      }
+      button {
+        margin: 5px;
+        padding: 10px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 6px;
+        border: none;
+        background: #007bff;
+        color: white;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+      #mock-container {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔗 Integration Tests</h1>
+    <p>
+      Testing module interactions, ownership system, and state synchronization
+    </p>
+
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <h2>Manual Tests (Require User Interaction)</h2>
+    <button onclick="testModeSwitching()">Test: Mode Switching</button>
+    <button onclick="testOwnershipConflict()">Test: Ownership Conflict</button>
+    <button onclick="testRapidActions()">Test: Rapid Actions</button>
+
+    <!-- Mock DOM elements needed for modules -->
+    <div id="mock-container">
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="nextBtn">Next</button>
+      <button id="simpleStartBtn">Start</button>
+      <button id="simplePauseBtn">Pause</button>
+      <button id="tapTempoBtn">Tap Tempo</button>
+      <input id="bpmMin" value="60" />
+      <input id="bpmMax" value="120" />
+      <input id="simpleBpm" value="120" />
+      <textarea id="grooves">Rock\nFunk</textarea>
+      <select id="sessionMode">
+        <option value="infinite">Infinite</option>
+      </select>
+      <input id="cycleDuration" value="60" />
+      <select id="cycleUnit">
+        <option value="seconds">Seconds</option>
+      </select>
+      <input id="totalCycles" value="5" />
+      <input id="totalTime" value="300" />
+      <select id="totalTimeUnit">
+        <option value="seconds">Seconds</option>
+      </select>
+      <div id="displayBpm"></div>
+      <div id="displayGroove"></div>
+      <div id="countdown"></div>
+      <div id="cyclesDone"></div>
+      <div id="sessionCountdown"></div>
+      <div id="finishingBadge"></div>
+      <div id="simpleDisplayBpm"></div>
+      <div id="countdownBadge"></div>
+      <div id="countdownBadgeSimple"></div>
+      <div id="beat-indicator-container"></div>
+      <div id="beat-indicator-container-simple"></div>
+      <div id="tooltipTrigger"></div>
+      <div id="tooltipDialog"></div>
+      <input type="checkbox" id="tempoSyncedToggle" />
+      <input type="checkbox" id="intelligentPanningToggle" />
+      <input type="checkbox" id="intelligentPanningToggleSimple" />
+      <select id="soundProfileGroove"></select>
+      <select id="soundProfileSimple"></select>
+      <select id="groovePresetSelect">
+        <option value="4/4">4/4</option>
+      </select>
+      <select id="simplePresetSelect">
+        <option value="4/4">4/4</option>
+      </select>
+      <input id="grooveCustomNumerator" value="4" />
+      <input id="grooveCustomDenominator" value="4" />
+      <input id="simpleCustomNumerator" value="4" />
+      <input id="simpleCustomDenominator" value="4" />
+      <div id="grooveCustomTimeSignature" class="hidden"></div>
+      <div id="simpleCustomTimeSignature" class="hidden"></div>
+      <div id="grooveSubdivisionContainer"></div>
+      <div id="simpleSubdivisionContainer"></div>
+      <select id="grooveSubdivisionSelect">
+        <option value="1">None</option>
+      </select>
+      <select id="simpleSubdivisionSelect">
+        <option value="1">None</option>
+      </select>
+      <div id="groove-slider"></div>
+      <div id="simpleMetronomeSlider"></div>
+      <div id="groove-slider-wrapper"></div>
+      <div id="simple-slider-wrapper"></div>
+      <div id="tab-groove" class="tab active"></div>
+      <div id="tab-metronome" class="tab"></div>
+      <div id="panel-groove" class="panel"></div>
+      <div id="panel-metronome" class="panel hidden"></div>
+    </div>
+
+    <script type="module">
+      import * as sessionEngine from "../js/sessionEngine.js";
+      import * as simpleMetronome from "../js/simpleMetronome.js";
+      import * as metronome from "../js/metronomeCore.js";
+      import * as simpleCore from "../js/simpleMetronomeCore.js";
+
+      const results = document.getElementById("results");
+      const summary = document.getElementById("summary");
+      let passCount = 0;
+      let failCount = 0;
+      let pendingCount = 0;
+
+      function addSection(title) {
+        const section = document.createElement("div");
+        section.className = "section";
+        section.innerHTML = `<h2>${title}</h2>`;
+        results.appendChild(section);
+        return section;
+      }
+
+      function addResult(
+        name,
+        passed,
+        message = "",
+        parentElement = results,
+        isPending = false
+      ) {
+        const div = document.createElement("div");
+        div.className = `test ${
+          isPending ? "pending" : passed ? "pass" : "fail"
+        }`;
+        const icon = isPending ? "⏳" : passed ? "✅" : "❌";
+        div.innerHTML = `
+          <strong>${icon} ${name}</strong>
+          ${message ? `<br><small>${message}</small>` : ""}
+        `;
+        parentElement.appendChild(div);
+
+        if (isPending) pendingCount++;
+        else if (passed) passCount++;
+        else failCount++;
+      }
+
+      function updateSummary() {
+        const total = passCount + failCount + pendingCount;
+        const percentage =
+          total > 0
+            ? ((passCount / (passCount + failCount)) * 100).toFixed(1)
+            : 0;
+        summary.innerHTML = `
+          <strong>Test Results:</strong>
+          ${passCount} passed, ${failCount} failed, ${pendingCount} pending
+          (${percentage}% success rate for completed tests)
+        `;
+      }
+
+      // ===============================================
+      // SECTION 1: Module API Existence
+      // ===============================================
+      const section1 = addSection("1️⃣ Module API Verification");
+
+      addResult(
+        "sessionEngine exports required functions",
+        typeof sessionEngine.startSession === "function" &&
+          typeof sessionEngine.stopSession === "function" &&
+          typeof sessionEngine.pauseSession === "function" &&
+          typeof sessionEngine.getActiveModeOwner === "function" &&
+          typeof sessionEngine.setActiveModeOwner === "function",
+        "All core session functions present",
+        section1
+      );
+
+      addResult(
+        "simpleMetronome exports required functions",
+        typeof simpleMetronome.start === "function" &&
+          typeof simpleMetronome.stop === "function" &&
+          typeof simpleMetronome.pause === "function" &&
+          typeof simpleMetronome.resume === "function" &&
+          typeof simpleMetronome.isRunning === "function" &&
+          typeof simpleMetronome.isPaused === "function",
+        "All simple metronome functions present",
+        section1
+      );
+
+      addResult(
+        "metronomeCore exports required functions",
+        typeof metronome.startMetronome === "function" &&
+          typeof metronome.stopMetronome === "function" &&
+          typeof metronome.pauseMetronome === "function" &&
+          typeof metronome.resumeMetronome === "function",
+        "All groove metronome functions present",
+        section1
+      );
+
+      // ===============================================
+      // SECTION 2: Ownership System
+      // ===============================================
+      const section2 = addSection("2️⃣ Ownership System");
+
+      // Test 2.1: Initial state
+      const initialOwner = sessionEngine.getActiveModeOwner();
+      addResult(
+        "Initial owner is null",
+        initialOwner === null,
+        `Got: ${initialOwner}`,
+        section2
+      );
+
+      // Test 2.2: Setting owner
+      sessionEngine.setActiveModeOwner("groove");
+      const grooveOwner = sessionEngine.getActiveModeOwner();
+      addResult(
+        "Can set owner to 'groove'",
+        grooveOwner === "groove",
+        `Got: ${grooveOwner}`,
+        section2
+      );
+
+      // Test 2.3: Clearing owner
+      sessionEngine.setActiveModeOwner(null);
+      const clearedOwner = sessionEngine.getActiveModeOwner();
+      addResult(
+        "Can clear owner to null",
+        clearedOwner === null,
+        `Got: ${clearedOwner}`,
+        section2
+      );
+
+      // Test 2.4: Event dispatch
+      let eventsReceived = [];
+      const ownerListener = (e) => {
+        // Store every event payload we see
+        eventsReceived.push(e.detail.owner);
+      };
+
+      document.addEventListener("metronome:ownerChanged", ownerListener);
+      sessionEngine.setActiveModeOwner("simple");
+
+      setTimeout(() => {
+        // We look for "simple" anywhere in the event history
+        const wasFired = eventsReceived.includes("simple");
+
+        addResult(
+          "Owner change dispatches event",
+          wasFired,
+          `Events received: [${eventsReceived.join(", ")}]`, // This will tell us if "null" followed "simple"
+          section2
+        );
+
+        document.removeEventListener("metronome:ownerChanged", ownerListener);
+        sessionEngine.setActiveModeOwner(null); // Reset
+        updateSummary();
+      }, 100);
+
+      // ===============================================
+      // SECTION 3: State Synchronization
+      // ===============================================
+      const section3 = addSection("3️⃣ State Synchronization");
+
+      // Test 3.1: Simple metronome state
+      const isRunningBefore = simpleMetronome.isRunning();
+      addResult(
+        "simpleMetronome.isRunning() returns boolean",
+        typeof isRunningBefore === "boolean",
+        `Got: ${isRunningBefore}`,
+        section3
+      );
+
+      const isPausedBefore = simpleMetronome.isPaused();
+      addResult(
+        "simpleMetronome.isPaused() returns boolean",
+        typeof isPausedBefore === "boolean",
+        `Got: ${isPausedBefore}`,
+        section3
+      );
+
+      // Test 3.2: BPM getters
+      const simpleBpm = simpleMetronome.getBpm();
+      addResult(
+        "simpleMetronome.getBpm() returns number",
+        typeof simpleBpm === "number" && simpleBpm > 0,
+        `Got: ${simpleBpm}`,
+        section3
+      );
+
+      const grooveBpm = metronome.getBpm();
+      addResult(
+        "metronome.getBpm() returns number",
+        typeof grooveBpm === "number" && grooveBpm > 0,
+        `Got: ${grooveBpm}`,
+        section3
+      );
+
+      // ===============================================
+      // SECTION 4: Mode Isolation
+      // ===============================================
+      const section4 = addSection("4️⃣ Mode Isolation");
+
+      // Test 4.1: Separate state tracking
+      sessionEngine.setActiveModeOwner("groove");
+      const grooveOwnerCheck = sessionEngine.getActiveModeOwner();
+
+      sessionEngine.setActiveModeOwner("simple");
+      const simpleOwnerCheck = sessionEngine.getActiveModeOwner();
+
+      addResult(
+        "Owner state transitions correctly",
+        grooveOwnerCheck === "groove" && simpleOwnerCheck === "simple",
+        `Groove: ${grooveOwnerCheck}, Simple: ${simpleOwnerCheck}`,
+        section4
+      );
+
+      sessionEngine.setActiveModeOwner(null); // Reset
+
+      // Test 4.2: Independent BPM values
+      simpleMetronome.setBpm(140);
+      const simpleBpmAfter = simpleMetronome.getBpm();
+      const grooveBpmAfter = metronome.getBpm();
+
+      addResult(
+        "Groove and Simple maintain separate BPM values",
+        simpleBpmAfter === 140 && grooveBpmAfter !== 140,
+        `Simple: ${simpleBpmAfter}, Groove: ${grooveBpmAfter}`,
+        section4
+      );
+
+      // ===============================================
+      // SECTION 5: Edge Cases
+      // ===============================================
+      const section5 = addSection("5️⃣ Edge Cases");
+
+      // Test 5.1: Null owner tolerance
+      try {
+        sessionEngine.setActiveModeOwner(null);
+        sessionEngine.setActiveModeOwner(null); // Redundant call
+        const redundantOwner = sessionEngine.getActiveModeOwner();
+        addResult(
+          "Redundant owner clearing doesn't crash",
+          redundantOwner === null,
+          "System remains stable",
+          section5
+        );
+      } catch (e) {
+        addResult(
+          "Redundant owner clearing doesn't crash",
+          false,
+          `Error: ${e.message}`,
+          section5
+        );
+      }
+
+      // Test 5.2: Invalid owner values
+      try {
+        sessionEngine.setActiveModeOwner("invalid");
+        const invalidOwner = sessionEngine.getActiveModeOwner();
+        addResult(
+          "Setting invalid owner doesn't crash",
+          invalidOwner === "invalid",
+          "System accepts any string (by design)",
+          section5
+        );
+        sessionEngine.setActiveModeOwner(null); // Reset
+      } catch (e) {
+        addResult(
+          "Setting invalid owner doesn't crash",
+          false,
+          `Error: ${e.message}`,
+          section5
+        );
+      }
+
+      // Test 5.3: Time signature getters
+      const grooveTimeSig = metronome.getTimeSignature();
+      addResult(
+        "metronome.getTimeSignature() returns object",
+        typeof grooveTimeSig === "object" &&
+          typeof grooveTimeSig.beats === "number" &&
+          typeof grooveTimeSig.value === "number",
+        `Got: ${grooveTimeSig.beats}/${grooveTimeSig.value}`,
+        section5
+      );
+
+      const simpleTimeSig = simpleCore.getTimeSignature();
+      addResult(
+        "simpleMetronomeCore.getTimeSignature() returns object",
+        typeof simpleTimeSig === "object" &&
+          typeof simpleTimeSig.beats === "number" &&
+          typeof simpleTimeSig.value === "number",
+        `Got: ${simpleTimeSig.beats}/${simpleTimeSig.value}`,
+        section5
+      );
+
+      // ===============================================
+      // SECTION 6: Manual Tests
+      // ===============================================
+      const section6 = addSection("6️⃣ Manual Tests (Require User Interaction)");
+
+      addResult(
+        "Mode switching test",
+        false,
+        "Click 'Test: Mode Switching' button above",
+        section6,
+        true
+      );
+
+      addResult(
+        "Ownership conflict test",
+        false,
+        "Click 'Test: Ownership Conflict' button above",
+        section6,
+        true
+      );
+
+      addResult(
+        "Rapid actions test",
+        false,
+        "Click 'Test: Rapid Actions' button above",
+        section6,
+        true
+      );
+
+      // ===============================================
+      // Manual Test Functions
+      // ===============================================
+      window.testModeSwitching = () => {
+        alert(
+          "Manual Test: Mode Switching\n\n" +
+            "1. Switch between Groove and Metronome tabs\n" +
+            "2. Verify tabs disable when metronome is running\n" +
+            "3. Verify panels show/hide correctly\n\n" +
+            "This test requires the full app UI to run."
+        );
+      };
+
+      window.testOwnershipConflict = () => {
+        try {
+          // Claim ownership for groove
+          sessionEngine.setActiveModeOwner("groove");
+
+          // Try to start simple metronome
+          const result = simpleMetronome.start();
+
+          setTimeout(() => {
+            const stillRunning = simpleMetronome.isRunning();
+            const owner = sessionEngine.getActiveModeOwner();
+
+            alert(
+              `Ownership Conflict Test:\n\n` +
+                `Simple metronome start result: ${result}\n` +
+                `Is simple running: ${stillRunning}\n` +
+                `Current owner: ${owner}\n\n` +
+                `Expected: Simple should NOT start when groove owns`
+            );
+
+            // Cleanup
+            sessionEngine.setActiveModeOwner(null);
+            simpleMetronome.stop();
+          }, 500);
+        } catch (e) {
+          alert(`Test failed with error: ${e.message}`);
+        }
+      };
+
+      window.testRapidActions = () => {
+        alert(
+          "Manual Test: Rapid Actions\n\n" +
+            "1. Rapidly click Start/Stop multiple times\n" +
+            "2. Rapidly switch between Pause/Resume\n" +
+            "3. Verify no crashes or audio glitches\n\n" +
+            "This test requires the full app UI to run."
+        );
+      };
+
+      // ===============================================
+      // Final Summary
+      // ===============================================
+      updateSummary();
+
+      console.log(`✅ Passed: ${passCount}`);
+      console.log(`❌ Failed: ${failCount}`);
+      console.log(`⏳ Pending: ${pendingCount}`);
+    </script>
+  </body>
+</html>

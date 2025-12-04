@@ -189,10 +189,10 @@
 - [x] Add JSDoc to all UI submodules
 - [x] Update imports in dependent modules
 - [x] Update documentation (ARCHITECTURE.md)
+- [x] Automated testing setup (unit tests for utils.js)
 
 ### ⏳ Future Testing Work
 
-- [ ] Automated testing setup (unit tests for utils.js)
 - [ ] Visual regression tests
 
 ---

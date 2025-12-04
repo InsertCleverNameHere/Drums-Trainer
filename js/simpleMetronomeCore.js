@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 // js/simpleMetronomeCore.js
 // Lightweight isolated metronome core for the simple metronome panel.
 // API-compatible with the existing metronomeCore functions used by the app.
@@ -37,7 +39,7 @@ let onCycleComplete = null;
 
 /**
  * Registers a visual callback to be triggered on each beat.
- * 
+ *
  * @param {Function} cb - Callback function receiving (tickIndex, isPrimaryAccent, isMainBeat)
  * @returns {void}
  */
@@ -143,7 +145,7 @@ function stopInternalScheduling() {
 
 /**
  * Starts the simple metronome audio scheduler.
- * 
+ *
  * @param {number} [newBpm=120] - Tempo in beats per minute (30-300)
  * @returns {void}
  */
@@ -176,7 +178,7 @@ export function startMetronome(newBpm = 120) {
 
 /**
  * Stops the simple metronome and clears all timers.
- * 
+ *
  * @returns {void}
  */
 export function stopMetronome() {
@@ -186,7 +188,7 @@ export function stopMetronome() {
 
 /**
  * Pauses audio scheduling without resetting state.
- * 
+ *
  * @returns {void}
  */
 export function pauseMetronome() {
@@ -202,7 +204,7 @@ export function pauseMetronome() {
 
 /**
  * Resumes audio scheduling from paused state.
- * 
+ *
  * @returns {void}
  */
 export function resumeMetronome() {
@@ -215,7 +217,7 @@ export function resumeMetronome() {
 
 /**
  * Plays a 3-2-1 count-in using procedural audio.
- * 
+ *
  * @param {number} [nextBpm=120] - Tempo for count-in timing
  * @param {boolean} [tempoSynced=true] - Use tempo-based intervals
  * @returns {Promise<void>} Resolves when count-in completes
@@ -255,7 +257,7 @@ export function performCountIn(nextBpm = 120, tempoSynced = true) {
 
 /**
  * Requests graceful stop at next bar boundary.
- * 
+ *
  * @param {Function} callback - Called after bar completes
  * @returns {void}
  */
@@ -269,7 +271,7 @@ export function requestEndOfCycle(callback) {
 /**
  * Updates the time signature (e.g., 4/4, 7/8).
  * Blocked during active playback.
- * 
+ *
  * @param {number} beats - Numerator (1-16)
  * @param {number} value - Denominator (2, 4, 8, or 16)
  * @returns {void}
@@ -324,7 +326,7 @@ export function setTimeSignature(beats, value) {
 
 /**
  * Returns the current time signature.
- * 
+ *
  * @returns {{beats: number, value: number}} Time signature object
  */
 export function getTimeSignature() {
@@ -334,7 +336,7 @@ export function getTimeSignature() {
 /**
  * Sets subdivision level (1=none, 2=8ths, 4=16ths).
  * Blocked during active playback.
- * 
+ *
  * @param {number} n - Ticks per beat
  * @returns {void}
  */
@@ -354,7 +356,7 @@ export function setTicksPerBeat(n) {
 
 /**
  * Returns the current subdivision level.
- * 
+ *
  * @returns {number} Ticks per beat
  */
 export function getTicksPerBeat() {
@@ -363,7 +365,7 @@ export function getTicksPerBeat() {
 
 /**
  * Returns the current tempo.
- * 
+ *
  * @returns {number} Current BPM
  */
 export function getBpm() {
@@ -372,7 +374,7 @@ export function getBpm() {
 
 /**
  * Returns whether the metronome is paused.
- * 
+ *
  * @returns {boolean} True if paused
  */
 export function getPauseState() {
@@ -381,7 +383,7 @@ export function getPauseState() {
 
 /**
  * Resets the playback flag.
- * 
+ *
  * @returns {void}
  * @internal
  */

@@ -10,6 +10,7 @@ import { debugLog } from "./debug.js";
 import { VISUAL_TIMING } from "./constants.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
+import * as utils from "./utils.js";
 
 // Import UI submodules
 import {
@@ -163,24 +164,25 @@ export function initUI(deps) {
 }
 
 /**
- * Updates footer with version message and animation.
+ * Updates footer with version message and hierarchical color animation.
  *
  * @param {HTMLElement} footerEl - Footer element
  * @param {string} appVersion - App version (e.g., 'v8.1.0')
- * @param {string} versionColor - Hex color for version text
+ * @param {string|null} [previousVersion=null] - Previous version for color comparison
  * @param {string} [status='✅ Cached Offline'] - Status message
  * @returns {void}
  *
  * @example
- * updateFooterMessage(footerEl, 'v8.1.0', '#4a90e2');
+ * updateFooterMessage(footerEl, 'v8.1.1', 'v8.1.0', 'Update Available');
  */
 export function updateFooterMessage(
   footerEl,
   appVersion,
-  versionColor,
+  previousVersion = null,
   status = "✅ Cached Offline"
 ) {
   if (!footerEl) footerEl = document.getElementById("VersionNumber");
+  if (!footerEl) return;
 
   const messageKey = (s) =>
     s && s.includes("Update") ? "updateMsgCount" : "cachedMsgCount";
@@ -189,17 +191,20 @@ export function updateFooterMessage(
   const shownCount = parseInt(localStorage.getItem(key)) || 0;
   const suppressMessage = shownCount >= 3;
 
-  const versionText = appVersion || "";
-
-  if (!footerEl) return;
+  // Generate styled version HTML with hierarchical colors
+  const styledVersion = utils.getStyledVersionHTML(
+    appVersion,
+    previousVersion,
+    true
+  );
 
   const fullText = suppressMessage
-    ? `🎵 Random Groove Trainer <span style="color:${versionColor}">${versionText}</span>`
-    : `🎵 Random Groove Trainer — ${status} <span style="color:${versionColor}">${versionText}</span>`;
+    ? `🎵 Random Groove Trainer v${styledVersion}`
+    : `🎵 Random Groove Trainer — ${status} v${styledVersion}`;
 
   footerEl.innerHTML = fullText;
 
-  // Fade-in animation
+  // Fade-in animation (existing logic)
   footerEl.style.opacity = "0";
   footerEl.style.visibility = "hidden";
   footerEl.style.transition = "opacity 1.2s ease";
@@ -207,7 +212,7 @@ export function updateFooterMessage(
   footerEl.style.visibility = "visible";
   footerEl.style.opacity = "0.9";
 
-  // Fade-out after 5 seconds
+  // Fade-out after display duration (existing logic)
   setTimeout(() => {
     footerEl.style.opacity = "0";
     setTimeout(() => {

@@ -1,5 +1,10 @@
+# Node modules
 node_modules/
-service_worker.js
+
+# Generated files
+service-worker.js
+dist/
+.bump-type
 
 # VSCode debug profiles (temporary browser data)
 .vscode/chrome-debug-profile/
@@ -12,3 +17,17 @@ service_worker.js
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/snippets/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE files (optional, if you use other editors)
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs (optional)
+*.log
+npm-debug.log*
