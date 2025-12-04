@@ -1,10 +1,12 @@
 {
   "name": "drums-trainer-test",
   "version": "1.0.0",
-  "description": "Inspired by gamefying my practice sessions:\r  a simple, lightweight html groove randomizer with a built in metronome to help you train using your grooves on different tempo",
+  "description": "Inspired by gamefying my practice sessions...",
   "main": "service-worker.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node scripts/build-artifacts.js",
+    "changelog": "node scripts/generate-changelog.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +25,8 @@
     "@eslint/json": "^0.13.2",
     "@eslint/markdown": "^7.4.0",
     "eslint": "^9.37.0",
-    "globals": "^16.4.0"
+    "globals": "^16.4.0",
+    "archiver": "^7.0.1",
+    "fs-extra": "^11.2.0"
   }
 }
