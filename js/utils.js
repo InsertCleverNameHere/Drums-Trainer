@@ -16,7 +16,7 @@ import {
 
 /**
  * Returns a random integer between min and max (inclusive).
- * 
+ *
  * @param {number} min - Minimum value
  * @param {number} max - Maximum value
  * @returns {number} Random integer
@@ -27,7 +27,7 @@ export function randomInt(min, max) {
 
 /**
  * Quantizes a value to the nearest step.
- * 
+ *
  * @param {number} value - Value to quantize
  * @param {number} [step=5] - Quantization step
  * @returns {number} Quantized value
@@ -38,7 +38,7 @@ export function quantizeToStep(value, step = 5) {
 
 /**
  * Sanitizes quantization step to valid range (1-100).
- * 
+ *
  * @param {number} value - Step value to sanitize
  * @returns {number} Clamped step value
  */
@@ -59,7 +59,7 @@ export const QUANTIZATION = {
 
 /**
  * Converts time value to seconds.
- * 
+ *
  * @param {number} value - Time value
  * @param {string} unit - 'seconds', 'minutes', or 'hours'
  * @returns {number} Time in seconds
@@ -74,7 +74,7 @@ export function convertToSeconds(value, unit) {
 
 /**
  * Clamps a value between min and max.
- * 
+ *
  * @param {number} value - Value to clamp
  * @param {number} min - Minimum value
  * @param {number} max - Maximum value
@@ -86,7 +86,7 @@ export function clamp(value, min, max) {
 
 /**
  * Randomly selects a groove and BPM within specified ranges.
- * 
+ *
  * @param {string} groovesText - Newline-separated groove names
  * @param {number} bpmMin - Minimum BPM
  * @param {number} bpmMax - Maximum BPM
@@ -153,7 +153,7 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
 
 /**
  * Picks a random element from an array.
- * 
+ *
  * @param {Array} arr - Array to pick from
  * @returns {*} Random element or empty string if invalid
  */
@@ -164,7 +164,7 @@ export function pickRandom(arr) {
 
 /**
  * Extracts a random groove name from multiline text.
- * 
+ *
  * @param {string} groovesText - Newline-separated groove names
  * @returns {string} Random groove name
  */
@@ -185,7 +185,7 @@ export function getGrooveNameFromText(groovesText) {
 
 /**
  * Formats seconds as human-readable time string.
- * 
+ *
  * @param {number} seconds - Duration in seconds
  * @returns {string} Formatted time (e.g., '1h 23m 45s')
  * @example
@@ -211,7 +211,7 @@ export function formatTime(seconds) {
 
 /**
  * Generates a unique color based on version string.
- * 
+ *
  * @param {string} version - Version string (e.g., 'v1.2.3')
  * @returns {string} Hex color code
  */
@@ -252,7 +252,7 @@ export function generateColorFromVersion(version) {
 /**
  * Calculates BPM from tap timing (maintains internal state).
  * Resets after 1.5s idle.
- * 
+ *
  * @returns {number|null} Calculated BPM or null if <2 taps
  * @example
  * const bpm = calculateTapTempo(); // 120
@@ -313,7 +313,7 @@ export function calculateTapTempo() {
 
 /**
  * Sanitizes value to positive integer.
- * 
+ *
  * @param {string|number} value - Value to sanitize
  * @param {Object} options - Options object
  * @param {number} [options.min=1] - Minimum value
@@ -325,24 +325,32 @@ export function sanitizePositiveInteger(
   value,
   { min = 1, max = Infinity, defaultValue = min } = {}
 ) {
-  if (typeof value === "string") value = value.trim();
-  if (value === "" || value === null || value === undefined)
+  // 1. Handle empty inputs: Return default
+  if (value === null || value === undefined || value === "") {
     return defaultValue;
+  }
 
-  // Accept only whole nonzero positive numbers
-  const regex = /^[1-9]\d*$/;
-  if (!regex.test(value)) return defaultValue;
+  // 2. Convert to number
+  const num = Number(value);
 
-  let num = Number(value);
-  if (Number.isNaN(num)) return defaultValue;
-  if (num < min) return min;
-  if (num > max) return max;
-  return num;
+  // 3. Reject non-numbers (NaN): Return default
+  if (Number.isNaN(num)) {
+    return defaultValue;
+  }
+
+  // 4. Round to integer
+  const intVal = Math.round(num);
+
+  // 5. Clamp to range (The "Option A" logic)
+  if (intVal < min) return min;
+  if (intVal > max) return max;
+
+  return intVal;
 }
 
 /**
  * Sanitizes and quantizes BPM range.
- * 
+ *
  * @param {number} bpmMin - Minimum BPM
  * @param {number} bpmMax - Maximum BPM
  * @param {number} quantizationStep - Quantization step
@@ -381,4 +389,245 @@ export function sanitizeBpmRange(bpmMin, bpmMax, quantizationStep) {
   bpmMax = Math.min(BPM_HARD_LIMITS.MAX, bpmMax);
 
   return { bpmMin, bpmMax, step };
+}
+
+/**
+ * Enhanced color palette with 30 vibrant colors optimized for light/dark mode.
+ * Colors chosen for visibility, contrast, and distinctiveness.
+ *
+ * @constant
+ * @type {string[]}
+ */
+const ENHANCED_VERSION_PALETTE = [
+  // Reds & Oranges
+  "#e6194b",
+  "#f58231",
+  "#ff6b6b",
+  "#ff4757",
+  // Greens
+  "#3cb44b",
+  "#2ecc71",
+  "#1abc9c",
+  "#00d2d3",
+  // Blues
+  "#4363d8",
+  "#3498db",
+  "#00a8ff",
+  "#0984e3",
+  // Purples & Pinks
+  "#911eb4",
+  "#9b59b6",
+  "#f032e6",
+  "#fd79a8",
+  // Yellows & Golds
+  "#ffe119",
+  "#f1c40f",
+  "#feca57",
+  "#ffb142",
+  // Cyans & Teals
+  "#46f0f0",
+  "#1dd1a1",
+  "#00d8d6",
+  "#48dbfb",
+  // Additional vibrant colors
+  "#ff9ff3",
+  "#54a0ff",
+  "#5f27cd",
+  "#ee5a6f",
+  "#c44569",
+  "#01a3a4",
+];
+
+/**
+ * Parses semantic version string into components.
+ * Handles formats: v8.1.0, 8.1.0, v8.1.0-beta, etc.
+ *
+ * @param {string} version - Version string (e.g., 'v8.1.0')
+ * @returns {{major: number, minor: number, patch: number, raw: string}} Parsed components
+ *
+ * @example
+ * parseVersion('v8.1.0'); // { major: 8, minor: 1, patch: 0, raw: 'v8.1.0' }
+ * parseVersion('v8.1.0-beta'); // { major: 8, minor: 1, patch: 0, raw: 'v8.1.0-beta' }
+ */
+export function parseVersion(version) {
+  if (!version) return { major: 0, minor: 0, patch: 0, raw: "" };
+
+  const match = version.match(/v?(\d+)\.(\d+)\.(\d+)/);
+  if (!match) return { major: 0, minor: 0, patch: 0, raw: version };
+
+  return {
+    major: parseInt(match[1], 10),
+    minor: parseInt(match[2], 10),
+    patch: parseInt(match[3], 10),
+    raw: version,
+  };
+}
+
+/**
+ * Generates hierarchical colors based on version change type.
+ * Implements color inheritance rules:
+ * - Major change: All components same color
+ * - Minor change: Y+Z same color, X different
+ * - Patch change: Only Z different, X+Y same
+ *
+ * @param {string} version - Current version (e.g., 'v8.1.0')
+ * @param {string|null} [previousVersion=null] - Previous version for comparison
+ * @returns {{major: string, minor: string, patch: string, changeType: string}} Color object with metadata
+ *
+ * @example
+ * getVersionColors('v8.1.1', 'v8.1.0');
+ * // { major: '#e6194b', minor: '#e6194b', patch: '#3cb44b', changeType: 'patch' }
+ */
+export function getVersionColors(version, previousVersion = null) {
+  const current = parseVersion(version);
+  const previous = previousVersion ? parseVersion(previousVersion) : null;
+
+  // Deterministic hash function for color selection
+  const hash = (str) => {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = str.charCodeAt(i) + ((h << 5) - h);
+    }
+    return Math.abs(h) % ENHANCED_VERSION_PALETTE.length;
+  };
+
+  // Determine change type
+  let changeType = "initial"; // First-time users
+  if (previous) {
+    if (current.major !== previous.major) changeType = "major";
+    else if (current.minor !== previous.minor) changeType = "minor";
+    else if (current.patch !== previous.patch) changeType = "patch";
+    else changeType = "none"; // Same version (shouldn't happen)
+  }
+
+  // Generate deterministic color indices
+  const majorHash = hash(`${current.major}`);
+  const minorHash = hash(`${current.major}.${current.minor}`);
+  const patchHash = hash(`${current.major}.${current.minor}.${current.patch}`);
+
+  // Color assignment based on hierarchy
+  let colors;
+  switch (changeType) {
+    case "major":
+    case "initial": // First-time users see uniform colors
+      colors = {
+        major: ENHANCED_VERSION_PALETTE[majorHash],
+        minor: ENHANCED_VERSION_PALETTE[majorHash],
+        patch: ENHANCED_VERSION_PALETTE[majorHash],
+      };
+      break;
+    case "minor":
+      colors = {
+        major: ENHANCED_VERSION_PALETTE[majorHash],
+        minor: ENHANCED_VERSION_PALETTE[minorHash],
+        patch: ENHANCED_VERSION_PALETTE[minorHash],
+      };
+      break;
+    case "patch":
+      colors = {
+        major: ENHANCED_VERSION_PALETTE[majorHash],
+        minor: ENHANCED_VERSION_PALETTE[minorHash],
+        patch: ENHANCED_VERSION_PALETTE[patchHash],
+      };
+      break;
+    default: // 'none' case
+      colors = {
+        major: ENHANCED_VERSION_PALETTE[majorHash],
+        minor: ENHANCED_VERSION_PALETTE[majorHash],
+        patch: ENHANCED_VERSION_PALETTE[majorHash],
+      };
+  }
+
+  debugLog("state", `🎨 Version colors: ${changeType} change (${version})`);
+
+  return { ...colors, changeType };
+}
+
+/**
+ * Generates styled HTML for version display with hierarchical colors.
+ * Applies bold/underline to changed components.
+ *
+ * @param {string} version - Current version (e.g., 'v8.1.0')
+ * @param {string|null} [previousVersion=null] - Previous version for comparison
+ * @param {boolean} [includeGlow=true] - Add subtle glow effect
+ * @returns {string} HTML string with styled version components
+ *
+ * @example
+ * getStyledVersionHTML('v8.1.1', 'v8.1.0');
+ * // '<span style="...">8</span>.<span style="...font-weight:700;...">1</span>...'
+ */
+export function getStyledVersionHTML(
+  version,
+  previousVersion = null,
+  includeGlow = true
+) {
+  const colors = getVersionColors(version, previousVersion);
+  const current = parseVersion(version);
+  const previous = previousVersion ? parseVersion(previousVersion) : null;
+
+  // Determine which components changed
+  const majorChanged = previous && current.major !== previous.major;
+  const minorChanged = previous && current.minor !== previous.minor;
+  const patchChanged = previous && current.patch !== previous.patch;
+
+  // Base style for all components
+  const baseStyle = "transition: all 0.3s ease;";
+
+  // Changed component style (bold + subtle underline)
+  const changedStyle =
+    "font-weight: 700; text-decoration: underline; text-decoration-style: solid; text-underline-offset: 2px;";
+
+  // Build styled components
+  const majorHTML = `<span style="color:${colors.major};${baseStyle}${
+    majorChanged ? changedStyle : ""
+  }">${current.major}</span>`;
+  const minorHTML = `<span style="color:${colors.minor};${baseStyle}${
+    minorChanged ? changedStyle : ""
+  }">${current.minor}</span>`;
+  const patchHTML = `<span style="color:${colors.patch};${baseStyle}${
+    patchChanged ? changedStyle : ""
+  }">${current.patch}</span>`;
+
+  // Assemble with dots
+  let versionHTML = `${majorHTML}.${minorHTML}.${patchHTML}`;
+
+  // Add glow effect wrapper if enabled
+  if (includeGlow) {
+    // Use a subtle glow that works in both light and dark mode
+    const glowColor =
+      colors.changeType === "major"
+        ? colors.major
+        : colors.changeType === "minor"
+        ? colors.minor
+        : colors.patch;
+    // Triple-layer glow for better dark mode visibility + larger size
+    versionHTML = `<span style="font-size: 1.5em; text-shadow: 0 0 12px ${glowColor}80, 0 0 8px ${glowColor}60, 0 0 4px ${glowColor}40;">${versionHTML}</span>`;
+  }
+
+  return versionHTML;
+}
+
+/**
+ * Ensures smooth migration from old color system.
+ * Validates stored version format.
+ *
+ * @param {string|null} storedVersion - Version from localStorage
+ * @returns {string|null} Validated version or null
+ *
+ * @internal
+ */
+export function migrateStoredVersion(storedVersion) {
+  if (!storedVersion) return null;
+
+  // Validate format (must be vX.Y.Z or X.Y.Z)
+  const isValid = /^v?\d+\.\d+\.\d+/.test(storedVersion);
+  if (!isValid) {
+    debugLog(
+      "state",
+      `⚠️ Invalid stored version format: ${storedVersion}, resetting`
+    );
+    return null;
+  }
+
+  return storedVersion;
 }

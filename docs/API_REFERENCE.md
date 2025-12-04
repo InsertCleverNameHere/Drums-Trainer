@@ -1437,6 +1437,104 @@ formatTime(3665); // "1h 1m 5s"
 
 ---
 
+### `parseVersion(version)`
+
+Parses semantic version string into components.
+
+**Parameters**:
+
+- `version` (String): Version string (e.g., 'v8.1.0', '8.1.0', 'v8.1.0-beta')
+
+**Returns**: `Object` - `{ major: Number, minor: Number, patch: Number, raw: String }`
+
+**Example**:
+
+```javascript
+const parsed = utils.parseVersion("v8.1.0");
+// { major: 8, minor: 1, patch: 0, raw: 'v8.1.0' }
+```
+
+---
+
+### `getVersionColors(version, previousVersion)`
+
+Generates hierarchical colors based on version change type.
+
+**Parameters**:
+
+- `version` (String): Current version (e.g., 'v8.1.0')
+- `previousVersion` (String|null): Previous version for comparison
+
+**Returns**: `Object` - `{ major: String, minor: String, patch: String, changeType: String }`
+
+**Change Types**: `'major'`, `'minor'`, `'patch'`, `'initial'`, `'none'`
+
+**Color Rules**:
+
+- Major change: All components same color
+- Minor change: Major different, Minor+Patch same
+- Patch change: Major+Minor same, Patch different
+
+**Example**:
+
+```javascript
+const colors = utils.getVersionColors("v8.1.1", "v8.1.0");
+// { major: '#e6194b', minor: '#e6194b', patch: '#3cb44b', changeType: 'patch' }
+```
+
+---
+
+### `getStyledVersionHTML(version, previousVersion, includeGlow)`
+
+Generates styled HTML for version display with hierarchical colors.
+
+**Parameters**:
+
+- `version` (String): Current version (e.g., 'v8.1.0')
+- `previousVersion` (String|null): Previous version for comparison
+- `includeGlow` (Boolean): Add glow effect (default: true)
+
+**Returns**: `String` - HTML string with styled components
+
+**Styling Applied**:
+
+- Bold + underline on changed components
+- 1.5x font size (`font-size: 1.5em`)
+- Triple-layer glow effect for dark mode visibility
+- Smooth transitions (`transition: all 0.3s ease`)
+
+**Example**:
+
+```javascript
+const html = utils.getStyledVersionHTML("v8.1.1", "v8.1.0", true);
+// '<span style="font-size: 1.5em; text-shadow: ...">
+//   <span style="color:#e6194b;">8</span>.
+//   <span style="color:#e6194b;">1</span>.
+//   <span style="color:#3cb44b;font-weight:700;text-decoration:underline;">1</span>
+// </span>'
+```
+
+---
+
+### `migrateStoredVersion(storedVersion)`
+
+Validates stored version format for backward compatibility.
+
+**Parameters**:
+
+- `storedVersion` (String|null): Version from localStorage
+
+**Returns**: `String|null` - Validated version or null if invalid
+
+**Example**:
+
+```javascript
+const valid = utils.migrateStoredVersion("v8.1.0"); // 'v8.1.0'
+const invalid = utils.migrateStoredVersion("bad-format"); // null
+```
+
+---
+
 ## 🐛 debug.js
 
 ### `DEBUG` (Object)
