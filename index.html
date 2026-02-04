@@ -306,6 +306,16 @@
               Minimize visual panning animations.
             </p>
           </div>
+          <!-- Rhythmic Count-in Setting -->
+          <div class="settings-group">
+            <label class="toggle">
+              <input id="tempoSyncedToggle" type="checkbox" />
+              <span id="tempoSyncedLabel">Rhythmic Count-in</span>
+            </label>
+            <p class="setting-description">
+              Groove mode only, matches count in speed to incoming bpm.
+            </p>
+          </div>
         </section>
 
         <!-- Help Section (Existing Content) -->
@@ -330,7 +340,7 @@
           <ul>
             <li>Randomized BPM and groove selection</li>
             <li>Built-in metronome with accurate timing</li>
-            <li>Tempo-synced count-in (toggle available)</li>
+            <li>Rhythmic Count-in (toggle available)</li>
             <li>Visual beat indicators with subdivisions</li>
             <li>Dark mode and offline support</li>
           </ul>
@@ -554,10 +564,6 @@ Funk
         <button id="startBtn">Start</button>
         <button id="pauseBtn" disabled>Pause</button>
         <button id="nextBtn" disabled>Next</button>
-        <label class="toggle" style="margin-left: 12px">
-          <input id="tempoSyncedToggle" type="checkbox" />
-          <span id="tempoSyncedLabel">Tempo-synced Count-in</span>
-        </label>
       </div>
 
       <div class="status" aria-live="polite">

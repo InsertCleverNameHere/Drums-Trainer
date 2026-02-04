@@ -11,6 +11,7 @@ import {
   initSoundProfileUI,
   initPanningModeUI,
   initTimeSignatureUI,
+  initTempoSyncedUI,
 } from "./ui/controls.js";
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
 import { debugLog } from "./debug.js";
@@ -126,6 +127,7 @@ if (document.readyState === "loading") {
     uiController.initOwnershipGuards();
     initSimplePanelControls();
     initPanningModeUI();
+    initTempoSyncedUI();
     initTimeSignatureUI();
     uiController.initAllUI(); // Hotkeys + sliders
     initWakeLock();
@@ -146,6 +148,7 @@ if (document.readyState === "loading") {
   uiController.initOwnershipGuards();
   initSimplePanelControls();
   initPanningModeUI();
+  initTempoSyncedUI();
   initTimeSignatureUI();
   uiController.initAllUI(); // Hotkeys + sliders
   initWakeLock();

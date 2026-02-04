@@ -124,13 +124,104 @@ export function initPanningModeUI() {
 
     // Optional: Visual feedback for disabled state is handled by CSS (:disabled)
     if (isPlaying) {
-      motionToggle.closest(".settings-row").style.opacity = "0.6";
-      motionToggle.closest(".settings-row").style.cursor = "not-allowed";
+      const row = motionToggle.closest(".settings-row");
+      if (row) {
+        row.style.opacity = "0.6";
+        row.style.cursor = "not-allowed";
+      }
     } else {
-      motionToggle.closest(".settings-row").style.opacity = "1";
-      motionToggle.closest(".settings-row").style.cursor = "pointer";
+      const row = motionToggle.closest(".settings-row");
+      if (row) {
+        row.style.opacity = "1";
+        row.style.cursor = "pointer";
+      }
     }
   });
+}
+
+/**
+ * Initializes the Rhythmic Count-in toggle inside the Settings dialog.
+ * Disables the control whenever the Groove panel is not active or when another
+ * mode (simple metronome) owns playback. Keeps local preference persistence
+ * and allows changing the toggle during active playback when enabled.
+ *
+ * @returns {void}
+ */
+export function initTempoSyncedUI() {
+  const toggle = document.getElementById("tempoSyncedToggle");
+  const settingsTrigger = document.getElementById("settingsTrigger");
+  const settingsDialog = document.getElementById("settingsDialog");
+  const panelGroove = document.getElementById("panel-groove");
+
+  if (!toggle) {
+    debugLog("state", "⚠️ Rhythmic Count-in toggle not found in DOM");
+    return;
+  }
+
+  // Load persisted setting if present
+  const stored = localStorage.getItem("tempoSyncedCountIn");
+  if (stored === "true" || stored === "false")
+    toggle.checked = stored === "true";
+
+  function applyVisualDisabledState(shouldEnable) {
+    const container = toggle.closest(".settings-group");
+    if (container) {
+      container.style.opacity = shouldEnable ? "1" : "0.6";
+      container.style.cursor = shouldEnable ? "pointer" : "not-allowed";
+    }
+  }
+
+  function updateDisabledState() {
+    const owner =
+      typeof window.sessionEngine?.getActiveModeOwner === "function"
+        ? window.sessionEngine.getActiveModeOwner()
+        : null;
+    const panelVisible =
+      panelGroove && !panelGroove.classList.contains("hidden");
+
+    // Enable only when Groove panel is visible and owner is null or 'groove'
+    const shouldEnable = panelVisible && (owner === null || owner === "groove");
+
+    toggle.disabled = !shouldEnable;
+    applyVisualDisabledState(shouldEnable);
+  }
+
+  // Listen for ownership changes
+  document.addEventListener("metronome:ownerChanged", () =>
+    setTimeout(updateDisabledState, 0)
+  );
+
+  // When settings is opened, re-evaluate (settingsTrigger toggles visibility)
+  if (settingsTrigger)
+    settingsTrigger.addEventListener("click", () =>
+      setTimeout(updateDisabledState, 0)
+    );
+  if (settingsDialog)
+    settingsDialog.addEventListener("pointerenter", () =>
+      setTimeout(updateDisabledState, 0)
+    );
+
+  // Also respond to tab clicks (panel visibility changes via class toggles)
+  const tabGroove = document.getElementById("tab-groove");
+  const tabMet = document.getElementById("tab-metronome");
+  if (tabGroove)
+    tabGroove.addEventListener("click", () =>
+      setTimeout(updateDisabledState, 0)
+    );
+  if (tabMet)
+    tabMet.addEventListener("click", () => setTimeout(updateDisabledState, 0));
+
+  // Persist preference when changed (sessionEngine also uses the checkbox directly)
+  toggle.addEventListener("change", () => {
+    localStorage.setItem(
+      "tempoSyncedCountIn",
+      toggle.checked ? "true" : "false"
+    );
+    debugLog("state", `🎚 Rhythmic Count-in: ${toggle.checked}`);
+  });
+
+  // Initial evaluation
+  updateDisabledState();
 }
 
 /**

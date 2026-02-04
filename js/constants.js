@@ -87,7 +87,7 @@ export const VISUAL_TIMING = {
  */
 export const COUNT_IN_CONFIG = {
   STEPS: 3, // number of count-in beats (3-2-1)
-  FIXED_INTERVAL_MS: 1000, // fixed interval when not tempo-synced
+  FIXED_INTERVAL_MS: 1000, // fixed interval when NOT using Rhythmic Count-in (fixed 1s intervals)
   HEADROOM_SECONDS: 0.02, // slight delay before first beep
   STEP_DURATIONS: [0.06, 0.09, 0.06], // duration per step (oscillator stop time)
   FREQUENCIES: [700, 1400, 1600], // frequencies for each step
