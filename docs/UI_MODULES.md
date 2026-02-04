@@ -16,7 +16,8 @@ js/
     ├── hotkeys.js          (~235 lines)  Keyboard shortcuts
     ├── sliders.js          (~308 lines)  BPM sliders & validation
     ├── controls.js         (~187 lines)  Sound profiles & time signatures
-    └── panels.js           (~234 lines)  Mode tabs & simple panel
+    ├── panels.js           (~234 lines)  Mode tabs & simple panel
+    └── wakeLock.js         (~150 lines)  Screen wake lock
 ```
 
 **Total Reduction**: 1800 → 1537 lines (with better organization and maintainability)
@@ -33,7 +34,7 @@ js/
 - `constants.js` - Visual timing constants
 - `sessionEngine.js` - Session lifecycle
 - `simpleMetronome.js` - Simple metronome state
-- All UI submodules (theme, hotkeys, sliders, controls, panels)
+- All UI submodules (theme, hotkeys, sliders, controls, panels, wakeLock)
 
 **Exports**:
 
@@ -315,6 +316,7 @@ uiController.js
 | `lastSeenHash`           | uiController.js | string            | Hash tracking              |
 | `cachedMsgCount`         | uiController.js | number            | Footer message suppression |
 | `updateMsgCount`         | uiController.js | number            | Footer message suppression |
+| `wakeLockEnabled`        | wakeLock.js     | `"true"\|"false"` | Wake lock preference       |
 
 ---
 

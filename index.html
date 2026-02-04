@@ -258,62 +258,83 @@
       <h1>Random Groove Trainer</h1>
       <p class="tagline">Practice smarter. Land any groove.</p>
     </header>
-    <div id="tooltipTrigger" title="Help / Hotkeys">
+    <!-- Settings Trigger Button -->
+    <div id="settingsTrigger" title="Settings & Help">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="28"
         height="28"
         viewBox="0 0 24 24"
       >
-        <text
-          x="12"
-          y="18"
-          font-size="20"
-          font-weight="600"
-          font-family="system-ui, -apple-system, sans-serif"
-          text-anchor="middle"
+        <path
           fill="currentColor"
-        >
-          ?
-        </text>
+          d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"
+        />
       </svg>
     </div>
-    <div id="tooltipDialog">
-      <div class="tooltip-content">
-        <h2>🎵 How It Works</h2>
-        <p>
-          A lightweight, fun way to train groove transitions with randomized BPM
-          ranges. Includes a full-featured
-          <strong>Groove Randomizer</strong> for practice sessions and a
-          <strong>Simple Metronome</strong> for everyday use.
-        </p>
 
-        <p><strong>Quick Start:</strong></p>
-        <ul>
-          <li>Set your desired BPM range (multiples of 5)</li>
-          <li>Enter groove names (one per line)</li>
-          <li>Choose session duration or cycle count</li>
-          <li>Press <strong>Space</strong> or tap <strong>Start</strong></li>
-        </ul>
+    <!-- Settings Dialog -->
+    <div id="settingsDialog">
+      <div class="settings-content">
+        <!-- Settings Section -->
+        <section class="settings-section">
+          <h2>⚙️ Settings</h2>
+          <div class="settings-group">
+            <label class="toggle">
+              <input id="wakeLockToggle" type="checkbox" />
+              <span>Keep Screen Awake</span>
+            </label>
+            <p
+              class="setting-description"
+              style="
+                margin: 4px 0 0 5px;
+                font-size: 0.85rem;
+                color: var(--text-secondary);
+                font-style: italic;
+              "
+            >
+              Prevents your screen from dimming during practice.
+            </p>
+          </div>
+        </section>
 
-        <p><strong>Features:</strong></p>
-        <ul>
-          <li>Randomized BPM and groove selection</li>
-          <li>Built-in metronome with accurate timing</li>
-          <li>Tempo-synced count-in (toggle available)</li>
-          <li>Visual beat indicators with subdivisions</li>
-          <li>Dark mode and offline support</li>
-        </ul>
+        <!-- Help Section (Existing Content) -->
+        <section class="help-section">
+          <h2>🎵 How It Works</h2>
+          <p>
+            A lightweight, fun way to train groove transitions with randomized
+            BPM ranges. Includes a full-featured
+            <strong>Groove Randomizer</strong> for practice sessions and a
+            <strong>Simple Metronome</strong> for everyday use.
+          </p>
 
-        <p><strong>Hotkeys:</strong></p>
-        <ul>
-          <li><kbd>H</kbd> = Show this help</li>
-          <li><kbd>Space</kbd> = ▶️ Start / ⏹️ Stop</li>
-          <li><kbd>P</kbd> = ⏸️ Pause / ▶️ Resume</li>
-          <li><kbd>N</kbd> = ⏭️ Next Groove</li>
-          <li><kbd>↑</kbd> / <kbd>↓</kbd> = Adjust BPM (±5)</li>
-          <li><kbd>←</kbd> / <kbd>→</kbd> = Switch Min/Max</li>
-        </ul>
+          <p><strong>Quick Start:</strong></p>
+          <ul>
+            <li>Set your desired BPM range (multiples of 5)</li>
+            <li>Enter groove names (one per line)</li>
+            <li>Choose session duration or cycle count</li>
+            <li>Press <strong>Space</strong> or tap <strong>Start</strong></li>
+          </ul>
+
+          <p><strong>Features:</strong></p>
+          <ul>
+            <li>Randomized BPM and groove selection</li>
+            <li>Built-in metronome with accurate timing</li>
+            <li>Tempo-synced count-in (toggle available)</li>
+            <li>Visual beat indicators with subdivisions</li>
+            <li>Dark mode and offline support</li>
+          </ul>
+
+          <p><strong>Hotkeys:</strong></p>
+          <ul>
+            <li><kbd>H</kbd> = Show this help</li>
+            <li><kbd>Space</kbd> = ▶️ Start / ⏹️ Stop</li>
+            <li><kbd>P</kbd> = ⏸️ Pause / ▶️ Resume</li>
+            <li><kbd>N</kbd> = ⏭️ Next Groove</li>
+            <li><kbd>↑</kbd> / <kbd>↓</kbd> = Adjust BPM (±5)</li>
+            <li><kbd>←</kbd> / <kbd>→</kbd> = Switch Min/Max</li>
+          </ul>
+        </section>
       </div>
     </div>
     <button
@@ -394,7 +415,7 @@
       <textarea
         id="grooves"
         rows="10"
-        placeholder="Rock 
+        placeholder="Rock
 Funk
 واحدة ونص
 مقسوم

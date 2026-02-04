@@ -164,6 +164,16 @@ DEBUG.timing = true;
 - 180-240 BPM: 3-4 MB per 5 minutes ✅
 - 300 BPM with 16ths: ~6 MB per 3 minutes (edge case) ⚠️
 
+### 6. Wake Lock Issues
+
+**Issue**: Wake lock setting missing on mobile
+**Cause**: API requires HTTPS or localhost (Secure Context).
+**Solution**: Use Port Forwarding (`chrome://inspect`) or deploy to HTTPS.
+
+**Issue**: "Released by system" log appearing twice
+**Cause**: Event listener wasn't removed before manual release.
+**Solution**: Fixed in `wakeLock.js` via `handleSystemRelease`.
+
 ---
 
 ## 🧪 Console Macros
@@ -286,13 +296,11 @@ console.log(Profiler.report("markdown"));
 ### Metrics Tracked
 
 - **FPS** - Frame rate (target: 60fps)
-
   - Green: 58-60fps ✅
   - Yellow: 50-57fps ⚠️
   - Red: <50fps ❌
 
 - **Memory** - Heap size (Chrome only)
-
   - Tracks `usedJSHeapSize` and `totalJSHeapSize`
   - Reports average and peak usage
 
@@ -362,13 +370,13 @@ Profiler.start({ overlay: true });
 
 ### Troubleshooting
 
-**Issue**: Overlay not appearing  
+**Issue**: Overlay not appearing
 **Solution**: Ensure profiler was started with `{ overlay: true }`, or call `Profiler.toggleOverlay()` manually.
 
-**Issue**: Memory metrics show "N/A"  
+**Issue**: Memory metrics show "N/A"
 **Solution**: Memory API only available in Chrome-based browsers. Use Chrome/Edge for memory profiling.
 
-**Issue**: No long tasks detected despite stuttering  
+**Issue**: No long tasks detected despite stuttering
 **Solution**: Long tasks are only detected via `PerformanceObserver`. Check browser compatibility (Chrome 58+, Edge 79+).
 
 ---

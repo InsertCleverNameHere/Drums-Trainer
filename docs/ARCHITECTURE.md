@@ -212,6 +212,35 @@ The Random Groove Trainer follows these core principles:
 
 ---
 
+#### `js/ui/wakeLock.js`
+
+**Purpose**: Screen wake lock lifecycle management
+
+**Responsibilities**:
+
+- Acquire/release wake lock via Screen Wake Lock API
+- Handle visibility change events for auto-reacquisition
+- Persist user preference via `localStorage`
+- manage "System Release" events to prevent double-logging
+
+**Key Functions**:
+
+- `initWakeLock()` - Initialize and restore state
+- `enableWakeLock()` - Acquire with retry logic
+- `disableWakeLock()` - Release wake lock
+- `isWakeLockSupported()` - Browser check
+- `isWakeLockActive()` - Get current state
+
+**Private Helpers**:
+
+- `handleSystemRelease()` - Prevents double logging on release
+- `handleVisibilityChange()` - Tab focus handler
+- `reacquireWithRetry()` - Exponential backoff retry
+
+**Dependencies**: `debug.js`
+
+---
+
 #### `js/ui/sliders.js`
 
 **Purpose**: BPM range sliders and input validation
@@ -409,7 +438,6 @@ debugLog("audio", "Scheduling tick at", time);
 
 1. **`index.html`** loads → DOM ready
 2. **`main.js`** executes:
-
    - Initializes cores (`metronomeCore`, `simpleMetronomeCore`)
    - Creates visual callbacks
    - Primes visual containers (prevents layout shift)
@@ -553,20 +581,17 @@ See [`docs/VISUALS_SYSTEM.md`](./VISUALS_SYSTEM.md) for detailed documentation.
 The version string (X.Y.Z) uses color inheritance based on SemVer change type:
 
 1. **Major Change** (X.0.0):
-
    - All components display same new color
    - Major component bold + underlined
    - Example: `v7.5.3 → v8.0.0` - All red
 
 2. **Minor Change** (X.Y.0):
-
    - Major component keeps original color
    - Minor + Patch share new color
    - Minor component bold + underlined
    - Example: `v8.0.0 → v8.1.0` - `8` red, `1.0` blue
 
 3. **Patch Change** (X.Y.Z):
-
    - Major + Minor keep original colors
    - Patch gets new color
    - Patch component bold + underlined

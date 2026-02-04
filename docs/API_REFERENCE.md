@@ -671,6 +671,45 @@ formatTime(3665); // "1h 1m 5s"
 
 ---
 
+## 🔒 wakeLock.js
+
+### `initWakeLock()`
+
+Initializes wake lock system and restores state.
+
+**Parameters**: None
+**Returns**: `void`
+
+### `enableWakeLock()`
+
+Acquires screen wake lock. Retries on failure.
+
+**Parameters**: None
+**Returns**: `Promise<boolean>`
+
+### `disableWakeLock()`
+
+Releases active wake lock.
+
+**Parameters**: None
+**Returns**: `void`
+
+### `isWakeLockSupported()`
+
+Checks browser support.
+
+**Parameters**: None
+**Returns**: `boolean`
+
+### `isWakeLockActive()`
+
+Returns current state.
+
+**Parameters**: None
+**Returns**: `boolean`
+
+---
+
 ## 🐛 debug.js
 
 ### `DEBUG` (Object)

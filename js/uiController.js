@@ -117,50 +117,79 @@ export function initUI(deps) {
   pauseBtn.onclick = () => sessionEngine.pauseSession();
   nextBtn.onclick = () => sessionEngine.nextCycle();
 
-  /**
-   * Toggles tooltip visibility.
-   *
-   * @private
-   * @returns {void}
-   */
-  function toggleTooltip() {
-    const isVisible = tooltipDialog.classList.contains("visible");
+  const settingsTrigger = document.getElementById("settingsTrigger");
+  const settingsDialog = document.getElementById("settingsDialog");
 
+  /**
+   * Toggles settings dialog visibility.
+   * 10s auto-hide timer only starts when pointer leaves the dialog.
+   */
+
+  function toggleSettings() {
+    const isVisible = settingsDialog.classList.contains("visible");
     if (isVisible) {
-      tooltipDialog.classList.remove("visible");
-      clearTimeout(tooltipDialog._hideTimer);
+      settingsDialog.classList.remove("visible");
+      clearTimeout(settingsDialog._hideTimer);
     } else {
-      tooltipDialog.classList.add("visible");
-      tooltipDialog._hideTimer = setTimeout(() => {
-        tooltipDialog.classList.remove("visible");
-      }, 5000);
+      settingsDialog.classList.add("visible");
+      clearTimeout(settingsDialog._hideTimer);
+      startSettingsHideTimer(); // Start timer immediately on open
     }
   }
 
-  document.addEventListener("toggleTooltip", toggleTooltip);
+  function startSettingsHideTimer() {
+    clearTimeout(settingsDialog._hideTimer);
+    settingsDialog._hideTimer = setTimeout(() => {
+      settingsDialog.classList.remove("visible");
+    }, 10000); // 10 seconds
+  }
 
-  if (tooltipTrigger) {
-    tooltipTrigger.addEventListener("click", (ev) => {
+  function cancelSettingsHideTimer() {
+    clearTimeout(settingsDialog._hideTimer);
+  }
+
+  document.addEventListener("toggleSettings", toggleSettings);
+
+  if (settingsTrigger) {
+    settingsTrigger.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      toggleTooltip();
+      toggleSettings();
     });
   }
 
-  // Close tooltip on outside click
+  // Start timer when pointer leaves the dialog
+  if (settingsDialog) {
+    // Cancel timer if pointer enters or touch starts inside dialog
+    settingsDialog.addEventListener("pointerenter", (ev) => {
+      cancelSettingsHideTimer();
+    });
+    settingsDialog.addEventListener("touchstart", (ev) => {
+      cancelSettingsHideTimer();
+    });
+    // Restart timer if pointer leaves or touch ends outside dialog
+    settingsDialog.addEventListener("pointerleave", (ev) => {
+      if (settingsDialog.classList.contains("visible")) {
+        startSettingsHideTimer();
+      }
+    });
+    settingsDialog.addEventListener("touchend", (ev) => {
+      if (settingsDialog.classList.contains("visible")) {
+        startSettingsHideTimer();
+      }
+    });
+  }
+
+  // Close settings on outside click
   document.addEventListener("click", (event) => {
-    if (!tooltipDialog || !tooltipTrigger) return;
+    if (!settingsDialog || !settingsTrigger) return;
     if (
-      tooltipDialog.contains(event.target) ||
-      tooltipTrigger.contains(event.target)
+      settingsDialog.contains(event.target) ||
+      settingsTrigger.contains(event.target)
     )
       return;
-    tooltipDialog.classList.remove("visible");
-    clearTimeout(tooltipDialog._hideTimer);
+    settingsDialog.classList.remove("visible");
+    clearTimeout(settingsDialog._hideTimer);
   });
-
-  return {
-    sessionActive: () => false, // Placeholder
-  };
 }
 
 /**
