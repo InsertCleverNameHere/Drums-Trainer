@@ -1,7 +1,7 @@
 /**
  * @fileoverview Sound profiles, panning mode, and time signature controls.
  * Manages synchronized dropdowns and toggles for both groove and simple panels.
- * 
+ *
  * @module ui/controls
  */
 
@@ -12,9 +12,9 @@ import * as simpleMetronome from "../simpleMetronome.js";
 /**
  * Initializes sound profile dropdowns for both groove and simple panels.
  * Populates dropdowns, syncs selections, and persists active profile.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * initSoundProfileUI(); // Sets up synchronized profile dropdowns
  */
@@ -37,7 +37,7 @@ export function initSoundProfileUI() {
 
   /**
    * Syncs both dropdowns and applies active profile.
-   * 
+   *
    * @param {string} profileName - Profile name (digital, soft, ping, bubble, clave)
    * @returns {void}
    */
@@ -64,100 +64,88 @@ export function initSoundProfileUI() {
 }
 
 /**
- * Initializes panning mode toggles for both groove and simple panels.
- * Keeps toggles synchronized and persists preference.
- * 
+ * Initializes "Reduce Motion" toggle in the settings menu.
+ * Maps "Reduce Motion" (true) to "Intelligent Panning" (true).
+ * Disables toggle during playback to prevent visual glitches.
+ *
  * @returns {void}
- * 
- * @example
- * initPanningModeUI(); // Sets up synchronized panning toggles
  */
 export function initPanningModeUI() {
-  const grooveToggle = document.getElementById("intelligentPanningToggle");
-  const simpleToggle = document.getElementById(
-    "intelligentPanningToggleSimple"
-  );
+  const motionToggle = document.getElementById("reduceMotionToggle");
 
-  if (!grooveToggle || !simpleToggle) {
-    debugLog("state", "⚠️ Panning mode toggles not found in DOM");
+  if (!motionToggle) {
+    debugLog("state", "⚠️ Reduce Motion toggle not found in DOM");
     return;
   }
 
-  // Load persisted preference (default: true = intelligent)
+  // Load persisted preference
+  // true = intelligent (reduced motion). false = forced panning (full motion).
   const stored = localStorage.getItem("intelligentPanningMode");
   const isValidStored = stored === "true" || stored === "false";
-  const intelligentPanning = isValidStored ? stored === "true" : true;
+  const isReducedMotion = isValidStored ? stored === "true" : true;
 
-  // Fix corrupted storage
-  if (!isValidStored && stored !== null) {
-    debugLog(
-      "state",
-      "⚠️ Corrupted intelligentPanningMode value, resetting to default (true)"
-    );
-    localStorage.setItem("intelligentPanningMode", "true");
-  }
-
-  // Initialize both toggles
-  grooveToggle.checked = intelligentPanning;
-  simpleToggle.checked = intelligentPanning;
+  // Initialize toggle
+  motionToggle.checked = isReducedMotion;
 
   /**
-   * Syncs both toggles and dispatches change event.
-   * 
-   * @param {boolean} sourceValue - New toggle state
-   * @returns {void}
+   * Syncs toggle state and updates system.
+   * @param {boolean} isChecked - True means "Reduce Motion" is ON
    */
-  function syncToggles(sourceValue) {
-    grooveToggle.checked = sourceValue;
-    simpleToggle.checked = sourceValue;
+  function updateMotionState(isChecked) {
     localStorage.setItem(
       "intelligentPanningMode",
-      sourceValue ? "true" : "false"
+      isChecked ? "true" : "false"
     );
 
     // Dispatch event for visuals.js
     document.dispatchEvent(
       new CustomEvent("panningModeChanged", {
-        detail: { intelligent: sourceValue },
+        detail: { intelligent: isChecked },
       })
     );
 
     debugLog(
       "state",
-      `🎯 Panning mode: ${sourceValue ? "Intelligent" : "Forced"}`
+      `🎯 Panning mode: ${isChecked ? "Reduced Motion" : "Full Motion"}`
     );
   }
 
-  // Wire up listeners
-  grooveToggle.addEventListener("change", () =>
-    syncToggles(grooveToggle.checked)
-  );
-  simpleToggle.addEventListener("change", () =>
-    syncToggles(simpleToggle.checked)
+  // Wire up listener
+  motionToggle.addEventListener("change", () =>
+    updateMotionState(motionToggle.checked)
   );
 
-  // Disable toggles during playback
+  // RESTORED: Disable toggle during playback
   document.addEventListener("metronome:ownerChanged", (e) => {
     const owner = e?.detail?.owner;
     const isPlaying = owner !== null;
-    grooveToggle.disabled = isPlaying;
-    simpleToggle.disabled = isPlaying;
+
+    motionToggle.disabled = isPlaying;
+
+    // Optional: Visual feedback for disabled state is handled by CSS (:disabled)
+    if (isPlaying) {
+      motionToggle.closest(".settings-row").style.opacity = "0.6";
+      motionToggle.closest(".settings-row").style.cursor = "not-allowed";
+    } else {
+      motionToggle.closest(".settings-row").style.opacity = "1";
+      motionToggle.closest(".settings-row").style.cursor = "pointer";
+    }
   });
 }
 
 /**
  * Initializes time signature controls for both groove and simple panels.
  * Handles preset selection, custom inputs, and subdivision visibility.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * initTimeSignatureUI(); // Sets up time signature dropdowns and inputs
  */
 export function initTimeSignatureUI() {
   /**
    * Sets up controls for one panel (groove or simple).
-   * 
+   *
    * @param {string} panelPrefix - 'groove' or 'simple'
    * @returns {void}
    */
@@ -189,7 +177,7 @@ export function initTimeSignatureUI() {
 
     /**
      * Updates metronome state from UI inputs.
-     * 
+     *
      * @returns {void}
      */
     const updateMetronomeState = () => {
@@ -220,7 +208,7 @@ export function initTimeSignatureUI() {
 
     /**
      * Updates subdivision multiplier.
-     * 
+     *
      * @returns {void}
      */
     const updateSubdivision = () => {

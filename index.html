@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <!-- CRITICAL: Apply theme before any rendering to prevent flash -->
@@ -296,6 +296,16 @@
               Prevents your screen from dimming during practice.
             </p>
           </div>
+          <!-- Reduce Motion Setting -->
+          <div class="settings-group">
+            <label class="toggle">
+              <input id="reduceMotionToggle" type="checkbox" />
+              <span>Reduce Motion</span>
+            </label>
+            <p class="setting-description">
+              Minimize visual panning animations.
+            </p>
+          </div>
         </section>
 
         <!-- Help Section (Existing Content) -->
@@ -548,10 +558,6 @@ Funk
           <input id="tempoSyncedToggle" type="checkbox" />
           <span id="tempoSyncedLabel">Tempo-synced Count-in</span>
         </label>
-        <label class="toggle" style="margin-left: 12px">
-          <input id="intelligentPanningToggle" type="checkbox" checked />
-          <span id="intelligentPanningLabel">Intelligent Panning</span>
-        </label>
       </div>
 
       <div class="status" aria-live="polite">
@@ -659,10 +665,6 @@ Funk
       <div class="controls">
         <button id="simpleStartBtn">Start</button>
         <button id="simplePauseBtn" disabled>Pause</button>
-        <label class="toggle" style="margin-left: 12px">
-          <input id="intelligentPanningToggleSimple" type="checkbox" checked />
-          <span>Intelligent Panning</span>
-        </label>
         <button id="tapTempoBtn" title="Tap 4–6 times to set tempo">
           <svg
             xmlns="http://www.w3.org/2000/svg"

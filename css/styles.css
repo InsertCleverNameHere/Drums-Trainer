@@ -314,7 +314,6 @@ button:disabled {
 }
 
 .toggle:has(input[type="checkbox"]:disabled) #tempoSyncedLabel,
-.toggle:has(input[type="checkbox"]:disabled) #intelligentPanningLabel,
 .toggle:has(input[type="checkbox"]:disabled) span {
   opacity: 0.6;
   cursor: not-allowed;
@@ -624,9 +623,9 @@ button svg,
   transform: scale(1.1);
 }
 
-/* ============================================
-💬 8. Settings Dialog (replaces Tooltip)
-============================================ */
+/* =====================================
+💬 8. Settings Dialog
+======================================== */
 #settingsTrigger {
   position: fixed;
   top: 12px;
@@ -710,6 +709,14 @@ button svg,
 .settings-group .toggle span {
   font-weight: 600;
   font-size: 1rem;
+}
+
+.setting-description {
+  margin: 4px 0 0 5px; /* Top 4px, Left 5px indentation */
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.35;
 }
 
 .help-section ul {

@@ -182,8 +182,8 @@ js/
 
 **Panning Mode Features**:
 
-- Synchronized toggles (Groove & Simple)
-- Modes: Intelligent (minimize updates) vs Forced (always pan)
+- Single "Reduce Motion" toggle in Settings
+- Modes: Reduced Motion (Intelligent) vs Full Motion (Forced)
 - Disabled during playback
 - Persisted via localStorage (`intelligentPanningMode`)
 - Dispatches `panningModeChanged` event for visuals.js
@@ -310,7 +310,7 @@ uiController.js
 | Key                      | Module          | Type              | Purpose                    |
 | ------------------------ | --------------- | ----------------- | -------------------------- |
 | `darkMode`               | theme.js        | `"true"\|"false"` | Theme preference           |
-| `intelligentPanningMode` | controls.js     | `"true"\|"false"` | Panning mode               |
+| `intelligentPanningMode` | controls.js     | `"true"\|"false"` | Reduce Motion preference   |
 | `activeSoundProfile`     | controls.js     | string            | Active sound profile       |
 | `lastSeenVersion`        | uiController.js | string            | Version tracking           |
 | `lastSeenHash`           | uiController.js | string            | Hash tracking              |
