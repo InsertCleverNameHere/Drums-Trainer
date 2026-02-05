@@ -11,10 +11,12 @@ import {
   initSoundProfileUI,
   initPanningModeUI,
   initTimeSignatureUI,
+  initTempoSyncedUI,
 } from "./ui/controls.js";
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
 import { debugLog } from "./debug.js";
 import { Profiler } from "./profiler.js";
+import { initWakeLock } from "./ui/wakeLock.js";
 
 // Expose explicitly (redundant but safe)
 window.Profiler = Profiler;
@@ -125,8 +127,10 @@ if (document.readyState === "loading") {
     uiController.initOwnershipGuards();
     initSimplePanelControls();
     initPanningModeUI();
+    initTempoSyncedUI();
     initTimeSignatureUI();
     uiController.initAllUI(); // Hotkeys + sliders
+    initWakeLock();
   });
 } else {
   // DOM already loaded, initialize immediately
@@ -144,8 +148,10 @@ if (document.readyState === "loading") {
   uiController.initOwnershipGuards();
   initSimplePanelControls();
   initPanningModeUI();
+  initTempoSyncedUI();
   initTimeSignatureUI();
   uiController.initAllUI(); // Hotkeys + sliders
+  initWakeLock();
 }
 
 // 4. Initialize the mode tabs.

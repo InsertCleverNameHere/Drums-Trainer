@@ -125,6 +125,27 @@ Full codebase for development:
 - Auto-generated changelogs
 - GitHub Releases integration
 
+### Commit Message Format
+
+Keywords are **case-insensitive** and must appear at the **start** of the commit message, followed by a colon (with optional spaces).
+
+### Valid Examples
+
+```bash
+✅ MAJOR: Rewrite audio engine
+✅ major: Rewrite audio engine
+✅ MAJOR : Rewrite audio engine (spaces allowed)
+✅ Major: Rewrite audio engine
+```
+
+### Invalid Examples
+
+```bash
+❌ " MAJOR: Rewrite" (leading whitespace)
+❌ "Rewrite MAJOR:" (keyword not at start)
+❌ "MAJOR Rewrite" (missing colon)
+```
+
 ---
 
 ## Troubleshooting

@@ -26,31 +26,29 @@ try {
   let customVersion = null;
 
   // Check for keywords (case-insensitive, must be at start of message)
-  if (/^MAJOR:/i.test(firstLine)) {
+  if (/^MAJOR\s*:/i.test(firstLine)) {
     bumpType = "major";
     console.log("🔴 Detected MAJOR version bump (breaking changes)");
-  } else if (/^MINOR:/i.test(firstLine)) {
+  } else if (/^MINOR\s*:/i.test(firstLine)) {
     bumpType = "minor";
     console.log("🟡 Detected MINOR version bump (new features)");
-  } else if (/^PATCH:/i.test(firstLine)) {
+  } else if (/^PATCH\s*:/i.test(firstLine)) {
     bumpType = "patch";
     console.log("🟢 Detected PATCH version bump (bug fixes)");
-  } else if (/^RESET:/i.test(firstLine)) {
+  } else if (/^RESET\s*:/i.test(firstLine)) {
     bumpType = "reset";
     console.log("🔄 Detected RESET (X.0.0)");
-  } else if (/^RESETMINOR:/i.test(firstLine)) {
+  } else if (/^RESETMINOR\s*:/i.test(firstLine)) {
     bumpType = "resetminor";
     console.log("🔄 Detected RESETMINOR (X.Y.0)");
-  } else if (/^NONE:/i.test(firstLine)) {
+  } else if (/^NONE\s*:/i.test(firstLine)) {
     bumpType = "none";
     console.log("⏭️ Detected NONE (skip version bump)");
-  } else if (/^NEW:\s*(\d+\.\d+\.\d+)/i.test(firstLine)) {
-    const match = firstLine.match(/^NEW:\s*(\d+\.\d+\.\d+)/i);
+  } else if (/^NEW\s*:\s*(\d+\.\d+\.\d+)/i.test(firstLine)) {
+    const match = firstLine.match(/^NEW\s*:\s*(\d+\.\d+\.\d+)/i);
     customVersion = match[1];
     bumpType = "custom";
     console.log(`🎯 Detected NEW version override: ${customVersion}`);
-  } else {
-    console.log("🟢 No keyword detected, defaulting to PATCH");
   }
 
   // Write to temp file for bump-version.js

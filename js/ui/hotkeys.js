@@ -1,7 +1,7 @@
 /**
  * @fileoverview Global keyboard shortcuts and hotkey handling.
  * Manages Space, P, N, arrows, H hotkeys with owner-aware routing.
- * 
+ *
  * @module ui/hotkeys
  */
 
@@ -17,7 +17,7 @@ window.__adjustingTarget = window.__adjustingTarget || "min";
 
 /**
  * Validates and updates numeric input with limits enforcement.
- * 
+ *
  * @private
  * @param {HTMLInputElement} input - Input element to validate
  * @returns {void}
@@ -28,7 +28,7 @@ function validateNumericInput(input) {
 
   const limits = INPUT_LIMITS[id];
   const value = parseInt(input.value, 10);
-  
+
   if (isNaN(value)) {
     input.value = limits.defaultValue;
     return;
@@ -42,7 +42,7 @@ function validateNumericInput(input) {
 /**
  * Adjusts groove BPM input (min or max) by delta.
  * Enforces 5 BPM minimum margin between min/max.
- * 
+ *
  * @private
  * @param {number} delta - Change amount (±1 for ±5 BPM)
  * @returns {void}
@@ -85,7 +85,7 @@ function adjustGrooveInput(delta) {
 
 /**
  * Adjusts simple metronome BPM by delta.
- * 
+ *
  * @private
  * @param {number} delta - Change amount (±1 for ±5 BPM)
  * @returns {void}
@@ -98,7 +98,7 @@ function adjustSimpleBpm(delta) {
   const limits = INPUT_LIMITS[el.id];
   const next = Math.max(limits.min, Math.min(limits.max, cur + delta * step));
   el.value = next;
-  
+
   if (
     typeof window.simpleMetronome !== "undefined" &&
     typeof window.simpleMetronome.setBpm === "function"
@@ -110,7 +110,7 @@ function adjustSimpleBpm(delta) {
   ) {
     simpleMetronome.setBpm(next);
   }
-  
+
   el.classList.add("bpm-flash");
   setTimeout(
     () => el.classList.remove("bpm-flash"),
@@ -121,7 +121,7 @@ function adjustSimpleBpm(delta) {
 
 /**
  * Determines target mode based on ownership and visible panels.
- * 
+ *
  * @private
  * @returns {'groove'|'simple'} Target mode
  */
@@ -138,8 +138,10 @@ function decideTarget() {
   // Fall back to visible panel
   const groovePanel = document.getElementById("panel-groove");
   const simplePanel = document.getElementById("panel-metronome");
-  const grooveVisible = groovePanel && !groovePanel.classList.contains("hidden");
-  const simpleVisible = simplePanel && !simplePanel.classList.contains("hidden");
+  const grooveVisible =
+    groovePanel && !groovePanel.classList.contains("hidden");
+  const simpleVisible =
+    simplePanel && !simplePanel.classList.contains("hidden");
 
   if (grooveVisible && !simpleVisible) return "groove";
   if (simpleVisible && !grooveVisible) return "simple";
@@ -149,16 +151,16 @@ function decideTarget() {
 /**
  * Initializes global keyboard shortcuts.
  * Handles Space, P, N, arrows, H with owner-aware routing.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * setupHotkeys(); // Registers keydown listener
  */
 export function setupHotkeys() {
   window.addEventListener("keydown", (event) => {
     const active = document.activeElement;
-    
+
     // Ignore if typing in input
     if (
       active &&
@@ -275,7 +277,7 @@ export function setupHotkeys() {
 
       case "KeyH":
         debugLog("hotkeys", `H pressed - ${target} mode`);
-        document.dispatchEvent(new Event("toggleTooltip"));
+        document.dispatchEvent(new Event("toggleSettings"));
         break;
 
       case "ArrowRight":
@@ -286,7 +288,10 @@ export function setupHotkeys() {
           groovePanel && !groovePanel.classList.contains("hidden");
 
         if (!isGrooveVisible) {
-          debugLog("hotkeys", `⚠️ Left/Right arrow blocked - not in Groove mode`);
+          debugLog(
+            "hotkeys",
+            `⚠️ Left/Right arrow blocked - not in Groove mode`
+          );
           return;
         }
 

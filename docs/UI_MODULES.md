@@ -16,7 +16,8 @@ js/
     ├── hotkeys.js          (~235 lines)  Keyboard shortcuts
     ├── sliders.js          (~308 lines)  BPM sliders & validation
     ├── controls.js         (~187 lines)  Sound profiles & time signatures
-    └── panels.js           (~234 lines)  Mode tabs & simple panel
+    ├── panels.js           (~234 lines)  Mode tabs & simple panel
+    └── wakeLock.js         (~150 lines)  Screen wake lock
 ```
 
 **Total Reduction**: 1800 → 1537 lines (with better organization and maintainability)
@@ -33,7 +34,7 @@ js/
 - `constants.js` - Visual timing constants
 - `sessionEngine.js` - Session lifecycle
 - `simpleMetronome.js` - Simple metronome state
-- All UI submodules (theme, hotkeys, sliders, controls, panels)
+- All UI submodules (theme, hotkeys, sliders, controls, panels, wakeLock)
 
 **Exports**:
 
@@ -181,8 +182,8 @@ js/
 
 **Panning Mode Features**:
 
-- Synchronized toggles (Groove & Simple)
-- Modes: Intelligent (minimize updates) vs Forced (always pan)
+- Single "Reduce Motion" toggle in Settings
+- Modes: Reduced Motion (Intelligent) vs Full Motion (Forced)
 - Disabled during playback
 - Persisted via localStorage (`intelligentPanningMode`)
 - Dispatches `panningModeChanged` event for visuals.js
@@ -309,12 +310,13 @@ uiController.js
 | Key                      | Module          | Type              | Purpose                    |
 | ------------------------ | --------------- | ----------------- | -------------------------- |
 | `darkMode`               | theme.js        | `"true"\|"false"` | Theme preference           |
-| `intelligentPanningMode` | controls.js     | `"true"\|"false"` | Panning mode               |
+| `intelligentPanningMode` | controls.js     | `"true"\|"false"` | Reduce Motion preference   |
 | `activeSoundProfile`     | controls.js     | string            | Active sound profile       |
 | `lastSeenVersion`        | uiController.js | string            | Version tracking           |
 | `lastSeenHash`           | uiController.js | string            | Hash tracking              |
 | `cachedMsgCount`         | uiController.js | number            | Footer message suppression |
 | `updateMsgCount`         | uiController.js | number            | Footer message suppression |
+| `wakeLockEnabled`        | wakeLock.js     | `"true"\|"false"` | Wake lock preference       |
 
 ---
 

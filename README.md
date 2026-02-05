@@ -17,6 +17,7 @@ A lightweight, offline-ready PWA for practicing drum grooves with randomized BPM
 - **🎧 Procedural Sound Profiles** — 5 sound options (Digital, Soft, Ping, Bubble, Clave)
 - **⌨️ Keyboard Shortcuts** — Space, P, N, arrows, H for hands-free control
 - **🌙 Dark Mode** — Auto-detects system preference, persists across sessions
+- **🔒 Wake Lock** — Keep screen awake during practice (Settings menu)
 - **📱 PWA Ready** — Install on any device, works fully offline
 - **🔄 Auto-Updates** — Smart versioning with user-friendly update prompts
 - **🎨 Hierarchical Version Colors** — Visual SemVer feedback with color inheritance
@@ -73,7 +74,20 @@ python -m http.server 8080
 | `N`       | Next groove (Groove mode only)          |
 | `↑` / `↓` | Adjust BPM ±5                           |
 | `←` / `→` | Switch Min/Max BPM target (Groove mode) |
-| `H`       | Toggle help dialog                      |
+| `H`       | Toggle settings & help dialog           |
+
+---
+
+## ⚙️ Settings Menu
+
+Access the settings menu by pressing `H` or clicking the ⚙️ gear icon (top-right).
+
+**Available Settings**:
+
+- **Keep Screen Awake**: Prevents screen dimming during practice sessions
+  - Works on Android (Chrome), iOS (Safari 16.4+), and Desktop (Chrome/Edge)
+  - Automatically reacquires when switching tabs
+  - Persists across sessions
 
 ---
 
