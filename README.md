@@ -196,7 +196,7 @@ This project is licensed under the **ISC License** — see [LICENSE](LICENSE) fo
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
+Contributions are always welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
