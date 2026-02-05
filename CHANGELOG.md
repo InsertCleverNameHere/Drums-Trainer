@@ -1,5 +1,15 @@
 # Changelog
 
+## [v10.0.0] - 2026-02-05
+
+### 💥 Breaking Changes
+
+- MAJOR: actually push version
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v9.0.2] - 2026-02-05
 
 ### 🧹 Chores

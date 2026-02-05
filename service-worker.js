@@ -9,7 +9,7 @@
 
 // Current cache version (updated dynamically by commits.json)
 // The version will be injected here by the build script
-let CACHE_VERSION = "v9.0.2";
+let CACHE_VERSION = "v10.0.0";
 let CACHE_NAME = `groove-trainer-${CACHE_VERSION}`;
 
 // Files to precache at install time for offline availability
