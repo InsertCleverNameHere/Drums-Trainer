@@ -1,5 +1,17 @@
 # Changelog
 
+## [v9.0.2] - 2026-02-05
+
+### 🧹 Chores
+
+- none: more forgiving commit message regex and documentation
+- chore: Bump version to v9.0.1
+- NONE: hopefully fix readme
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v9.0.1] - 2025-12-04
 
 ### 🧹 Chores
