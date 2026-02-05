@@ -272,7 +272,7 @@ The Random Groove Trainer follows these core principles:
 **Responsibilities**:
 
 - Synchronized sound profile dropdowns (Groove & Simple)
-- Synchronized panning mode toggles
+- Single "Reduce Motion" toggle in settings menu
 - Time signature preset and custom input handling
 - Subdivision visibility logic
 - Profile and mode persistence (localStorage)

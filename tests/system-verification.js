@@ -140,7 +140,9 @@
       "panel-metronome",
       "tab-groove",
       "tab-metronome",
-      "intelligentPanningToggle",
+      "reduceMotionToggle",
+      "settingsTrigger",
+      "settingsDialog",
     ];
     criticalElements.forEach((id) =>
       assert(document.getElementById(id), `#${id} exists`)
@@ -163,16 +165,19 @@
       assert(true, "Theme toggle interaction");
     }
 
-    // Persistence
-    const panToggle = document.getElementById("intelligentPanningToggle");
+    // Persistence - Settings Modal Interaction
+    await click("#settingsTrigger"); // Open settings
+    await wait(200);
+    const panToggle = document.getElementById("reduceMotionToggle");
     const originalPan = panToggle.checked;
-    await click("#intelligentPanningToggle");
+    await click("#reduceMotionToggle");
     assert(
       localStorage.getItem("intelligentPanningMode") !== null,
       "Settings persistence (localStorage)"
     );
-    if (panToggle.checked !== originalPan)
-      await click("#intelligentPanningToggle");
+    if (panToggle.checked !== originalPan) await click("#reduceMotionToggle");
+    await click("#settingsTrigger"); // Close settings
+    await wait(200);
 
     // Time Signatures
     await selectOption("#groovePresetSelect", "4/4");
@@ -240,8 +245,15 @@
     // ===============================================
     console.log(`\n%c📦 4. Timing Logic`, SECTION_STYLE);
 
+    // Open settings to access tempo-synced toggle
+    await click("#settingsTrigger");
+    await wait(200);
+
     const syncToggle = document.getElementById("tempoSyncedToggle");
     if (!syncToggle.checked) await click("#tempoSyncedToggle");
+
+    await click("#settingsTrigger"); // Close settings
+    await wait(200);
 
     // Low BPM Check (30 BPM)
     const durSlow = await measureCountIn(30, 35);

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Sound profiles, panning mode, and time signature controls.
- * Manages synchronized dropdowns and toggles for both groove and simple panels.
+ * Manages sound profile dropdowns and settings menu toggles (panning mode, tempo-synced count-in).
  *
  * @module ui/controls
  */
