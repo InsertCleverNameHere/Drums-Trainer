@@ -1,5 +1,15 @@
 # Changelog
 
+## [v10.0.0] - 2026-03-08
+
+### 🧹 Chores
+
+- NONE: clean up missed spots in various files
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v10.0.0] - 2026-02-05
 
 ### 💥 Breaking Changes
