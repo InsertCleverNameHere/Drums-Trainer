@@ -43,13 +43,11 @@ export function quantizeToStep(value, step = 5) {
  * @returns {number} Clamped step value
  */
 export function sanitizeQuantizationStep(value) {
-  // Step must be 1–100, default to 5
-  const step = sanitizePositiveInteger(value, {
+  return sanitizePositiveInteger(value, {
     min: 1,
-    max: 100,
+    max: 150,
     defaultValue: 5,
   });
-  return Math.min(step, 100);
 }
 
 // Quantization defaults (groove uses this; tap tempo stays hardcoded to 5)
@@ -598,8 +596,8 @@ export function getStyledVersionHTML(
       colors.changeType === "major"
         ? colors.major
         : colors.changeType === "minor"
-        ? colors.minor
-        : colors.patch;
+          ? colors.minor
+          : colors.patch;
     // Triple-layer glow for better dark mode visibility + larger size
     versionHTML = `<span style="font-size: 1.5em; text-shadow: 0 0 12px ${glowColor}80, 0 0 8px ${glowColor}60, 0 0 4px ${glowColor}40;">${versionHTML}</span>`;
   }
