@@ -197,39 +197,130 @@
 
 ---
 
-## 🔮 Phase 5 — Advanced Mode & Groove Editing (Future)
+## 🚧 Phase 5 — Simple / Advanced Mode & Groove Editor
 
-### 1. Simple vs Advanced Mode Toggle
+> **Branch:** `advancedmode`
+> Phases 5.1 through 5.5 are delivered incrementally. Each phase is a
+> self-contained, merge-ready unit. Phase 5.1 is the required foundation
+> for all subsequent phases.
 
-- **Simple Mode**:
-  - Dual tempo slider (values clamped to multiples of 5)
-  - Time-based sessions only (no cycles option)
-  - Minimal interface: BPM range, total time, start/stop
-- **Advanced Mode**:
-  - Manual BPM input (any integer value)
-  - Full time-signature and groove-definition options
-  - Optional enforcement toggle for grooves that differ from selected signature
-  - Four visual rows representing drum parts:
-    - Hi-Hat / Cymbal
-    - Kick
-    - Snare
-    - Hi-Hat Control (open/closed)
-  - Each row displayed as a sequence of unlit circles the user can **tap or click** to activate beats
-  - Active circles light up and play in sync with the metronome
-  - Grooves are **not tied to a fixed BPM**, allowing them to be reused across tempo changes
+---
 
-### 2. Groove Pattern Editor
+### 🚧 Phase 5.1 — Simple / Advanced Mode Foundation
 
-- Visual editor for defining patterns:
-  - Click / tap to toggle hits on or off per instrument row
-  - Optional preview playback for quick testing
-  - Supports grooves that span **multiple measures** (e.g. Bossa Nova = 2 bars)
-- Add a small note reminding users that some grooves naturally require more than one measure
+> **Estimated dev time: 3–5 days**
 
-### 3. User Groove Persistence
+The primary goal of this phase is to reduce UI complexity by introducing
+a persistent **Simple / Advanced Mode** toggle, and to lay the groundwork
+all subsequent Phase 5 features build on.
 
-- Users can **save, edit, rename, and delete** grooves
-- Saved to `localStorage` as JSON (lightweight, offline-ready)
+#### Simple Mode (default)
+
+- All existing behaviour is preserved exactly as-is
+- BPM controls use the noUiSlider with hardcoded quantization step of 5
+- Session controls (cycle duration, total cycles, total time) are **hidden**;
+  session always runs until stopped with a fixed 60-second cycle time
+- Sound profile, time signature, and subdivision controls are **hidden**
+- Rhythmic Count-in toggle remains visible in both modes
+- Groove names textarea remains visible in both modes (integral to the randomizer)
+- A **collapsed chip / badge row** is displayed above the Start button in
+  both the Groove Randomizer and Metronome tabs, showing the Advanced Mode
+  settings currently in effect (e.g. `7/8 · Clave · Sixteenths`). Placement
+  is consistent across both tabs. The row carries a tooltip: *"These settings
+  carry over from Advanced Mode. Switch to Advanced to change them."*
+
+#### Advanced Mode
+
+- Toggle lives in the settings modal; persisted to `localStorage`
+- **No sliders** — all BPM inputs are plain numeric fields
+- Quantization is always enforced, but the step is user-defined:
+  - A free numeric input labelled **"BPM Step (snap interval)"** replaces
+    the hardcoded step of 5
+  - Valid range: 1–150 (positive integers only); defaults to 5
+  - Stored in `localStorage`; restored on page load
+  - Wires up the existing `getUserQuantizationPreference()` TODO in
+    `constants.js`
+- A **"Snap to step"** toggle enables / disables quantization snapping.
+  When off, any integer within 30–300 is accepted. When on, inputs and
+  arrow key adjustments snap to the nearest multiple of the defined step.
+  Applies to both the Groove Randomizer and Metronome tabs
+- Arrow key BPM adjustment (↑ / ↓) steps by the user-defined quantization
+  step instead of the hardcoded 5
+- Min / max BPM margin enforcement adapts: minimum margin equals one
+  quantization step (not hardcoded 5)
+- Session controls revealed: cycle duration, total cycles, total time,
+  and session limit mode selector
+- Sound profile selector revealed (persists when switching back to Simple)
+- Time signature and subdivision controls revealed (persist when switching
+  back to Simple)
+- **Restore to Defaults** button in the settings modal resets the entire
+  app to first-launch state: clears all `localStorage`, resets dark mode
+  to system preference, resets groove textarea, and resets all settings
+
+#### Input validation overhaul (quantization-aware)
+
+- All BPM inputs re-validate against the active quantization step whenever
+  the step changes
+- `sanitizeBpmRange()` already accepts a step parameter — this is wired to
+  the live user preference
+- Hard limits (30–300) remain enforced in all cases
+- Tap tempo retains its own isolated fixed quantization
+  (`TAP_TEMPO_QUANTIZATION = 5`); unaffected by user step setting
+
+#### New module: `js/ui/advancedMode.js`
+
+- Owns the Simple / Advanced toggle lifecycle
+- Handles show / hide of all mode-gated DOM sections
+- Manages the persistent-settings chip row (read, render, update)
+- Exposes `isAdvancedMode()` for use by other modules
+
+#### Testing gates (must pass before merge)
+
+- [ ] Simple Mode: sliders present, step=5, session controls hidden,
+      sound/time-sig controls hidden, chip row visible and accurate
+- [ ] Advanced Mode: no sliders, BPM step input present and functional,
+      session/sound/time-sig controls visible
+- [ ] Snap-to-step ON: inputs and arrow keys snap to defined step
+- [ ] Snap-to-step OFF: any integer 30–300 accepted
+- [ ] Margin enforcement uses active step, not hardcoded 5
+- [ ] All Advanced Mode settings persist across page reload
+- [ ] Switching Simple → Advanced → Simple: chip row reflects correct
+      persisted values
+- [ ] Restore to Defaults: full reset verified (localStorage cleared,
+      UI matches first-launch state, dark mode follows system preference)
+- [ ] Hard limits (30–300) enforced in both modes
+- [ ] Tap tempo unaffected by custom quantization step
+- [ ] Arrow keys step by user-defined step in Advanced Mode
+- [ ] Add `tests/` test: dark mode system preference detection and
+      auto-switch (currently untested — existing `system-verification.js`
+      check is a no-op)
+
+---
+
+### 🔮 Phase 5.2 — Groove Pattern Editor
+
+> **Estimated dev time: 4–6 days**
+> **Requires:** Phase 5.1 complete
+
+- Visual beat grid: four instrument rows (Hi-Hat, Kick, Snare, Hi-Hat
+  Control), displayed as a sequence of tappable circles
+- Click / tap toggles a hit on or off per step per instrument
+- Grid is time-signature-aware (step count derived from beats × subdivision)
+- Active circles light up and play in sync with the running metronome
+- Supports grooves spanning multiple measures (e.g. Bossa Nova = 2 bars)
+- Optional preview playback for testing a pattern without starting a full
+  session
+- Available in Advanced Mode only; hidden in Simple Mode
+
+---
+
+### 🔮 Phase 5.3 — User Groove Persistence
+
+> **Estimated dev time: 2–3 days**
+> **Requires:** Phase 5.2 complete
+
+- Save, edit, rename, and delete user-defined groove patterns
+- Stored in `localStorage` as JSON (lightweight, offline-ready)
 - Example stored structure:
 
   ```json
@@ -249,20 +340,32 @@
   ```
 
 - Automatically reload last-used groove at startup
-- Optional _"Reset to Defaults"_ button
+- Groove patterns are not tied to a fixed BPM
 
-### 4. Default Groove Library (Optional Reference)
+---
 
-- Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA
-- Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove)
-- Users can enable or import these as reference templates
+### 🔮 Phase 5.4 — Default Groove Library
 
-### 5. Accessibility Layer (Lightweight)
+> **Estimated dev time: 1–2 days**
+> **Requires:** Phase 5.3 complete
 
-- Keyboard-navigable controls (`Tab`, `Enter`)
-- `aria-label` attributes for all buttons and sliders
-- Visuals (beat circles) include accessible text descriptions for screen readers
-- Accent vs. normal beat colors chosen for **high contrast** and **color-blind safety**
+- Small bundled `defaultGrooves.json` with starter patterns
+  (e.g. Rock 4/4, Bossa Nova, Funk, Shuffle)
+- Users can load these as reference templates
+- Read-only; cannot be overwritten, only copied to user grooves
+
+---
+
+### 🔮 Phase 5.5 — Accessibility Layer
+
+> **Estimated dev time: 1–2 days**
+> **Can run in parallel with 5.3 / 5.4**
+
+- Keyboard-navigable controls (`Tab`, `Enter`) across all panels
+- `aria-label` attributes on all interactive elements
+- Beat grid circles include screen-reader descriptions
+- Accent / normal beat colours verified for WCAG contrast and
+  colour-blind safety
 
 ---
 
