@@ -705,7 +705,7 @@ button svg,
   width: 100%; /* Ensures full width clickable area */
 }
 
-/* Optional: Tweaks the text weight to match the header better */
+/* Tweaks the text weight to match the header better */
 .settings-group .toggle span {
   font-weight: 600;
   font-size: 1rem;
@@ -990,7 +990,7 @@ button#installBtn.utility-button:active {
   transform: translateX(-50%) translateY(-10px);
 }
 
-/* Optional: shorter display window */
+/* Shorter display window */
 @keyframes autoFadeOut {
   0% {
     opacity: 0;
@@ -1243,7 +1243,7 @@ button#installBtn.utility-button:active {
   height: 36px;
 }
 
-/* --- Restored Flashing & Accent Logic --- */
+/* --- Flashing & Accent Logic --- */
 .beat-dot {
   /* Keep the smooth transition */
   transition: all 0.15s ease;
@@ -1256,12 +1256,12 @@ button#installBtn.utility-button:active {
   outline: 1px solid transparent;
 }
 
-/* COLOR for Accent Beats (Downbeat) - RESTORED */
+/* COLOR for Accent Beats (Downbeat)*/
 .beat-dot.flashing.accent-flash {
   background-color: #b22222; /* Red */
 }
 
-/* COLOR for Normal Beats - RESTORED */
+/* COLOR for Normal Beats*/
 .beat-dot.flashing.normal-flash {
   background-color: #006400; /* Green */
 }
