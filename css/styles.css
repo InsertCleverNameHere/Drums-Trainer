@@ -1423,3 +1423,67 @@ button#installBtn.utility-button:active {
     bottom: 68px;
   }
 }
+
+/* ===============================
+🔧 16. Simple / Advanced Mode
+================================== */
+
+/* Elements hidden in Simple Mode, visible in Advanced Mode */
+.advanced-only {
+  display: none;
+}
+
+body.advanced-mode .advanced-only {
+  display: revert;
+}
+
+/* Elements visible in Simple Mode, hidden in Advanced Mode */
+body.advanced-mode .simple-only {
+  display: none;
+}
+
+/* ---- Persistent settings chip row ---- */
+.advanced-settings-chip {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--surface-secondary, rgba(0, 0, 0, 0.06));
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin-bottom: 8px;
+  text-align: center;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s ease;
+}
+
+.advanced-settings-chip:empty {
+  display: none;
+}
+
+/* ---- Restore Defaults danger button ---- */
+.danger-btn {
+  background: transparent;
+  color: var(--danger, #c0392b);
+  border: 1px solid var(--danger, #c0392b);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  width: 100%;
+}
+
+.danger-btn:hover {
+  background: var(--danger, #c0392b);
+  color: #fff;
+}
+
+.danger-btn.confirming {
+  background: var(--danger, #c0392b);
+  color: #fff;
+}
