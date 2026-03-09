@@ -1450,7 +1450,8 @@ body.advanced-mode .simple-only {
 .advanced-settings-chip {
   font-size: 0.8rem;
   color: var(--text-secondary);
-  background: var(--surface-secondary, rgba(0, 0, 0, 0.06));
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 5px 10px;
   margin-bottom: 8px;
@@ -1464,6 +1465,10 @@ body.advanced-mode .simple-only {
 }
 
 .advanced-settings-chip:empty {
+  display: none;
+}
+
+body.advanced-mode .advanced-settings-chip {
   display: none;
 }
 
