@@ -279,6 +279,56 @@
         <!-- Settings Section -->
         <section class="settings-section">
           <h2>⚙️ Settings</h2>
+          <!-- Advanced Mode Toggle -->
+          <div class="settings-group">
+            <label class="toggle">
+              <input id="advancedModeToggle" type="checkbox" />
+              <span>Advanced Mode</span>
+            </label>
+            <p class="setting-description">
+              Unlocks manual BPM entry, custom quantization step, and full
+              session controls.
+            </p>
+          </div>
+          <!-- BPM Step Input — advanced-only -->
+          <div class="settings-group advanced-only">
+            <label for="bpmStepInput">BPM Step (snap interval)</label>
+            <input
+              id="bpmStepInput"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="150"
+              value="5"
+              step="1"
+            />
+            <p class="setting-description">
+              Quantization step for all BPM inputs and arrow key adjustments.
+              Range: 1–150. Tap Tempo always uses step 5 regardless of this
+              setting.
+            </p>
+          </div>
+          <!-- Snap to Step Toggle — advanced-only -->
+          <div class="settings-group advanced-only">
+            <label class="toggle">
+              <input id="snapToStepToggle" type="checkbox" checked />
+              <span>Snap to Step</span>
+            </label>
+            <p class="setting-description">
+              When on, BPM values snap to the nearest multiple of the BPM Step
+              on input.
+            </p>
+          </div>
+          <!-- Restore Defaults — always visible -->
+          <div class="settings-group">
+            <button id="restoreDefaultsBtn" class="danger-btn">
+              Restore to Defaults
+            </button>
+            <p class="setting-description">
+              Resets all settings, grooves, and preferences to factory state.
+              Cannot be undone.
+            </p>
+          </div>
           <div class="settings-group">
             <label class="toggle">
               <input id="wakeLockToggle" type="checkbox" />
@@ -351,7 +401,7 @@
             <li><kbd>Space</kbd> = ▶️ Start / ⏹️ Stop</li>
             <li><kbd>P</kbd> = ⏸️ Pause / ▶️ Resume</li>
             <li><kbd>N</kbd> = ⏭️ Next Groove</li>
-            <li><kbd>↑</kbd> / <kbd>↓</kbd> = Adjust BPM (±5)</li>
+            <li><kbd>↑</kbd> / <kbd>↓</kbd> = Adjust BPM (±BPM Step)</li>
             <li><kbd>←</kbd> / <kbd>→</kbd> = Switch Min/Max</li>
           </ul>
         </section>
@@ -397,8 +447,8 @@
     <!-- Groove panel -->
     <div id="panel-groove" class="panel">
       <!-- BEGIN existing Groove UI -->
-      <label>BPM range (min / max)</label>
-      <div class="row">
+      <label class="advanced-only"> BPM range (min / max)</label>
+      <div class="row advanced-only">
         <div class="col">
           <input
             id="bpmMin"
@@ -425,7 +475,7 @@
         </div>
       </div>
       <!-- Groove Slider -->
-      <div id="groove-slider-container" class="bpm-slider-box">
+      <div id="groove-slider-container" class="bpm-slider-box simple-only">
         <div id="groove-slider-wrapper">
           <div id="groove-slider"></div>
         </div>
@@ -450,7 +500,7 @@ Funk
 ملفوف</textarea
       >
 
-      <div class="row beats-and-sound-row">
+      <div class="row beats-and-sound-row advanced-only">
         <div class="beats-section">
           <!-- Time Signature Controls -->
           <div class="time-signature-controls">
@@ -500,7 +550,7 @@ Funk
         </div>
       </div>
 
-      <div class="row">
+      <div class="row advanced-only">
         <div class="col">
           <label>Time per cycle</label>
           <div class="row" style="gap: 6px">
@@ -528,7 +578,7 @@ Funk
         </div>
       </div>
 
-      <div class="row" style="margin-top: 8px">
+      <div class="row advanced-only" style="margin-top: 8px">
         <div class="col">
           <label id="cyclesLabel">Total cycles</label>
           <input
@@ -560,6 +610,7 @@ Funk
         </div>
       </div>
 
+      <div id="groove-settings-chip" class="advanced-settings-chip"></div>
       <div class="controls">
         <button id="startBtn">Start</button>
         <button id="pauseBtn" disabled>Pause</button>
@@ -597,9 +648,10 @@ Funk
     <!-- Simple Metronome panel (initially hidden) -->
     <div id="panel-metronome" class="panel hidden">
       <!-- BEGIN Simple Metronome UI -->
-      <label>Metronome BPM</label>
+      <label class="advanced-only">Metronome BPM</label>
       <input
         id="simpleBpm"
+        class="advanced-only"
         type="number"
         inputmode="numeric"
         min="30"
@@ -612,13 +664,13 @@ Funk
      When user changes quantization preference, JS will update these step attributes -->
 
       <!-- Simple Slider -->
-      <div id="simple-slider-container" class="bpm-slider-box">
+      <div id="simple-slider-container" class="bpm-slider-box simple-only">
         <div id="simple-slider-wrapper">
           <div id="simpleMetronomeSlider"></div>
         </div>
       </div>
 
-      <div class="row beats-and-sound-row">
+      <div class="row beats-and-sound-row advanced-only">
         <div class="beats-section">
           <!-- Time Signature Controls -->
           <div class="time-signature-controls">
@@ -668,6 +720,7 @@ Funk
         </div>
       </div>
 
+      <div id="simple-settings-chip" class="advanced-settings-chip"></div>
       <div class="controls">
         <button id="simpleStartBtn">Start</button>
         <button id="simplePauseBtn" disabled>Pause</button>

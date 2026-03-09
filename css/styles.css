@@ -1434,7 +1434,11 @@ button#installBtn.utility-button:active {
 }
 
 body.advanced-mode .advanced-only {
-  display: revert;
+  display: block;
+}
+
+body.advanced-mode .row.advanced-only {
+  display: flex;
 }
 
 /* Elements visible in Simple Mode, hidden in Advanced Mode */
