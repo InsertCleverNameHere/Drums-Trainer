@@ -6,26 +6,30 @@
  *   initAdvancedMode()      — call once on DOMContentLoaded, before sliders/sound/timesig
  *   isAdvancedMode()        — returns current mode as boolean
  *   getQuantizationStep()   — returns current BPM step (1–150)
- *   isSnapEnabled()         — returns whether snap-to-step is active
  *   restoreDefaults()       — clears localStorage and reloads
  *
  * @module ui/advancedMode
  */
 
 import { debugLog, DEBUG } from "../debug.js";
-import { BPM_STEP_LIMITS, getUserQuantizationPreference } from "../constants.js";
+import {
+  BPM_STEP_LIMITS,
+  getUserQuantizationPreference,
+} from "../constants.js";
 import * as utils from "../utils.js";
 
 // ── Internal state ───────────────────────────────────────────────
 let _advanced = false; // mirrors localStorage['advancedMode']
-let _step     = 5;     // mirrors localStorage['bpmQuantizationStep']
-let _snap     = true;  // mirrors localStorage['snapToStep']
+let _step = 5; // mirrors localStorage['bpmQuantizationStep']
 
 // ── Public API ───────────────────────────────────────────────────
 
-export function isAdvancedMode()      { return _advanced; }
-export function getQuantizationStep() { return _step; }
-export function isSnapEnabled()       { return _snap; }
+export function isAdvancedMode() {
+  return _advanced;
+}
+export function getQuantizationStep() {
+  return _step;
+}
 
 /**
  * Reads stored preferences, applies DOM visibility, populates chip rows,
@@ -35,13 +39,10 @@ export function isSnapEnabled()       { return _snap; }
 export function initAdvancedMode() {
   // 1. Read and sanitise stored state
   _advanced = localStorage.getItem("advancedMode") === "true";
-  _step     = utils.sanitizeQuantizationStep(
+  _step = utils.sanitizeQuantizationStep(
     parseInt(localStorage.getItem("bpmQuantizationStep"), 10)
   );
-  const storedSnap = localStorage.getItem("snapToStep");
-  _snap = storedSnap === null ? true : storedSnap === "true";
-
-  debugLog("advancedMode", `init: advanced=${_advanced}, step=${_step}, snap=${_snap}`);
+  debugLog("advancedMode", `init: advanced=${_advanced}, step=${_step}`);
 
   // 2. Sync utils.QUANTIZATION.groove so randomizeGroove() uses the live step
   utils.QUANTIZATION.groove = _step;
@@ -54,17 +55,13 @@ export function initAdvancedMode() {
 
   // 5. Sync settings modal controls to stored state
   const modeToggle = document.getElementById("advancedModeToggle");
-  const stepInput  = document.getElementById("bpmStepInput");
-  const snapToggle = document.getElementById("snapToStepToggle");
-
+  const stepInput = document.getElementById("bpmStepInput");
   if (modeToggle) modeToggle.checked = _advanced;
-  if (stepInput)  stepInput.value    = _step;
-  if (snapToggle) snapToggle.checked = _snap;
+  if (stepInput) stepInput.value = _step;
 
   // 6. Wire event listeners
   _wireToggle(modeToggle);
   _wireStepInput(stepInput);
-  _wireSnapToggle(snapToggle);
   _wireRestoreBtn();
   _wireOwnershipGuard();
 
@@ -87,7 +84,13 @@ export function restoreDefaults() {
 
 function _applyMode() {
   document.body.classList.toggle("advanced-mode", _advanced);
-  debugLog("advancedMode", `_applyMode: body.advanced-mode = ${_advanced}`);
+  // Keep randomizer step in sync with the active mode.
+  // Simple Mode always uses step=5; Advanced Mode uses the user preference.
+  utils.QUANTIZATION.groove = _advanced ? _step : 5;
+  debugLog(
+    "advancedMode",
+    `_applyMode: body.advanced-mode = ${_advanced}, QUANTIZATION.groove = ${utils.QUANTIZATION.groove}`
+  );
 }
 
 // ── Private: chip rendering ──────────────────────────────────────
@@ -98,30 +101,32 @@ function _renderChip() {
   if (!grooveChip && !simpleChip) return;
 
   const timeSigEl = document.getElementById("groovePresetSelect");
-  const numEl     = document.getElementById("grooveCustomNumerator");
-  const denEl     = document.getElementById("grooveCustomDenominator");
-  const subdivEl  = document.getElementById("grooveSubdivisionSelect");
+  const numEl = document.getElementById("grooveCustomNumerator");
+  const denEl = document.getElementById("grooveCustomDenominator");
+  const subdivEl = document.getElementById("grooveSubdivisionSelect");
 
   let timeSig = "4/4";
   if (timeSigEl) {
-    timeSig = timeSigEl.value === "custom"
-      ? `${numEl?.value ?? 4}/${denEl?.value ?? 4}`
-      : timeSigEl.value;
+    timeSig =
+      timeSigEl.value === "custom"
+        ? `${numEl?.value ?? 4}/${denEl?.value ?? 4}`
+        : timeSigEl.value;
   }
 
   const rawProfile = localStorage.getItem("activeSoundProfile") ?? "digital";
-  const profile    = rawProfile.charAt(0).toUpperCase() + rawProfile.slice(1);
+  const profile = rawProfile.charAt(0).toUpperCase() + rawProfile.slice(1);
 
   const subdivMap = { 1: "None", 2: "8th Notes", 4: "16th Notes" };
-  const subdiv    = subdivMap[subdivEl?.value ?? "1"] ?? "None";
+  const subdiv = subdivMap[subdivEl?.value ?? "1"] ?? "None";
 
   const text = `${timeSig} · ${profile} · ${subdiv}`;
-  const tip  = "These settings carry over from Advanced Mode. Switch to Advanced to change them.";
+  const tip =
+    "These settings carry over from Advanced Mode. Switch to Advanced to change them.";
 
   [grooveChip, simpleChip].forEach((chip) => {
     if (!chip) return;
     chip.textContent = text;
-    chip.title       = tip;
+    chip.title = tip;
   });
 
   debugLog("advancedMode", `_renderChip: "${text}"`);
@@ -143,6 +148,13 @@ function _wireToggle(toggle) {
 
     _applyMode();
     _renderChip();
+
+    // Sync slider step/margin to match the new mode (step=user pref in
+    // Advanced, step=5 in Simple). Lazy import avoids circular dependency.
+    import("./sliders.js").then(({ updateBpmInputSteps }) => {
+      updateBpmInputSteps();
+    });
+
     debugLog("advancedMode", `mode toggled: advanced=${_advanced}`);
   });
 }
@@ -155,10 +167,14 @@ function _sanitiseBpmForSimpleMode() {
     const val = parseInt(el.value, 10);
     if (isNaN(val)) return;
     const snapped = Math.round(val / SIMPLE_STEP) * SIMPLE_STEP;
-    el.value      = Math.max(30, Math.min(300, snapped));
+    el.value = Math.max(30, Math.min(300, snapped));
+    el.dataset.lastValidValue = el.value;
     el.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  debugLog("advancedMode", "_sanitiseBpmForSimpleMode: BPM values quantized to step=5");
+  debugLog(
+    "advancedMode",
+    "_sanitiseBpmForSimpleMode: BPM values quantized to step=5"
+  );
 }
 
 function _wireStepInput(input) {
@@ -166,7 +182,16 @@ function _wireStepInput(input) {
 
   // Block non-digit keys while typing (allow navigation and edit keys)
   input.addEventListener("keydown", (e) => {
-    const allowed = ["Backspace","Delete","Tab","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Enter"];
+    const allowed = [
+      "Backspace",
+      "Delete",
+      "Tab",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Enter",
+    ];
     if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
   });
 
@@ -179,15 +204,6 @@ function _wireStepInput(input) {
   input.addEventListener("blur", () => {
     _onStepChanged(input.value);
     input.value = _step;
-  });
-}
-
-function _wireSnapToggle(toggle) {
-  if (!toggle) return;
-  toggle.addEventListener("change", () => {
-    _snap = toggle.checked;
-    localStorage.setItem("snapToStep", _snap ? "true" : "false");
-    debugLog("advancedMode", `snap toggled: ${_snap}`);
   });
 }
 
@@ -204,7 +220,7 @@ function _wireRestoreBtn() {
     } else {
       btn.classList.add("confirming");
       btn.textContent = "Tap again to confirm";
-      confirmTimeout  = setTimeout(() => {
+      confirmTimeout = setTimeout(() => {
         btn.classList.remove("confirming");
         btn.textContent = "Restore to Defaults";
       }, 4000);
@@ -215,7 +231,7 @@ function _wireRestoreBtn() {
 function _wireOwnershipGuard() {
   document.addEventListener("metronome:ownerChanged", (e) => {
     const isPlaying = e?.detail?.owner !== null;
-    ["advancedModeToggle", "bpmStepInput", "snapToStepToggle"].forEach((id) => {
+    ["advancedModeToggle", "bpmStepInput"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.disabled = isPlaying;
     });
@@ -263,14 +279,16 @@ if (typeof window !== "undefined") {
   Object.defineProperty(window, "__advancedMode", {
     get() {
       if (!DEBUG.advancedMode) {
-        console.warn("[advancedMode] Enable DEBUG.advancedMode to access internals");
+        console.warn(
+          "[advancedMode] Enable DEBUG.advancedMode to access internals"
+        );
         return null;
       }
       return {
-        getState:       () => ({ _advanced, _step, _snap }),
-        applyMode:      _applyMode,
-        renderChip:     _renderChip,
-        onStepChanged:  _onStepChanged,
+        getState: () => ({ _advanced, _step }),
+        applyMode: _applyMode,
+        renderChip: _renderChip,
+        onStepChanged: _onStepChanged,
         restoreDefaults,
       };
     },
