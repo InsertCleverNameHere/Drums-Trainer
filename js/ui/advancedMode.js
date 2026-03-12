@@ -100,36 +100,46 @@ function _renderChip() {
   const simpleChip = document.getElementById("simple-settings-chip");
   if (!grooveChip && !simpleChip) return;
 
-  const timeSigEl = document.getElementById("groovePresetSelect");
-  const numEl = document.getElementById("grooveCustomNumerator");
-  const denEl = document.getElementById("grooveCustomDenominator");
-  const subdivEl = document.getElementById("grooveSubdivisionSelect");
-
-  let timeSig = "4/4";
-  if (timeSigEl) {
-    timeSig =
-      timeSigEl.value === "custom"
-        ? `${numEl?.value ?? 4}/${denEl?.value ?? 4}`
-        : timeSigEl.value;
-  }
-
   const rawProfile = localStorage.getItem("activeSoundProfile") ?? "digital";
   const profile = rawProfile.charAt(0).toUpperCase() + rawProfile.slice(1);
-
   const subdivMap = { 1: "None", 2: "8th Notes", 4: "16th Notes" };
-  const subdiv = subdivMap[subdivEl?.value ?? "1"] ?? "None";
-
-  const text = `${timeSig} · ${profile} · ${subdiv}`;
   const tip =
     "These settings carry over from Advanced Mode. Switch to Advanced to change them.";
 
-  [grooveChip, simpleChip].forEach((chip) => {
-    if (!chip) return;
-    chip.textContent = text;
-    chip.title = tip;
-  });
+  if (grooveChip) {
+    const timeSigEl = document.getElementById("groovePresetSelect");
+    const numEl    = document.getElementById("grooveCustomNumerator");
+    const denEl    = document.getElementById("grooveCustomDenominator");
+    const subdivEl = document.getElementById("grooveSubdivisionSelect");
+    let timeSig = "4/4";
+    if (timeSigEl) {
+      timeSig = timeSigEl.value === "custom"
+        ? `${numEl?.value ?? 4}/${denEl?.value ?? 4}`
+        : timeSigEl.value;
+    }
+    const subdiv = subdivMap[subdivEl?.value ?? "1"] ?? "None";
+    grooveChip.textContent = `${timeSig} · ${profile} · ${subdiv}`;
+    grooveChip.title = tip;
+  }
 
-  debugLog("advancedMode", `_renderChip: "${text}"`);
+  if (simpleChip) {
+    const timeSigEl = document.getElementById("simplePresetSelect");
+    const numEl    = document.getElementById("simpleCustomNumerator");
+    const denEl    = document.getElementById("simpleCustomDenominator");
+    const subdivEl = document.getElementById("simpleSubdivisionSelect");
+    let timeSig = "4/4";
+    if (timeSigEl) {
+      timeSig = timeSigEl.value === "custom"
+        ? `${numEl?.value ?? 4}/${denEl?.value ?? 4}`
+        : timeSigEl.value;
+    }
+    const subdiv = subdivMap[subdivEl?.value ?? "1"] ?? "None";
+    simpleChip.textContent = `${timeSig} · ${profile} · ${subdiv}`;
+    simpleChip.title = tip;
+  }
+
+  debugLog("advancedMode",
+    `_renderChip: groove="${grooveChip?.textContent}", simple="${simpleChip?.textContent}"`);
 }
 
 // ── Private: event wiring ────────────────────────────────────────

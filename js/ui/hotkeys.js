@@ -10,6 +10,7 @@ import { VISUAL_TIMING, INPUT_LIMITS } from "../constants.js";
 import * as sessionEngine from "../sessionEngine.js";
 import * as simpleMetronome from "../simpleMetronome.js";
 import { showNotice } from "./sliders.js";
+import * as advancedMode from "./advancedMode.js";
 
 // Hotkey state
 let _hotkeyLock = false;
@@ -55,13 +56,15 @@ function adjustGrooveInput(delta) {
 
   if (!adj || !other) return;
 
-  const step = 5; // Always 5, no fine-tuning
+  const step = advancedMode.isAdvancedMode()
+    ? advancedMode.getQuantizationStep()
+    : 5;
   const cur = parseInt(adj.value, 10) || 0;
   const otherVal = parseInt(other.value, 10) || 0;
   const next = Math.max(30, Math.min(300, cur + delta * step));
 
-  // Check if this change would violate the margin (5 BPM minimum)
-  const margin = 5;
+  // Check if this change would violate the margin constraint
+  const margin = step; // margin always equals step
   if (window.__adjustingTarget === "min" && next >= otherVal - margin + 1) {
     return;
   }
@@ -94,7 +97,9 @@ function adjustSimpleBpm(delta) {
   const el = document.getElementById("simpleBpm");
   if (!el) return;
   const cur = parseInt(el.value || el.getAttribute("value") || 120, 10) || 120;
-  const step = 5; // Always 5, no fine-tuning
+  const step = advancedMode.isAdvancedMode()
+    ? advancedMode.getQuantizationStep()
+    : 5;
   const limits = INPUT_LIMITS[el.id];
   const next = Math.max(limits.min, Math.min(limits.max, cur + delta * step));
   el.value = next;

@@ -1472,6 +1472,23 @@ body.advanced-mode .advanced-settings-chip {
   display: none;
 }
 
+/* ---- BPM inputs: hide native spinners ---- */
+/* Native spinners use the browser's own step grid which conflicts with our
+   quantization system. Custom ± buttons are planned as a future replacement. */
+#bpmMin::-webkit-outer-spin-button,
+#bpmMin::-webkit-inner-spin-button,
+#bpmMax::-webkit-outer-spin-button,
+#bpmMax::-webkit-inner-spin-button,
+#simpleBpm::-webkit-outer-spin-button,
+#simpleBpm::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+#bpmMin,
+#bpmMax,
+#simpleBpm {
+  -moz-appearance: textfield;
+}
+
 /* ---- Restore Defaults danger button ---- */
 .danger-btn {
   background: transparent;
@@ -1495,4 +1512,19 @@ body.advanced-mode .advanced-settings-chip {
 .danger-btn.confirming {
   background: var(--danger, #c0392b);
   color: #fff;
+}
+
+/* BPM inputs: hide native spinners — custom ± buttons planned (deferred) */
+#bpmMin::-webkit-outer-spin-button,
+#bpmMin::-webkit-inner-spin-button,
+#bpmMax::-webkit-outer-spin-button,
+#bpmMax::-webkit-inner-spin-button,
+#simpleBpm::-webkit-outer-spin-button,
+#simpleBpm::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+#bpmMin,
+#bpmMax,
+#simpleBpm {
+  -moz-appearance: textfield;
 }

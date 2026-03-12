@@ -46,6 +46,7 @@ export function initSoundProfileUI() {
     simpleProfileEl.value = profileName;
     audioProfiles.setActiveProfile(profileName);
     localStorage.setItem("activeSoundProfile", profileName);
+    document.dispatchEvent(new Event("advancedSettings:changed"));
     debugLog("state", `🎚 Sound profile set to: ${profileName}`);
   }
 
@@ -295,6 +296,7 @@ export function initTimeSignatureUI() {
         subdivisionSelect.value = "1";
         core.setTicksPerBeat(1);
       }
+      document.dispatchEvent(new Event("advancedSettings:changed"));
     };
 
     /**
@@ -305,6 +307,7 @@ export function initTimeSignatureUI() {
     const updateSubdivision = () => {
       const multiplier = parseInt(subdivisionSelect.value, 10);
       core.setTicksPerBeat(multiplier);
+      document.dispatchEvent(new Event("advancedSettings:changed"));
     };
 
     // Attach event listeners

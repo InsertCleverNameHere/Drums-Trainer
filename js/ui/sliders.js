@@ -6,11 +6,7 @@
  */
 
 import { debugLog } from "../debug.js";
-import {
-  INPUT_LIMITS,
-  getUserQuantizationPreference,
-  VISUAL_TIMING,
-} from "../constants.js";
+import { INPUT_LIMITS, VISUAL_TIMING } from "../constants.js";
 import * as utils from "../utils.js";
 import * as advancedMode from "./advancedMode.js";
 
@@ -393,7 +389,11 @@ export function initSliders() {
         start: [parseInt(simpleInput.value) || 120],
         connect: "lower",
         onUpdate: (values) => {
-          simpleInput.value = Math.round(values[0]);
+          // In Advanced Mode the numeric input is source of truth;
+          // silence writeback (same pattern as groove slider, C.3).
+          if (!advancedMode.isAdvancedMode()) {
+            simpleInput.value = Math.round(values[0]);
+          }
         },
       });
 
@@ -422,29 +422,24 @@ export function initSliders() {
  * updateBpmInputSteps(); // Syncs step attribute with user preference
  */
 export function updateBpmInputSteps() {
-  const step = getUserQuantizationPreference();
+  // NOTE: HTML step attributes and data-dynamic-step removed from BPM inputs.
+  // Native spinners are hidden via CSS; custom ± buttons are a planned replacement.
+  // This function now only updates the noUiSlider instances.
 
-  const inputs = [
-    document.getElementById("bpmMin"),
-    document.getElementById("bpmMax"),
-    document.getElementById("simpleBpm"),
-  ];
-
-  inputs.forEach((input) => {
-    if (input?.hasAttribute("data-dynamic-step")) {
-      input.setAttribute("step", step);
-    }
-  });
+  const sliderStep = advancedMode.isAdvancedMode()
+    ? advancedMode.getQuantizationStep()
+    : 5;
 
   if (grooveSliderInstance) {
-    const sliderStep = advancedMode.isAdvancedMode()
-      ? advancedMode.getQuantizationStep()
-      : 5;
     grooveSliderInstance.updateOptions(
       { step: sliderStep, margin: sliderStep },
       false
     );
   }
 
-  debugLog("state", `Updated BPM input steps to ${step}`);
+  if (simpleSliderInstance) {
+    simpleSliderInstance.updateOptions({ step: sliderStep }, false);
+  }
+
+  debugLog("state", `Updated BPM slider steps to ${sliderStep}`);
 }

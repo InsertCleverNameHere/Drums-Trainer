@@ -13,12 +13,7 @@ import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
 
 // Import UI submodules
-import {
-  initDarkMode,
-  initQuantization,
-  getSafeQuantization,
-  getQuantizationLevel,
-} from "./ui/theme.js";
+import { initDarkMode } from "./ui/theme.js";
 import { setupHotkeys } from "./ui/hotkeys.js";
 import { initSliders, updateBpmInputSteps, showNotice } from "./ui/sliders.js";
 import {
@@ -29,13 +24,7 @@ import {
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
 
 // Re-export for external use
-export {
-  initDarkMode,
-  getSafeQuantization,
-  getQuantizationLevel,
-  showNotice,
-  updateBpmInputSteps,
-};
+export { initDarkMode, showNotice, updateBpmInputSteps };
 export { initSoundProfileUI, initPanningModeUI, initTimeSignatureUI };
 export { initModeTabs, initSimplePanelControls };
 
