@@ -6,6 +6,7 @@ import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
 import { showNotice } from "./ui/sliders.js";
 import { debugLog } from "./debug.js";
+import { isAdvancedMode, getGrooveAnchor } from "./ui/advancedMode.js";
 
 let activeModeOwner = null; // "groove" | "simple" | null
 
@@ -462,44 +463,75 @@ function runCycle() {
     return;
   }
 
-  // ✅ Sanitize BPM range before randomization
-  const originalMin = parseInt(ui.bpmMinEl.value);
-  const originalMax = parseInt(ui.bpmMaxEl.value);
+  // Determine BPM range and grid anchor based on current mode.
+  // Advanced Mode: clamp only, anchor-relative grid, play-time gap correction.
+  // Simple Mode: existing sanitizeBpmRange path unchanged (0-anchored, step=5).
+  let bpm, groove;
 
-  const {
-    bpmMin,
-    bpmMax,
-    step: quantStep,
-  } = utils.sanitizeBpmRange(
-    ui.bpmMinEl.value,
-    ui.bpmMaxEl.value,
-    utils.QUANTIZATION.groove
-  );
+  if (isAdvancedMode()) {
+    let bpmMin = Math.max(30, Math.min(300, parseInt(ui.bpmMinEl.value, 10) || 30));
+    let bpmMax = Math.max(30, Math.min(300, parseInt(ui.bpmMaxEl.value, 10) || 60));
+    const step = utils.QUANTIZATION.groove;
 
-  // reflect sanitized values in the UI so user sees auto-correction
-  ui.bpmMinEl.value = bpmMin;
-  ui.bpmMaxEl.value = bpmMax;
-
-  // Notify user if the range was changed by quantization or clamping
-  if (bpmMin !== originalMin || bpmMax !== originalMax) {
-    if (typeof showNotice === "function") {
-      showNotice(
-        `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
-      );
-    } else {
-      debugLog(
-        "state",
-        `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
-      );
+    if (bpmMin >= bpmMax) {
+      // Degenerate range — safety net, should not reach here given checkGrooveMargin
+      bpmMax = Math.min(bpmMin + step, 300);
+      if (bpmMax === bpmMin) bpmMin = Math.max(bpmMax - step, 30);
+      ui.bpmMinEl.value = bpmMin;
+      ui.bpmMinEl.dataset.lastValidValue = String(bpmMin);
+      ui.bpmMaxEl.value = bpmMax;
+      ui.bpmMaxEl.dataset.lastValidValue = String(bpmMax);
+      showNotice(`⚠️ BPM range corrected to ${bpmMin}–${bpmMax}`);
+    } else if (bpmMax - bpmMin < step) {
+      // Gap too narrow for one step — apply same decision tree as _correctMarginIfViolated
+      const anchorDir = getGrooveAnchor();
+      if (anchorDir === "min") {
+        const candidate = bpmMin + step;
+        if (candidate <= 300) {
+          bpmMax = candidate;
+        } else {
+          bpmMin = 300 - step;
+          bpmMax = 300;
+        }
+      } else {
+        const candidate = bpmMax - step;
+        if (candidate >= 30) {
+          bpmMin = candidate;
+        } else {
+          bpmMax = 30 + step;
+          bpmMin = 30;
+        }
+      }
+      ui.bpmMinEl.value = bpmMin;
+      ui.bpmMinEl.dataset.lastValidValue = String(bpmMin);
+      ui.bpmMaxEl.value = bpmMax;
+      ui.bpmMaxEl.dataset.lastValidValue = String(bpmMax);
+      showNotice(`🎚️ BPM range expanded to ${bpmMin}–${bpmMax} (step=${step})`);
     }
-  }
 
-  // Use the sanitized range + existing groove text to get random groove & BPM
-  const { bpm, groove } = utils.randomizeGroove(
-    ui.groovesEl.value,
-    bpmMin,
-    bpmMax
-  );
+    const anchorDir = getGrooveAnchor();
+    const anchorValue = anchorDir === "max" ? bpmMax : bpmMin;
+    ({ bpm, groove } = utils.randomizeGroove(
+      ui.groovesEl.value, bpmMin, bpmMax, anchorValue, anchorDir
+    ));
+  } else {
+    // Simple Mode: use existing sanitizeBpmRange path unchanged
+    const originalMin = parseInt(ui.bpmMinEl.value);
+    const originalMax = parseInt(ui.bpmMaxEl.value);
+    const { bpmMin, bpmMax, step: quantStep } = utils.sanitizeBpmRange(
+      ui.bpmMinEl.value,
+      ui.bpmMaxEl.value,
+      utils.QUANTIZATION.groove
+    );
+    ui.bpmMinEl.value = bpmMin;
+    ui.bpmMaxEl.value = bpmMax;
+    if (bpmMin !== originalMin || bpmMax !== originalMax) {
+      showNotice(`🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`);
+    }
+    ({ bpm, groove } = utils.randomizeGroove(
+      ui.groovesEl.value, bpmMin, bpmMax, null, "min"
+    ));
+  }
 
   // update the UI to reflect current groove and BPM
   ui.displayGroove.textContent = `Groove: ${groove}`;

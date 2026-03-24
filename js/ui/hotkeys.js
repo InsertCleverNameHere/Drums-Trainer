@@ -101,7 +101,20 @@ function adjustSimpleBpm(delta) {
     ? advancedMode.getQuantizationStep()
     : 5;
   const limits = INPUT_LIMITS[el.id];
-  const next = Math.max(limits.min, Math.min(limits.max, cur + delta * step));
+
+  // In Advanced Mode clamp to the anchor-relative grid floor/ceiling so arrow
+  // keys cannot overshoot into values that would be silently un-snapped on blur.
+  // In Simple Mode use the hard limits unchanged.
+  let effectiveMin = limits.min;
+  let effectiveMax = limits.max;
+  if (advancedMode.isAdvancedMode()) {
+    const anchor = advancedMode.getSimpleBpmAnchor();
+    effectiveMin = anchor + Math.ceil((limits.min - anchor) / step) * step;
+    effectiveMax = anchor + Math.floor((limits.max - anchor) / step) * step;
+  }
+
+  const next = Math.max(effectiveMin, Math.min(effectiveMax, cur + delta * step));
+  if (next === cur) return; // already at grid boundary — do nothing
   el.value = next;
 
   if (

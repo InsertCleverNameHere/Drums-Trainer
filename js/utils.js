@@ -84,16 +84,33 @@ export function clamp(value, min, max) {
 
 /**
  * Randomly selects a groove and BPM within specified ranges.
+ * In Advanced Mode, the BPM grid is anchor-relative: picks only values of the
+ * form anchor + n*step that fall within [bpmMin, bpmMax].
+ * In Simple Mode (anchorValue = null), anchor = bpmMin, reproducing the
+ * existing 0-anchored behaviour since Simple Mode always uses step=5 and
+ * bpmMin is always a multiple of 5.
  *
- * @param {string} groovesText - Newline-separated groove names
- * @param {number} bpmMin - Minimum BPM
- * @param {number} bpmMax - Maximum BPM
- * @returns {{bpm: number, groove: string}} Random groove and BPM
+ * Gap enforcement (bpmMax - bpmMin >= step) is the caller's responsibility
+ * (runCycle in G.6b). This function only applies a safety net for an empty grid.
+ *
+ * @param {string} groovesText  - Newline-separated groove names
+ * @param {number} bpmMin       - Minimum BPM (inclusive)
+ * @param {number} bpmMax       - Maximum BPM (inclusive)
+ * @param {number|null} [anchorValue=null] - Grid origin; null = use bpmMin (Simple Mode)
+ * @param {string} [anchorDir="min"]       - "min" | "max" (unused here, passed for symmetry)
+ * @returns {{bpm: number, groove: string}} Random on-grid BPM and groove name
  * @example
- * const result = randomizeGroove('Rock\nFunk\nJazz', 60, 120);
- * // { bpm: 85, groove: 'Funk' }
+ * // Advanced Mode, min-anchored: anchor=33, step=7, range [33,60]
+ * randomizeGroove('Rock\nFunk', 33, 60, 33, 'min');
+ * // picks from {33, 40, 47, 54}
  */
-export function randomizeGroove(groovesText, bpmMin, bpmMax) {
+export function randomizeGroove(
+  groovesText,
+  bpmMin,
+  bpmMax,
+  anchorValue = null,
+  anchorDir = "min"
+) {
   const grooves = groovesText
     .split("\n")
     .map((g) => g.trim())
@@ -108,32 +125,21 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
 
   const step = sanitizeQuantizationStep(QUANTIZATION.groove);
 
-  // Quantize bpmMin and bpmMax to nearest valid multiples of step
-  bpmMin = Math.ceil(bpmMin / step) * step;
-  bpmMax = Math.floor(bpmMax / step) * step;
-
-  // SAFETY NET — fixes empty BPM edge case near upper limit
-  if (bpmMin > bpmMax) {
-    bpmMin = Math.max(0, bpmMax - step);
-  }
-
-  // Ensure at least one quantization step difference
-  if (bpmMax - bpmMin < step) {
-    bpmMax = bpmMin + step;
-    debugLog(
-      "state",
-      `⚠️ Adjusted BPM range to maintain at least one quantization step: ${bpmMin}-${bpmMax}`
-    );
-  }
-
-  // Prevent exceeding hard max limit
-  bpmMax = Math.min(bpmMax, 300);
-
-  // Choose random BPM from valid quantized values
+  // Anchor-relative grid: find all values of the form anchor + n*step
+  // that fall within [bpmMin, bpmMax].
+  // When anchorValue is null (Simple Mode), anchor = bpmMin, which reproduces
+  // the previous 0-anchored behaviour for multiples-of-5 inputs.
+  const anchor = anchorValue !== null ? anchorValue : bpmMin;
+  const firstN = Math.ceil((bpmMin - anchor) / step);
   const possibleBPMs = [];
-  for (let bpm = bpmMin; bpm <= bpmMax; bpm += step) {
-    possibleBPMs.push(bpm);
+  for (let n = firstN; ; n++) {
+    const val = anchor + n * step;
+    if (val > bpmMax) break;
+    possibleBPMs.push(val);
   }
+
+  // Safety net: if no grid points fall in range, fall back to anchor
+  if (possibleBPMs.length === 0) possibleBPMs.push(anchor);
 
   const randomBpm = pickRandom(possibleBPMs);
 
@@ -144,7 +150,7 @@ export function randomizeGroove(groovesText, bpmMin, bpmMax) {
 
   debugLog(
     "state",
-    `🎲 Groove randomizer → BPM: ${randomBpm}, Range: ${bpmMin}-${bpmMax}, Step: ${step}`
+    `🎲 Groove randomizer → BPM: ${randomBpm}, Range: ${bpmMin}-${bpmMax}, Anchor: ${anchor}, Step: ${step}`
   );
   return { bpm: randomBpm, groove: randomGroove };
 }

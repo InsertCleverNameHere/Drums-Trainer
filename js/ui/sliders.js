@@ -76,16 +76,21 @@ function validateNumericInput(input) {
     showNotice(`Beat unit must be 2, 4, 8, or 16. Corrected to ${sanitized}.`);
   }
 
-  // Snap to quantization step in Advanced Mode
-  const isBpmField = ["bpmMin", "bpmMax", "simpleBpm"].includes(id);
-  if (isBpmField && advancedMode.isAdvancedMode()) {
-    const step = advancedMode.getQuantizationStep();
-    sanitized = Math.round(sanitized / step) * step;
-    sanitized = Math.max(limits.min, Math.min(limits.max, sanitized));
+  // In Advanced Mode, simpleBpm accepts any value in [30, 300] — no snap.
+  // The clamped value becomes the new anchor so subsequent arrow key presses
+  // step relative to whatever the user last typed.
+  // bpmMin and bpmMax are also never snapped — quantization deferred to play time.
+  if (id === "simpleBpm" && advancedMode.isAdvancedMode()) {
+    advancedMode.setSimpleBpmAnchor(sanitized);
   }
 
   input.value = sanitized;
-  input.dataset.lastValidValue = sanitized;
+  // bpmMin/bpmMax: checkGrooveMargin is the sole owner of lastValidValue for
+  // these two fields — it writes only after the margin cross-check passes.
+  // Writing here would corrupt the revert target before the deferred check fires.
+  if (id !== "bpmMin" && id !== "bpmMax") {
+    input.dataset.lastValidValue = sanitized;
+  }
 }
 
 /**
@@ -136,7 +141,13 @@ function attachInputValidation() {
       } else {
         e.preventDefault();
         input.value = cleaned;
-        input.dataset.lastValidValue = cleaned;
+        // bpmMin/bpmMax: checkGrooveMargin is the sole owner of lastValidValue.
+        // Writing here bypasses the margin cross-check and corrupts the revert
+        // target. Let blur fire checkGrooveMargin to advance lastValidValue only
+        // after the margin is confirmed safe — identical to the keyboard path.
+        if (id !== "bpmMin" && id !== "bpmMax") {
+          input.dataset.lastValidValue = cleaned;
+        }
       }
     });
 
@@ -160,30 +171,59 @@ function attachInputValidation() {
   const maxInput = document.getElementById("bpmMax");
 
   if (minInput && maxInput) {
-    const adjustGrooveBpm = () => {
-      const minVal = Number(minInput.value);
-      const maxVal = Number(maxInput.value);
-      const margin = advancedMode.isAdvancedMode()
-        ? advancedMode.getQuantizationStep()
-        : 5;
+    /**
+     * Checks the groove BPM margin after a blur on one of the two fields.
+     * Deferred via setTimeout(0) so that if focus moves directly to the other
+     * BPM field (blur-pair deferral), the check is skipped for that edit.
+     *
+     * On violation, BOTH fields are reverted to their lastValidValue. Reverting
+     * only the edited field is unsafe: the other field may have drifted from its
+     * own lastValidValue since the last confirmed-safe state (e.g. the user typed
+     * into it without blurring, or _correctMarginIfViolated moved it). The LVV
+     * pair is always written together and is guaranteed margin-safe, so reverting
+     * both is the only operation that reliably restores a safe state.
+     *
+     * @param {HTMLInputElement} editedEl  - The field that just lost focus.
+     * @param {HTMLInputElement} otherEl   - The complementary BPM field.
+     */
+    const checkGrooveMargin = (editedEl, otherEl) => {
+      setTimeout(() => {
+        // If focus moved directly to the other BPM field, the user is still
+        // editing the pair — defer until they leave both fields entirely.
+        if (document.activeElement === otherEl) return;
 
-      if (minVal >= maxVal - margin + 1) {
-        // Values violate margin - revert to last valid values
-        minInput.value =
-          minInput.dataset.lastValidValue || INPUT_LIMITS.bpmMin.defaultValue;
-        maxInput.value =
-          maxInput.dataset.lastValidValue || INPUT_LIMITS.bpmMax.defaultValue;
+        const editedVal = Number(editedEl.value);
+        const otherVal  = Number(otherEl.value);
+        const margin = advancedMode.isAdvancedMode()
+          ? advancedMode.getQuantizationStep()
+          : 5;
 
-        showNotice(`BPM range must be at least ${margin} apart`);
-      } else {
-        // Values are valid - update last valid values
-        minInput.dataset.lastValidValue = minVal;
-        maxInput.dataset.lastValidValue = maxVal;
-      }
+        const violated = editedEl === minInput
+          ? editedVal >= otherVal - margin + 1
+          : editedVal <= otherVal + margin - 1;
+
+        if (violated) {
+          // Revert both fields to their last confirmed-safe pair.
+          // The LVV pair is always written together (by checkGrooveMargin's pass
+          // branch and by _correctMarginIfViolated), so it is guaranteed to be
+          // margin-safe. Reverting only editedEl would leave the pair in an
+          // unsafe state if otherEl has drifted from its own LVV.
+          minInput.value = minInput.dataset.lastValidValue
+            || String(INPUT_LIMITS.bpmMin.defaultValue);
+          maxInput.value = maxInput.dataset.lastValidValue
+            || String(INPUT_LIMITS.bpmMax.defaultValue);
+          showNotice(`BPM range must be at least ${margin} apart`);
+        } else {
+          // Both values are margin-safe — this is the only place that advances
+          // lastValidValue for these two fields.
+          editedEl.dataset.lastValidValue = String(editedVal);
+          otherEl.dataset.lastValidValue  = String(otherVal);
+        }
+      }, 0);
     };
 
-    minInput.addEventListener("change", adjustGrooveBpm);
-    maxInput.addEventListener("change", adjustGrooveBpm);
+    minInput.addEventListener("blur", () => checkGrooveMargin(minInput, maxInput));
+    maxInput.addEventListener("blur", () => checkGrooveMargin(maxInput, minInput));
   }
 }
 
