@@ -116,6 +116,7 @@ export function initAdvancedMode() {
   _wireStepInput(stepInput);
   _wireRestoreBtn();
   _wireOwnershipGuard();
+  _wireAdjustButtons();
   _wireGrooveAnchorToggle(anchorToggle);
 
   // 7. Re-render chip whenever a relevant setting changes
@@ -369,7 +370,46 @@ function _wireOwnershipGuard() {
         if (el) el.disabled = isPlaying;
       }
     );
+    // Disable/enable all ± stepper buttons
+    document.querySelectorAll(".bpm-adjust-btn").forEach((btn) => {
+      btn.disabled = isPlaying;
+    });
     debugLog("advancedMode", `ownership guard: isPlaying=${isPlaying}`);
+  });
+}
+
+/**
+ * Wires the delegated click handler for all .bpm-adjust-btn elements.
+ * Synthesises ArrowUp/ArrowDown KeyboardEvents on window so the existing
+ * hotkeys.js handler processes button clicks identically to key presses —
+ * ownership guard, margin guard, flash animation, and setBpm call are
+ * all inherited. For groove fields, sets window.__adjustingTarget first
+ * so adjustGrooveInput moves the correct field.
+ *
+ * Does NOT update _simpleBpmAnchor — consistent with arrow key behaviour:
+ * anchor updates only on blur, not during grid navigation.
+ */
+let _adjustButtonsWired = false;
+function _wireAdjustButtons() {
+  if (_adjustButtonsWired) return;
+  _adjustButtonsWired = true;
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".bpm-adjust-btn");
+    if (!btn || !_advanced) return;
+
+    const target = btn.dataset.target; // "min" | "max" | "simple"
+    const delta = parseInt(btn.dataset.delta, 10); // +1 or -1
+    const code = delta > 0 ? "ArrowUp" : "ArrowDown";
+
+    if (target === "min" || target === "max") {
+      window.__adjustingTarget = target;
+    }
+    // For "simple", decideTarget() in hotkeys.js returns "simple" when
+    // panel-metronome is visible, which it is when the stepper is shown.
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { code, bubbles: true, cancelable: true })
+    );
   });
 }
 

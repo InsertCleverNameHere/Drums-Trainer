@@ -17,6 +17,7 @@
 14. Time Signature Controls
 15. Hierarchical Beat Visuals
 16. Theme Toggle (Bottom Right, Animated Slider)
+17. Simple / Advanced Mode
 ================================================== */
 
 /* ============================================
@@ -799,26 +800,18 @@ button svg,
 
 @keyframes bpmFlash {
   0% {
-    background-color: #f5e8b0;
+    background-color: var(--accent) !important;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2) !important;
+    color: #ffffff !important;
   }
   100% {
-    background-color: inherit;
+    /* Fades back to theme colors */
   }
 }
 
-@keyframes bpmFlash {
-  0% {
-    background-color: #f5e8b0;
-    box-shadow: 0 0 8px rgba(245, 232, 176, 0.8);
-  }
-  100% {
-    background-color: #fff;
-    box-shadow: none;
-  }
-}
-
+/* Flash the number itself */
 .bpm-flash {
-  animation: bpmFlash 0.3s ease-in-out;
+  animation: bpmFlash 0.4s ease-out !important;
 }
 
 @keyframes tapPulse {
@@ -1425,7 +1418,7 @@ button#installBtn.utility-button:active {
 }
 
 /* ===============================
-🔧 16. Simple / Advanced Mode
+🔧 17. Simple / Advanced Mode
 ================================== */
 
 /* Elements hidden in Simple Mode, visible in Advanced Mode */
@@ -1514,17 +1507,104 @@ body.advanced-mode .advanced-settings-chip {
   color: #fff;
 }
 
-/* BPM inputs: hide native spinners — custom ± buttons planned (deferred) */
-#bpmMin::-webkit-outer-spin-button,
-#bpmMin::-webkit-inner-spin-button,
-#bpmMax::-webkit-outer-spin-button,
-#bpmMax::-webkit-inner-spin-button,
-#simpleBpm::-webkit-outer-spin-button,
-#simpleBpm::-webkit-inner-spin-button {
-  -webkit-appearance: none;
+/* ---- ± BPM stepper (The Flex-Centering Pill) ---- */
+.bpm-stepper {
+  display: none;
 }
-#bpmMin,
-#bpmMax,
-#simpleBpm {
+
+body.advanced-mode .bpm-stepper {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  width: 142px;
+  margin: 10px 0 0 0 !important;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+body.advanced-mode .bpm-stepper:focus-within {
+  border-color: var(--accent);
+}
+
+body.advanced-mode .bpm-stepper input[type="number"] {
+  grid-column: 2;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: 38px !important;
+
+  /* Force kill inherited layout styles */
+  margin: 0 !important;
+  padding: 0 !important;
+
+  /* Visuals */
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: center;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: border-color 0.4s ease;
+
+  /* Kill internal UA styles that cause sunken text */
+  -webkit-appearance: none;
   -moz-appearance: textfield;
+  appearance: none;
+  outline: none;
+}
+
+body.advanced-mode .bpm-stepper .bpm-adjust-btn {
+  flex: 0 0 40px; /* Fixed 40px width buttons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  transition:
+    background 0.4s ease,
+    color 0.4s ease;
+  user-select: none;
+}
+
+body.advanced-mode .bpm-stepper .bpm-adjust-btn:hover:not(:disabled) {
+  background-color: rgba(128, 128, 128, 0.15);
+  color: var(--text-primary);
+}
+
+body.advanced-mode .bpm-stepper .bpm-adjust-btn:active:not(:disabled) {
+  background-color: var(--accent) !important;
+  color: #ffffff !important;
+  transition: none !important;
+}
+
+body.advanced-mode .bpm-stepper .bpm-adjust-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+body.advanced-mode
+  .bpm-stepper
+  .bpm-adjust-btn[data-delta="-1"]:active
+  + input {
+  border-left-color: var(--accent) !important;
+}
+
+body.advanced-mode
+  .bpm-stepper:has(.bpm-adjust-btn[data-delta="1"]:active)
+  input {
+  border-right-color: var(--accent) !important;
 }

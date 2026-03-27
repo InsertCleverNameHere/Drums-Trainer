@@ -315,9 +315,11 @@
               <span>Anchor groove grid to max BPM</span>
             </label>
             <p class="setting-description">
-              Off (default): randomizer grid starts at min BPM and steps upward.<br />
+              Off (default): randomizer grid starts at min BPM and steps
+              upward.<br />
               On: randomizer grid starts at max BPM and steps downward.<br />
-              Does not affect your typed values — only changes which BPMs are picked at play time.
+              Does not affect your typed values — only changes which BPMs are
+              picked at play time.
             </p>
           </div>
           <!-- Restore Defaults — always visible -->
@@ -451,24 +453,60 @@
       <label class="advanced-only"> BPM range (min / max)</label>
       <div class="row advanced-only">
         <div class="col">
-          <input
-            id="bpmMin"
-            type="number"
-            inputmode="numeric"
-            min="5"
-            max="300"
-            value="30"
-          />
+          <div class="bpm-stepper advanced-only">
+            <button
+              class="bpm-adjust-btn"
+              data-target="min"
+              data-delta="-1"
+              aria-label="Decrease minimum BPM"
+            >
+              −
+            </button>
+            <input
+              id="bpmMin"
+              type="number"
+              inputmode="numeric"
+              min="5"
+              max="300"
+              value="30"
+            />
+            <button
+              class="bpm-adjust-btn"
+              data-target="min"
+              data-delta="1"
+              aria-label="Increase minimum BPM"
+            >
+              +
+            </button>
+          </div>
         </div>
         <div class="col">
-          <input
-            id="bpmMax"
-            type="number"
-            inputmode="numeric"
-            min="5"
-            max="300"
-            value="60"
-          />
+          <div class="bpm-stepper advanced-only">
+            <button
+              class="bpm-adjust-btn"
+              data-target="max"
+              data-delta="-1"
+              aria-label="Decrease maximum BPM"
+            >
+              −
+            </button>
+            <input
+              id="bpmMax"
+              type="number"
+              inputmode="numeric"
+              min="5"
+              max="300"
+              value="60"
+            />
+            <button
+              class="bpm-adjust-btn"
+              data-target="max"
+              data-delta="1"
+              aria-label="Increase maximum   BPM"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
       <!-- Groove Slider -->
@@ -646,15 +684,32 @@ Funk
     <div id="panel-metronome" class="panel hidden">
       <!-- BEGIN Simple Metronome UI -->
       <label class="advanced-only">Metronome BPM</label>
-      <input
-        id="simpleBpm"
-        class="advanced-only"
-        type="number"
-        inputmode="numeric"
-        min="30"
-        max="300"
-        value="120"
-      />
+      <div class="bpm-stepper advanced-only">
+        <button
+          class="bpm-adjust-btn"
+          data-target="simple"
+          data-delta="-1"
+          aria-label="Decrease BPM"
+        >
+          −
+        </button>
+        <input
+          id="simpleBpm"
+          type="number"
+          inputmode="numeric"
+          min="30"
+          max="300"
+          value="120"
+        />
+        <button
+          class="bpm-adjust-btn"
+          data-target="simple"
+          data-delta="1"
+          aria-label="Increase BPM"
+        >
+          +
+        </button>
+      </div>
 
       <!-- Simple Slider -->
       <div id="simple-slider-container" class="bpm-slider-box simple-only">
