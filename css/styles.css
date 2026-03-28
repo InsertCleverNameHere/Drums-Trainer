@@ -470,7 +470,16 @@ button:disabled {
   border-radius: 12px;
   box-shadow: 0 1px 4px var(--shadow);
   border: 1px solid var(--border);
+  /* THE CLOAK: Panels start invisible */
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
 }
+
+/* Reveal when app is ready */
+.app-ready .panel {
+  opacity: 1;
+}
+
 .hidden {
   display: none !important;
 }
@@ -799,19 +808,26 @@ button svg,
 }
 
 @keyframes bpmFlash {
-  0% {
-    background-color: var(--accent) !important;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2) !important;
-    color: #ffffff !important;
-  }
-  100% {
-    /* Fades back to theme colors */
-  }
+  0%   { opacity: 0.85; }
+  15%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
-/* Flash the number itself */
-.bpm-flash {
-  animation: bpmFlash 0.4s ease-out !important;
+/* Overlay div that sits on top of the input inside .bpm-stepper.
+   Animates instead of the input itself — Firefox refuses to animate
+   keyframes on replaced form elements (input[type=number]). */
+.bpm-flash-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;            /* flush with pill interior */
+  background-color: var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  animation: none;
+}
+
+.bpm-flash-overlay.animating {
+  animation: bpmFlash 0.4s ease-out forwards;
 }
 
 @keyframes tapPulse {
@@ -1426,16 +1442,16 @@ button#installBtn.utility-button:active {
   display: none;
 }
 
-body.advanced-mode .advanced-only {
+.advanced-mode .advanced-only {
   display: block;
 }
 
-body.advanced-mode .row.advanced-only {
+.advanced-mode .row.advanced-only {
   display: flex;
 }
 
 /* Elements visible in Simple Mode, hidden in Advanced Mode */
-body.advanced-mode .simple-only {
+.advanced-mode .simple-only {
   display: none;
 }
 
@@ -1458,10 +1474,11 @@ body.advanced-mode .simple-only {
 }
 
 .advanced-settings-chip:empty {
-  display: none;
+  visibility: hidden;
+  min-height: 28px; /* Reserves vertical space */
 }
 
-body.advanced-mode .advanced-settings-chip {
+.advanced-mode .advanced-settings-chip {
   display: none;
 }
 
@@ -1512,7 +1529,7 @@ body.advanced-mode .advanced-settings-chip {
   display: none;
 }
 
-body.advanced-mode .bpm-stepper {
+.advanced-mode .bpm-stepper {
   display: flex;
   align-items: stretch;
   height: 40px;
@@ -1526,12 +1543,20 @@ body.advanced-mode .bpm-stepper {
   flex-shrink: 0;
 }
 
-body.advanced-mode .bpm-stepper:focus-within {
+.advanced-mode .bpm-stepper:focus-within {
   border-color: var(--accent);
 }
 
-body.advanced-mode .bpm-stepper input[type="number"] {
-  grid-column: 2;
+/* Wrapper that scopes the flash overlay to the input cell only */
+.advanced-mode .bpm-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.advanced-mode .bpm-stepper input[type="number"] {
   width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
@@ -1561,7 +1586,7 @@ body.advanced-mode .bpm-stepper input[type="number"] {
   outline: none;
 }
 
-body.advanced-mode .bpm-stepper .bpm-adjust-btn {
+.advanced-mode .bpm-stepper .bpm-adjust-btn {
   flex: 0 0 40px; /* Fixed 40px width buttons */
   display: flex;
   align-items: center;
@@ -1580,31 +1605,29 @@ body.advanced-mode .bpm-stepper .bpm-adjust-btn {
   user-select: none;
 }
 
-body.advanced-mode .bpm-stepper .bpm-adjust-btn:hover:not(:disabled) {
+.advanced-mode .bpm-stepper .bpm-adjust-btn:hover:not(:disabled) {
   background-color: rgba(128, 128, 128, 0.15);
   color: var(--text-primary);
 }
 
-body.advanced-mode .bpm-stepper .bpm-adjust-btn:active:not(:disabled) {
+.advanced-mode .bpm-stepper .bpm-adjust-btn:active:not(:disabled) {
   background-color: var(--accent) !important;
   color: #ffffff !important;
   transition: none !important;
 }
 
-body.advanced-mode .bpm-stepper .bpm-adjust-btn:disabled {
+.advanced-mode .bpm-stepper .bpm-adjust-btn:disabled {
   opacity: 0.25;
   cursor: not-allowed;
 }
 
-body.advanced-mode
-  .bpm-stepper
-  .bpm-adjust-btn[data-delta="-1"]:active
-  + input {
+/* Separator flash: − button active → left border of input turns accent.
+   The wrapper div is now between the button and the input, so we use
+   the adjacent-sibling combinator to reach the wrapper, then the input. */
+.advanced-mode .bpm-stepper .bpm-adjust-btn[data-delta="-1"]:active + .bpm-input-wrap input {
   border-left-color: var(--accent) !important;
 }
 
-body.advanced-mode
-  .bpm-stepper:has(.bpm-adjust-btn[data-delta="1"]:active)
-  input {
+.advanced-mode .bpm-stepper:has(.bpm-adjust-btn[data-delta="1"]:active) input {
   border-right-color: var(--accent) !important;
 }

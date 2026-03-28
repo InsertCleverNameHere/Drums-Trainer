@@ -17,6 +17,7 @@ import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
 import { debugLog } from "./debug.js";
 import { Profiler } from "./profiler.js";
 import { initWakeLock } from "./ui/wakeLock.js";
+import { initAdvancedMode } from "./ui/advancedMode.js";
 
 // Expose explicitly (redundant but safe)
 window.Profiler = Profiler;
@@ -123,6 +124,7 @@ if (document.readyState === "loading") {
 
     // 4. Initialize UI controllers
     initDarkMode();
+    initAdvancedMode();
     initSoundProfileUI();
     uiController.initOwnershipGuards();
     initSimplePanelControls();
@@ -144,6 +146,7 @@ if (document.readyState === "loading") {
   simpleMetronome.core.registerVisualCallback(simpleVisualsCallback);
 
   initDarkMode();
+  initAdvancedMode();
   initSoundProfileUI();
   uiController.initOwnershipGuards();
   initSimplePanelControls();
@@ -262,6 +265,13 @@ window.addEventListener("beforeinstallprompt", (e) => {
       deferredPrompt = null;
     });
   }
+});
+
+// Tell the browser initialization is 100% complete.
+// We use requestAnimationFrame so the browser handles the opacity
+// change on the next clean repaint.
+requestAnimationFrame(() => {
+  document.documentElement.classList.add("app-ready");
 });
 
 uiController.initUpdateUI();

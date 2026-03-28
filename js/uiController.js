@@ -22,11 +22,23 @@ import {
   initTimeSignatureUI,
 } from "./ui/controls.js";
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
+import {
+  initAdvancedMode,
+  restoreDefaults,
+  isAdvancedMode,
+  getQuantizationStep,
+} from "./ui/advancedMode.js";
 
 // Re-export for external use
 export { initDarkMode, showNotice, updateBpmInputSteps };
 export { initSoundProfileUI, initPanningModeUI, initTimeSignatureUI };
 export { initModeTabs, initSimplePanelControls };
+export {
+  initAdvancedMode,
+  restoreDefaults,
+  isAdvancedMode,
+  getQuantizationStep,
+};
 
 /**
  * Initializes ownership guards to prevent mode conflicts.

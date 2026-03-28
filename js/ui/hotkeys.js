@@ -41,6 +41,25 @@ function validateNumericInput(input) {
 }
 
 /**
+ * Triggers the accent-coloured flash overlay on the input cell.
+ * Animates a sibling .bpm-flash-overlay div instead of the input itself,
+ * because Firefox does not run @keyframes animations on replaced form
+ * elements (input[type=number]).
+ *
+ * @private
+ * @param {HTMLInputElement} inputEl
+ */
+function _triggerFlashOverlay(inputEl) {
+  const overlay = inputEl.parentElement?.querySelector('.bpm-flash-overlay');
+  if (!overlay) return;
+  // Force a reflow so re-triggering the animation on rapid presses works.
+  overlay.classList.remove('animating');
+  void overlay.offsetWidth;
+  overlay.classList.add('animating');
+  overlay.addEventListener('animationend', () => overlay.classList.remove('animating'), { once: true });
+}
+
+/**
  * Adjusts groove BPM input (min or max) by delta.
  * Enforces 5 BPM minimum margin between min/max.
  *
@@ -79,11 +98,7 @@ function adjustGrooveInput(delta) {
   // Trigger a change event to update the slider
   adj.dispatchEvent(new Event("change", { bubbles: true }));
 
-  adj.classList.add("bpm-flash");
-  setTimeout(
-    () => adj.classList.remove("bpm-flash"),
-    VISUAL_TIMING.FLASH_DURATION_MS
-  );
+  _triggerFlashOverlay(adj);
 }
 
 /**
@@ -129,11 +144,7 @@ function adjustSimpleBpm(delta) {
     simpleMetronome.setBpm(next);
   }
 
-  el.classList.add("bpm-flash");
-  setTimeout(
-    () => el.classList.remove("bpm-flash"),
-    VISUAL_TIMING.BPM_CHANGE_FLASH_MS
-  );
+  _triggerFlashOverlay(el);
   el.dispatchEvent(new Event("change", { bubbles: true }));
 }
 

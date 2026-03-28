@@ -195,7 +195,7 @@ function _wireGrooveAnchorToggle(toggle) {
 // ── Private: mode application ────────────────────────────────────
 
 function _applyMode() {
-  document.body.classList.toggle("advanced-mode", _advanced);
+  document.documentElement.classList.toggle("advanced-mode", _advanced);
   // Keep randomizer step in sync with the active mode.
   // Simple Mode always uses step=5; Advanced Mode uses the user preference.
   utils.QUANTIZATION.groove = _advanced ? _step : 5;

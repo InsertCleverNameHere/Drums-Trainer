@@ -13,6 +13,11 @@
           "data-theme",
           isDark ? "dark" : "light"
         );
+
+        // Mode Lock: Apply class instantly to prevent mode-switch flicker
+        if (localStorage.getItem("advancedMode") === "true") {
+          document.documentElement.classList.add("advanced-mode");
+        }
       })();
     </script>
     <!-- Manifest -->
@@ -462,14 +467,17 @@
             >
               −
             </button>
-            <input
-              id="bpmMin"
-              type="number"
-              inputmode="numeric"
-              min="5"
-              max="300"
-              value="30"
-            />
+            <div class="bpm-input-wrap">
+              <input
+                id="bpmMin"
+                type="number"
+                inputmode="numeric"
+                min="5"
+                max="300"
+                value="30"
+              />
+              <div class="bpm-flash-overlay"></div>
+            </div>
             <button
               class="bpm-adjust-btn"
               data-target="min"
@@ -490,19 +498,22 @@
             >
               −
             </button>
-            <input
-              id="bpmMax"
-              type="number"
-              inputmode="numeric"
-              min="5"
-              max="300"
-              value="60"
-            />
+            <div class="bpm-input-wrap">
+              <input
+                id="bpmMax"
+                type="number"
+                inputmode="numeric"
+                min="5"
+                max="300"
+                value="60"
+              />
+              <div class="bpm-flash-overlay"></div>
+            </div>
             <button
               class="bpm-adjust-btn"
               data-target="max"
               data-delta="1"
-              aria-label="Increase maximum   BPM"
+              aria-label="Increase maximum BPM"
             >
               +
             </button>
@@ -693,14 +704,17 @@ Funk
         >
           −
         </button>
-        <input
-          id="simpleBpm"
-          type="number"
-          inputmode="numeric"
-          min="30"
-          max="300"
-          value="120"
-        />
+        <div class="bpm-input-wrap">
+          <input
+            id="simpleBpm"
+            type="number"
+            inputmode="numeric"
+            min="30"
+            max="300"
+            value="120"
+          />
+          <div class="bpm-flash-overlay"></div>
+        </div>
         <button
           class="bpm-adjust-btn"
           data-target="simple"
