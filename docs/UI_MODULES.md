@@ -12,11 +12,12 @@ The `uiController.js` module has been successfully modularized from ~1800 lines 
 js/
 ├── uiController.js         (~440 lines)  Main orchestrator
 └── ui/
-    ├── theme.js            (~133 lines)  Dark mode & quantization
-    ├── hotkeys.js          (~235 lines)  Keyboard shortcuts
-    ├── sliders.js          (~308 lines)  BPM sliders & validation
-    ├── controls.js         (~187 lines)  Sound profiles & time signatures
-    ├── panels.js           (~234 lines)  Mode tabs & simple panel
+    ├── advancedMode.js     (~500 lines)  Simple/Advanced toggle, step, chip, steppers
+    ├── theme.js            (~133 lines)  Dark mode
+    ├── hotkeys.js          (~235 lines)  Keyboard shortcuts (dynamic step-aware)
+    ├── sliders.js          (~308 lines)  noUiSlider, blur-pair validation
+    ├── controls.js         (~187 lines)  Sound profiles, time signatures
+    ├── panels.js           (~234 lines)  Mode tabs, simple panel
     └── wakeLock.js         (~150 lines)  Screen wake lock
 ```
 
@@ -43,7 +44,7 @@ js/
 - `updateFooterMessage()` - Version display
 - `initUpdateUI()` - Update check UI
 - `initAllUI()` - Initialize all submodules
-- Re-exports from submodules for convenience
+- Re-exports: `initDarkMode`, `showNotice`, `initSoundProfileUI`, `initSimplePanelControls`, `initAdvancedMode`, `restoreDefaults`, `isAdvancedMode`, `getQuantizationStep`
 
 **Responsibilities**:
 
@@ -53,6 +54,41 @@ js/
 - Update check UI
 - Simple metronome UI sync
 - Ownership guards
+
+---
+
+### `js/ui/advancedMode.js`
+
+**Imports**:
+
+- `debug.js` - Debug logging
+- `constants.js` - `BPM_STEP_LIMITS`, `getUserQuantizationPreference`
+- `utils.js` - `sanitizeQuantizationStep`, `QUANTIZATION`
+
+**Exports**:
+
+- `initAdvancedMode()` - Full init (read state, DOM, wire listeners)
+- `isAdvancedMode()` - Current mode boolean
+- `getQuantizationStep()` - Current step (1–150)
+- `getGrooveAnchor()` - `"min"` or `"max"`
+- `getSimpleBpmAnchor()` / `setSimpleBpmAnchor(v)` - simpleBpm anchor
+- `snapToGrid(value, step, anchor, min, max)` - Anchor-relative snap
+- `restoreDefaults()` - Full reset + reload
+
+**Responsibilities**:
+
+- Toggle lifecycle: reads `localStorage.advancedMode`, applies `html.advanced-mode`
+- User-defined BPM step: reads `localStorage.bpmQuantizationStep`, sanitizes to [1–150]
+- Syncs `utils.QUANTIZATION.groove` so `randomizeGroove()` uses the live step
+- Renders settings chip row in both panels (time-sig · profile · subdivision)
+- Wires ± stepper buttons by synthesising `KeyboardEvent` on `window` (hotkeys pipeline reuse)
+- Ownership guard: disables toggle/step/anchor controls during playback
+- `_correctMarginIfViolated()`: adjusts bpmMin/bpmMax when a new step makes gap < step
+
+**BPM grid rules**:
+
+- `bpmMin`/`bpmMax`: hard-limit clamp only on blur; no snap. Margin enforced via blur-pair deferral in `sliders.js` (`checkGrooveMargin`). `lastValidValue` written only by `checkGrooveMargin`.
+- `simpleBpm`: anchor-relative snap on blur. Anchor = last blurred simpleBpm value. Updated by `setSimpleBpmAnchor()` from `sliders.js`.
 
 ---
 
@@ -67,18 +103,14 @@ js/
 **Exports**:
 
 - `initDarkMode()` - Theme toggle system
-- `initQuantization()` - Setup quantization
-- `getSafeQuantization()` - Get validated settings
-- `getQuantizationLevel()` - Get current level
 
 **Responsibilities**:
 
 - Dark mode toggle with system preference detection
-- Quantization setup and safety checks
 - Theme persistence (localStorage)
 - Icon animation on toggle
 
-**Auto-initialization**: Runs `initQuantization()` on DOM ready
+**Note**: Quantization is now owned by `advancedMode.js`. `initQuantization`, `getSafeQuantization`, and `getQuantizationLevel` are no longer exported from this module.
 
 ---
 
@@ -91,6 +123,7 @@ js/
 - `sessionEngine.js` - Session state
 - `simpleMetronome.js` - Simple metronome control
 - `sliders.js` - showNotice
+- `advancedMode.js` - `isAdvancedMode()`, `getQuantizationStep()`, `getSimpleBpmAnchor()`
 
 **Exports**:
 
@@ -107,9 +140,9 @@ js/
 - `Space` → Start/Stop (owner-aware)
 - `P` → Pause/Resume (owner-aware)
 - `N` → Next groove (Groove mode only)
-- `H` → Toggle help dialog
-- `↑` / `↓` → Adjust BPM ±5 (blocked during playback)
-- `←` / `→` → Switch Min/Max target (Groove mode only)
+- `H` → Toggle settings dialog
+- `↑` / `↓` → Adjust BPM by active step (Simple Mode: 5; Advanced Mode: user-defined step). Blocked during playback.
+- `←` / `→` → Switch Min/Max target (Groove panel only)
 
 **State Management**:
 
@@ -153,10 +186,11 @@ js/
 
 **Input Validation**:
 
-- Numeric-only keyboard input
-- Paste sanitization
-- Real-time validation on blur
-- Cross-check BPM min/max with 5 BPM margin
+- Numeric-only keyboard input and paste sanitization
+- Hard-limit clamp [30–300] on blur for all BPM inputs
+- **Blur-pair deferral** (`bpmMin`/`bpmMax`): margin cross-check (`checkGrooveMargin`) fires only after both fields have blurred. `lastValidValue` is written exclusively by `checkGrooveMargin` — not by `validateNumericInput` — to preserve a valid revert target across the deferred pair.
+- **`simpleBpm` snap** (Advanced Mode only): `snapToGrid()` called on blur; `setSimpleBpmAnchor()` updates anchor on success.
+- In Advanced Mode, slider writeback to numeric inputs is suppressed (input is source of truth).n
 
 ---
 
@@ -241,11 +275,12 @@ js/
 main.js
   ↓
 uiController.js
-  ├─→ theme.js ────→ debug, constants, utils
-  ├─→ hotkeys.js ──→ debug, constants, sessionEngine, simpleMetronome, sliders
-  ├─→ sliders.js ──→ debug, constants, utils
-  ├─→ controls.js ─→ debug, audioProfiles, simpleMetronome
-  └─→ panels.js ───→ debug, sessionEngine, simpleMetronome, utils
+  ├─→ advancedMode.js ─→ debug, constants, utils
+  ├─→ theme.js ─────────→ debug, constants, utils
+  ├─→ hotkeys.js ───────→ debug, constants, sessionEngine, simpleMetronome, sliders, advancedMode
+  ├─→ sliders.js ───────→ debug, constants, utils, advancedMode
+  ├─→ controls.js ──────→ debug, audioProfiles, simpleMetronome
+  └─→ panels.js ────────→ debug, sessionEngine, simpleMetronome, utils
 ```
 
 **Key Dependencies**:
@@ -307,43 +342,50 @@ uiController.js
 
 ### localStorage Keys
 
-| Key                      | Module          | Type              | Purpose                    |
-| ------------------------ | --------------- | ----------------- | -------------------------- |
-| `darkMode`               | theme.js        | `"true"\|"false"` | Theme preference           |
-| `intelligentPanningMode` | controls.js     | `"true"\|"false"` | Reduce Motion preference   |
-| `activeSoundProfile`     | controls.js     | string            | Active sound profile       |
-| `lastSeenVersion`        | uiController.js | string            | Version tracking           |
-| `lastSeenHash`           | uiController.js | string            | Hash tracking              |
-| `cachedMsgCount`         | uiController.js | number            | Footer message suppression |
-| `updateMsgCount`         | uiController.js | number            | Footer message suppression |
-| `wakeLockEnabled`        | wakeLock.js     | `"true"\|"false"` | Wake lock preference       |
+| Key                      | Module          | Type              | Purpose                         |
+| ------------------------ | --------------- | ----------------- | ------------------------------- |
+| `darkMode`               | theme.js        | `"true"\|"false"` | Theme preference                |
+| `intelligentPanningMode` | controls.js     | `"true"\|"false"` | Reduce Motion preference        |
+| `activeSoundProfile`     | controls.js     | string            | Active sound profile            |
+| `lastSeenVersion`        | uiController.js | string            | Version tracking                |
+| `lastSeenHash`           | uiController.js | string            | Hash tracking                   |
+| `cachedMsgCount`         | uiController.js | number            | Footer message suppression      |
+| `updateMsgCount`         | uiController.js | number            | Footer message suppression      |
+| `wakeLockEnabled`        | wakeLock.js     | `"true"\|"false"` | Wake lock preference            |
+| `advancedMode`           | advancedMode.js | `"true"\|"false"` | Simple/Advanced mode preference |
+| `bpmQuantizationStep`    | advancedMode.js | number string     | User-defined BPM step (1–150)   |
+| `grooveAnchor`           | advancedMode.js | `"min"\|"max"`    | Groove grid anchor direction    |
 
 ---
 
 ## Testing Checklist
 
-### Manual Tests
+### Automated Test Files
 
-- [ ] Dark mode toggle persists across page reloads
-- [ ] Hotkeys work in both Groove and Simple modes
-- [ ] BPM sliders sync with numeric inputs
-- [ ] Sound profile changes apply to both modes
-- [ ] Panning mode toggle disables during playback
-- [ ] Time signature changes work for both modes
-- [ ] Tap tempo calculates BPM correctly (4-6 taps)
-- [ ] Mode tabs disable during playback
-- [ ] Ownership prevents conflicting mode starts
-- [ ] Footer messages display and auto-hide
-- [ ] Update check button works (online/offline)
+- `tests/advanced-mode.test.html` — `advancedMode.js` public API (snapToGrid, step, anchor)
+- `tests/dark-mode.test.html` — `initDarkMode()` (saved pref, system default, toggle, auto-switch)
+- `tests/hotkeys.test.html` — guard logic, ownership blocking, dynamic step in Advanced Mode
+- `tests/uicontroller-modularization-tests.html` — export surface, removed exports confirmed absent
 
-### Edge Cases
+### End-to-End (system-verification.js)
 
-- [ ] Rapid hotkey presses (debounce working?)
-- [ ] Invalid numeric input (clamping working?)
-- [ ] BPM min >= max (margin enforcement working?)
-- [ ] Switching modes during countdown (prevented?)
-- [ ] Refreshing page mid-session (state lost correctly?)
-- [ ] Corrupted localStorage values (auto-corrected?)
+Run in DevTools console against live page. Covers all of the below:
+
+### Manual Verification Points
+
+- [x] FUOC: `data-theme` and `html.advanced-mode` set before paint
+- [x] Simple Mode: sliders visible, steppers hidden, chips empty, session/sound/timesig hidden
+- [x] Advanced Mode: steppers visible, sliders hidden, chips populated, all controls revealed
+- [x] BPM step input sanitizes to [1–150], persists, wires `utils.QUANTIZATION.groove`
+- [x] Stepper ± buttons step by user-defined step; margin guard uses step not 5
+- [x] `simpleBpm` blur snap (anchor-relative); anchor updates after each successful blur
+- [x] `bpmMin`/`bpmMax` blur: hard clamp only; margin correction only after both fields blur
+- [x] Settings chip row shows correct time-sig · profile · subdivision in both panels
+- [x] `restoreDefaults()` clears localStorage, reloads, dark mode follows system preference
+- [x] Hotkeys step by active step; blocked during playback
+- [x] Ownership: tabs lock during playback, re-enable on stop
+- [x] Tap tempo unaffected by custom step (always step=5)
+- [ ] Visual regression tests
 
 ---
 

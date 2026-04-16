@@ -30,7 +30,15 @@
 ├── visuals.js 💡 Beat indicators and visual feedback
 ├── debug.js 🐛 Runtime debug system with category flags
 ├── constants.js 📦 Single source of truth for all constants
-└── main.js 🚀 Entry point — initializes modules, handles profile sync
+├── main.js 🚀 Entry point — initializes modules, handles profile sync
+└── 📁 ui/
+    ├── advancedMode.js 🔬 Simple/Advanced toggle, BPM step, chip row, stepper buttons
+    ├── theme.js 🌙 Dark mode toggle
+    ├── hotkeys.js ⌨️ Keyboard shortcuts (dynamic step-aware)
+    ├── sliders.js 🎚️ noUiSlider instances, blur-pair validation
+    ├── controls.js 🎛️ Sound profiles, time signatures
+    ├── panels.js 📋 Mode tabs, simple metronome panel
+    └── wakeLock.js 🔒 Screen wake lock
 
 📄 index.html 🧱 App shell — includes both Simple & Groove metronome panels
 📄 manifest.json 📱 PWA metadata
@@ -206,13 +214,7 @@
 
 ---
 
-### 🚧 Phase 5.1 — Simple / Advanced Mode Foundation
-
-> **Estimated dev time: 3–5 days**
-
-The primary goal of this phase is to reduce UI complexity by introducing
-a persistent **Simple / Advanced Mode** toggle, and to lay the groundwork
-all subsequent Phase 5 features build on.
+### ✅ Phase 5.1 — Simple / Advanced Mode Foundation — COMPLETED
 
 #### Simple Mode (default)
 
@@ -226,8 +228,8 @@ all subsequent Phase 5 features build on.
 - A **collapsed chip / badge row** is displayed above the Start button in
   both the Groove Randomizer and Metronome tabs, showing the Advanced Mode
   settings currently in effect (e.g. `7/8 · Clave · Sixteenths`). Placement
-  is consistent across both tabs. The row carries a tooltip: *"These settings
-  carry over from Advanced Mode. Switch to Advanced to change them."*
+  is consistent across both tabs. The row carries a tooltip: _"These settings
+  carry over from Advanced Mode. Switch to Advanced to change them."_
 
 #### Advanced Mode
 
@@ -274,26 +276,19 @@ all subsequent Phase 5 features build on.
 - Manages the persistent-settings chip row (read, render, update)
 - Exposes `isAdvancedMode()` for use by other modules
 
-#### Testing gates (must pass before merge)
+#### Delivered
 
-- [ ] Simple Mode: sliders present, step=5, session controls hidden,
-      sound/time-sig controls hidden, chip row visible and accurate
-- [ ] Advanced Mode: no sliders, BPM step input present and functional,
-      session/sound/time-sig controls visible
-- [ ] Snap-to-step ON: inputs and arrow keys snap to defined step
-- [ ] Snap-to-step OFF: any integer 30–300 accepted
-- [ ] Margin enforcement uses active step, not hardcoded 5
-- [ ] All Advanced Mode settings persist across page reload
-- [ ] Switching Simple → Advanced → Simple: chip row reflects correct
-      persisted values
-- [ ] Restore to Defaults: full reset verified (localStorage cleared,
-      UI matches first-launch state, dark mode follows system preference)
-- [ ] Hard limits (30–300) enforced in both modes
-- [ ] Tap tempo unaffected by custom quantization step
-- [ ] Arrow keys step by user-defined step in Advanced Mode
-- [ ] Add `tests/` test: dark mode system preference detection and
-      auto-switch (currently untested — existing `system-verification.js`
-      check is a no-op)
+- ✅ `js/ui/advancedMode.js` — new module, full implementation
+- ✅ FUOC prevention — inline `<head>` script sets `data-theme` and `html.advanced-mode` synchronously
+- ✅ Simple Mode: sliders, step=5, session/sound/timesig hidden, chip row visible
+- ✅ Advanced Mode: steppers, user-defined step, all controls revealed, chip row populated
+- ✅ Anchor-relative BPM grid — `simpleBpm` snaps on blur; `bpmMin`/`bpmMax` defer to play time
+- ✅ Blur-pair deferral — margin correction only after both bpmMin/bpmMax blur
+- ✅ `restoreDefaults()` — localStorage cleared, dark mode follows system preference on reload
+- ✅ All settings persist across reload
+- ✅ Tap tempo unaffected by custom step
+- ✅ Arrow keys use dynamic step; margin guard uses step not hardcoded 5
+- ✅ Tests: `advanced-mode.test.html`, `dark-mode.test.html`, updated `hotkeys.test.html`, updated `system-verification.js`
 
 ---
 

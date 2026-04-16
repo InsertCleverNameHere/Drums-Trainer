@@ -17,7 +17,8 @@ The Random Groove Trainer follows these core principles:
 ```bash
 ┌─────────────────────────────────────────────────────────┐
 │                      index.html                         │
-│                  (App Shell + UI)                       │
+│  (App Shell — inline FUOC script sets data-theme and    │
+│   html.advanced-mode synchronously before CSS/JS runs)  │
 └─────────────────────────────────────────────────────────┘
                            │
                            ▼
@@ -45,6 +46,8 @@ The Random Groove Trainer follows these core principles:
               │   API Context   │
               └─────────────────┘
 ```
+
+UI submodules (under `js/ui/`): `advancedMode.js`, `theme.js`, `hotkeys.js`, `sliders.js`, `controls.js`, `panels.js`, `wakeLock.js`
 
 ---
 
@@ -191,6 +194,41 @@ The Random Groove Trainer follows these core principles:
 
 ---
 
+#### `js/ui/advancedMode.js`
+
+**Purpose**: Simple / Advanced Mode toggle, BPM step management, and settings chip row
+
+**Responsibilities**:
+
+- Owns the `advancedMode` toggle lifecycle (read localStorage, apply `html.advanced-mode` class)
+- Manages the `.bpm-step` user-defined quantization step (1–150, default 5)
+- Manages the groove anchor direction (`"min"` | `"max"`) for anchor-relative grid alignment
+- Tracks the `simpleBpmAnchor` (captured on Advanced Mode enable and each successful simpleBpm blur)
+- Renders the persistent settings chip row showing current time-sig, profile, and subdivision
+- Provides `snapToGrid()` — anchor-relative grid snap used by `sliders.js` on simpleBpm blur
+- Wires ± stepper buttons (synthesises `KeyboardEvent` on `window` so hotkeys pipeline is reused)
+- Disables all Advanced Mode controls during playback (ownership guard)
+- `restoreDefaults()` — clears localStorage and reloads
+
+**Key Functions**:
+
+- `initAdvancedMode()` - Read state, apply DOM, wire all listeners (call once at startup)
+- `isAdvancedMode()` - Returns current mode boolean
+- `getQuantizationStep()` - Returns current step (1–150)
+- `getGrooveAnchor()` - Returns `"min"` or `"max"`
+- `getSimpleBpmAnchor()` / `setSimpleBpmAnchor(v)` - Anchor for simpleBpm grid
+- `snapToGrid(value, step, anchor, min, max)` - Anchor-relative nearest-grid snap
+- `restoreDefaults()` - Full localStorage clear + reload
+
+**BPM grid design**:
+
+- `bpmMin` / `bpmMax`: **no blur-time snap** — quantization deferred to play time (`runCycle`). Hard-limit clamp [30–300] only. Margin enforcement (gap ≥ step) fires via blur-pair deferral in `sliders.js`.
+- `simpleBpm`: **anchor-relative snap on blur** — snaps to nearest `anchor + n*step` grid point. Anchor updates after each successful blur.
+
+**Dependencies**: `debug.js`, `constants.js` (`BPM_STEP_LIMITS`), `utils.js`
+
+---
+
 #### `js/ui/hotkeys.js`
 
 **Purpose**: Global keyboard shortcuts
@@ -199,16 +237,17 @@ The Random Groove Trainer follows these core principles:
 
 - Space, P, N, arrows, H hotkey handling
 - Owner-aware routing (groove vs simple)
-- BPM adjustment with margin enforcement
+- BPM adjustment with dynamic step (reads `advancedMode.getQuantizationStep()`, falls back to 5 in Simple Mode)
+- Margin enforcement uses the live step, not a hardcoded value
 - Hotkey lock to prevent rapid-fire
-- Input validation helpers
+- Flash overlay animation via `.bpm-flash-overlay` sibling div (Firefox `@keyframes` fix)
 
 **Key Functions**:
 
 - `setupHotkeys()` - Register all keyboard event listeners
 - Private helpers: `validateNumericInput()`, `adjustGrooveInput()`, `adjustSimpleBpm()`
 
-**Dependencies**: `debug.js`, `constants.js`, `sessionEngine.js`, `simpleMetronome.js`, `sliders.js`
+**Dependencies**: `debug.js`, `constants.js`, `sessionEngine.js`, `simpleMetronome.js`, `sliders.js`, `advancedMode.js`
 
 ---
 
@@ -250,8 +289,10 @@ The Random Groove Trainer follows these core principles:
 - Dual-point and single-point noUiSlider initialization
 - Active pip highlighting
 - Clickable pips for direct value selection
-- Numeric input validation with clamping
-- Cross-check BPM min/max with 5 BPM margin
+- Numeric input validation with hard-limit clamping [30–300]
+- Blur-pair deferral: `bpmMin`/`bpmMax` margin cross-check fires only after both fields have blurred; `lastValidValue` is written only by `checkGrooveMargin`, not by `validateNumericInput`, to prevent premature revert targets
+- `simpleBpm` blur triggers `advancedMode.snapToGrid()` in Advanced Mode; anchor updated via `setSimpleBpmAnchor()`
+- Slider writeback suppressed in Advanced Mode (numeric input is source of truth)
 - UI notice system (floating notifications)
 
 **Key Functions**:
@@ -261,7 +302,7 @@ The Random Groove Trainer follows these core principles:
 - `showNotice(message, duration)` - Floating UI notifications
 - Private helpers: `validateNumericInput()`, `attachInputValidation()`, `createMetronomeSlider()`
 
-**Dependencies**: `debug.js`, `constants.js`, `utils.js`, noUiSlider
+**Dependencies**: `debug.js`, `constants.js`, `utils.js`, `advancedMode.js`, noUiSlider
 
 ---
 
@@ -437,16 +478,21 @@ debugLog("audio", "Scheduling tick at", time);
 ### Startup Sequence
 
 1. **`index.html`** loads → DOM ready
-2. **`main.js`** executes:
+
+2. **`index.html`** inline `<head>` script runs **synchronously** before any CSS or JS:
+   - Sets `data-theme` attribute (prevents dark-mode FUOC)
+   - Adds `html.advanced-mode` class if `localStorage.advancedMode === "true"` (prevents mode-switch flicker)
+
+3. **`main.js`** executes:
+   - `initAdvancedMode()` — reads localStorage, applies mode class, wires toggle/step/chip
    - Initializes cores (`metronomeCore`, `simpleMetronomeCore`)
-   - Creates visual callbacks
-   - Primes visual containers (prevents layout shift)
+   - Creates visual callbacks and primes visual containers
    - Registers callbacks with cores
-   - Initializes UI modules (dark mode, sound profiles, etc.)
+   - Initializes remaining UI modules (dark mode, sliders, sound profiles, etc.)
    - Fetches version from `commits.json`
    - Registers service worker
 
-3. **User interaction** → UI events trigger state changes
+4. **User interaction** → UI events trigger state changes
 
 ---
 
@@ -655,11 +701,26 @@ The version string (X.Y.Z) uses color inheritance based on SemVer change type:
 - Chrome DevTools Performance tab for timing analysis
 - Memory profiler for leak detection
 
-### Automated Testing (Planned)
+### Automated Testing (Implemented)
 
-- Unit tests for `utils.js` helpers
-- Integration tests for mode switching
-- Visual regression tests for UI components
+HTML test pages in `tests/`:
+
+- `utils.test.html` — unit tests for all `utils.js` helpers
+- `advanced-mode.test.html` — unit tests for `advancedMode.js` public API (`snapToGrid`, step sanitization, anchor management)
+- `dark-mode.test.html` — unit tests for `initDarkMode()` (saved preference, system default, toggle, auto-switch)
+- `hotkeys.test.html` — hotkey guard logic, ownership blocking, dynamic step in Advanced Mode
+- `debug.test.html` — debug flag system
+- `integration.test.html` — module ownership and state synchronization
+- `uicontroller-modularization-tests.html` — export surface verification
+
+### End-to-End Verification
+
+`tests/system-verification.js` — paste into DevTools console against the live page. Covers:
+FUOC prevention, settings modal, Simple Mode visibility/validation/blur-pair deferral, Advanced Mode toggle (DOM class, stepper/slider swap, chip), Advanced Mode BPM (stepper buttons, margin guard, simpleBpm snap), groove session lifecycle, tempo-synced timing, simple metronome ownership.
+
+### Still Pending
+
+- Visual regression tests
 
 ---
 
@@ -683,12 +744,19 @@ The version string (X.Y.Z) uses color inheritance based on SemVer change type:
 - Easier testing and debugging
 - Faster onboarding for new contributors
 
-### Phase 5: Advanced Features
+### Phase 5.1: Simple / Advanced Mode Foundation ✅ COMPLETED
 
-- Groove editor (visual beat grid)
-- User-defined patterns (localStorage)
-- Import/export groove files (JSON)
-- QR code sharing
+- `js/ui/advancedMode.js` — new module, owns mode toggle, step, chip row, stepper buttons
+- FUOC prevention via inline `<head>` script (synchronous class/attribute application)
+- Simple Mode: sliders visible, session/sound/timesig controls hidden, step hardcoded to 5
+- Advanced Mode: steppers visible, sliders hidden, all controls revealed, user-defined step
+- Anchor-relative BPM grid for `simpleBpm`; blur-pair deferral for `bpmMin`/`bpmMax`
+- Settings chip row shows current Advanced Mode settings in both panels
+- `restoreDefaults()` — full localStorage clear + reload
+
+### Phase 5.2+: Groove Editor, Persistence, Library, Accessibility
+
+- See `docs/ROADMAP.md` for full Phase 5 plan
 
 ---
 

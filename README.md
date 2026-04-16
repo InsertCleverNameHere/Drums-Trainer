@@ -11,7 +11,8 @@ A lightweight, offline-ready PWA for practicing drum grooves with randomized BPM
 
 - **🎲 Groove Randomizer** — Practice transitions between grooves at varying tempos
 - **🎵 Simple Metronome** — Accurate, feature-rich standalone metronome
-- **🎚️ Dual-Mode BPM Sliders** — Visual range selection with active pip highlighting
+- **🔬 Simple / Advanced Mode** — Simple mode for quick practice; Advanced Mode unlocks custom BPM step, full session controls, time signatures, and sound profiles
+- **🎚️ Dual-Mode BPM Controls** — Sliders in Simple Mode; ± stepper buttons with user-defined quantization step in Advanced Mode
 - **⏱️ Flexible Time Signatures** — Support for 4/4, 7/8, 6/8, 12/8, and custom signatures
 - **🎼 Subdivision Support** — Quarter notes, eighths, sixteenths with visual hierarchy
 - **🎧 Procedural Sound Profiles** — 5 sound options (Digital, Soft, Ping, Bubble, Clave)
@@ -67,14 +68,14 @@ python -m http.server 8080
 
 ## ⌨️ Keyboard Shortcuts
 
-| Key       | Action                                  |
-| --------- | --------------------------------------- |
-| `Space`   | Start/Stop metronome                    |
-| `P`       | Pause/Resume                            |
-| `N`       | Next groove (Groove mode only)          |
-| `↑` / `↓` | Adjust BPM ±5                           |
-| `←` / `→` | Switch Min/Max BPM target (Groove mode) |
-| `H`       | Toggle settings & help dialog           |
+| Key       | Action                                                                     |
+| --------- | -------------------------------------------------------------------------- |
+| `Space`   | Start/Stop metronome                                                       |
+| `P`       | Pause/Resume                                                               |
+| `N`       | Next groove (Groove mode only)                                             |
+| `↑` / `↓` | Adjust BPM by active step (±5 in Simple Mode, ±user step in Advanced Mode) |
+| `←` / `→` | Switch Min/Max BPM target (Groove mode)                                    |
+| `H`       | Toggle settings & help dialog                                              |
 
 ---
 
@@ -84,10 +85,15 @@ Access the settings menu by pressing `H` or clicking the ⚙️ gear icon (top-r
 
 **Available Settings**:
 
+- **Advanced Mode**: Unlocks manual BPM entry with custom quantization step, full session controls (cycle duration, total cycles, session time), time signature, and sound profile selectors
+- **BPM Step** (Advanced Mode only): Sets the snap interval for BPM inputs and arrow key adjustments. Valid range: 1–150. Defaults to 5.
+- **Reduce Motion**: Minimizes visual panning animations
+- **Rhythmic Count-in**: Matches count-in speed to the incoming BPM (Groove mode only)
 - **Keep Screen Awake**: Prevents screen dimming during practice sessions
   - Works on Android (Chrome), iOS (Safari 16.4+), and Desktop (Chrome/Edge)
   - Automatically reacquires when switching tabs
   - Persists across sessions
+- **Restore to Defaults**: Clears all saved settings and returns to first-launch state
 
 ---
 
@@ -122,7 +128,6 @@ Access the settings menu by pressing `H` or clicking the ⚙️ gear icon (top-r
 ## 🧩 Project Structure
 
 ```bash
-📁 Drums-Trainer/
 ├── 📁 js/               # Core modules (ES6 modules)
 │   ├── main.js          # Entry point
 │   ├── metronomeCore.js # Groove audio scheduler
@@ -133,14 +138,15 @@ Access the settings menu by pressing `H` or clicking the ⚙️ gear icon (top-r
 │   ├── uiController.js  # UI bindings
 │   ├── utils.js         # Helpers
 │   ├── constants.js     # Configuration
-│   └── debug.js         # Debug system
-├── 📁 css/              # Stylesheets
-├── 📁 docs/             # Documentation
-├── 📁 libs/             # Third-party (noUiSlider, GSAP)
-├── 📁 assets/           # Icons & images
-├── index.html           # App shell
-├── manifest.webmanifest # PWA manifest
-└── service-worker.js    # Offline caching
+│   ├── debug.js         # Debug system
+│   └── 📁 ui/
+│       ├── advancedMode.js  # Simple/Advanced toggle, BPM step, chip row
+│       ├── theme.js         # Dark mode
+│       ├── hotkeys.js       # Keyboard shortcuts
+│       ├── sliders.js       # BPM sliders & validation
+│       ├── controls.js      # Sound profiles, time signatures
+│       ├── panels.js        # Mode tabs, simple panel
+│       └── wakeLock.js      # Screen wake lock
 ```
 
 ---
