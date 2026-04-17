@@ -1286,6 +1286,12 @@ button#installBtn.utility-button:active {
   bottom: 16px;
   right: 16px;
   z-index: 10000;
+  transition: bottom 0.3s ease; /* Smooth transition when button appears */
+}
+
+/* Move up if install button is visible */
+body:has(#installBtn:not([style*="display: none"])) .theme-toggle-floating {
+  bottom: 68px;
 }
 
 .theme-btn {
@@ -1416,10 +1422,5 @@ button#installBtn.utility-button:active {
   .theme-btn__icon {
     width: 22px;
     height: 22px;
-  }
-
-  /* Move up if install button is visible */
-  body:has(#installBtn:not([style*="display: none"])) .theme-toggle-floating {
-    bottom: 68px;
   }
 }
