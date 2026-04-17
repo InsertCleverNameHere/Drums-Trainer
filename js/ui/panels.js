@@ -1,7 +1,7 @@
 /**
  * @fileoverview Mode tabs and simple metronome panel controls.
  * Manages groove/simple panel switching and simple metronome UI state.
- * 
+ *
  * @module ui/panels
  */
 
@@ -12,7 +12,7 @@ import * as utils from "../utils.js";
 
 /**
  * Enables/disables a mode tab.
- * 
+ *
  * @private
  * @param {HTMLElement} tabEl - Tab element
  * @param {boolean} enabled - True to enable, false to disable
@@ -26,7 +26,7 @@ function setTabEnabled(tabEl, enabled) {
 
 /**
  * Sets active mode and updates panel visibility.
- * 
+ *
  * @private
  * @param {string} mode - 'groove' or 'metronome'
  * @param {HTMLElement} tabGroove - Groove tab element
@@ -101,11 +101,11 @@ function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
 /**
  * Initializes mode tabs (Groove vs Metronome).
  * Handles tab switching and ownership-based tab disabling.
- * 
+ *
  * @param {Object} sessionEngine - Session engine module
  * @param {Object} simpleMetronome - Simple metronome module
  * @returns {void}
- * 
+ *
  * @example
  * initModeTabs(sessionEngine, simpleMetronome);
  */
@@ -125,7 +125,7 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
     if (tabGroove.classList.contains("disabled")) return;
     setActiveMode("groove", tabGroove, tabMet, panelGroove, panelMet);
   });
-  
+
   tabMet.addEventListener("click", (e) => {
     if (tabMet.classList.contains("disabled")) return;
     setActiveMode("metronome", tabGroove, tabMet, panelGroove, panelMet);
@@ -160,7 +160,7 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
 
 /**
  * Updates simple metronome UI state.
- * 
+ *
  * @private
  * @returns {void}
  */
@@ -180,7 +180,7 @@ function updateSimpleUI() {
     startBtn.textContent = running ? "Stop" : "Start";
     startBtn.disabled = false;
   }
-  
+
   if (pauseBtn) {
     pauseBtn.disabled = !running;
     pauseBtn.textContent = paused ? "Resume" : "Pause";
@@ -197,9 +197,9 @@ function updateSimpleUI() {
 /**
  * Initializes simple metronome panel controls.
  * Handles start/stop/pause buttons and tap tempo.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * initSimplePanelControls(); // Sets up simple metronome UI
  */
@@ -224,7 +224,7 @@ export function initSimplePanelControls() {
       typeof sessionEngine.getActiveModeOwner === "function"
         ? sessionEngine.getActiveModeOwner()
         : null;
-    
+
     if (owner && owner !== "simple") {
       debugLog(
         "state",
@@ -278,7 +278,7 @@ export function initSimplePanelControls() {
     tapBtn.addEventListener("click", () => {
       const isRunning = simpleMetronome.isRunning?.();
       const isPaused = simpleMetronome.isPaused?.();
-      
+
       if (isRunning && !isPaused) {
         debugLog("hotkeys", "⚠️ Tap tempo only works when stopped or paused");
         return;
@@ -294,6 +294,8 @@ export function initSimplePanelControls() {
       if (newBpm) {
         const bpmInput = document.getElementById("simpleBpm");
         bpmInput.value = newBpm;
+        // Trigger change event for slider in simple mode
+        bpmInput.dispatchEvent(new Event("change", { bubbles: true }));
 
         if (typeof simpleMetronome.setBpm === "function") {
           simpleMetronome.setBpm(newBpm);
