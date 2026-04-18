@@ -1281,17 +1281,40 @@ button#installBtn.utility-button:active {
 🌙 16. Theme Toggle (Bottom Right, Animated Slider)
 ================================================== */
 
-.theme-toggle-floating {
+.floating-stack {
   position: fixed;
   bottom: 16px;
   right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
   z-index: 10000;
-  transition: bottom 0.3s ease; /* Smooth transition when button appears */
+  pointer-events: none;
+
+  /* FUOC Cloaking; Hide until ready */
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
 }
 
-/* Move up if install button is visible */
-body:has(#installBtn:not([style*="display: none"])) .theme-toggle-floating {
-  bottom: 68px;
+/* Reveal the stack when the app is ready */
+.app-ready .floating-stack {
+  opacity: 1;
+}
+
+.floating-stack > * {
+  pointer-events: auto; /* Re-enable clicks for buttons */
+}
+
+.theme-toggle-floating {
+  /* Position handled by .floating-stack flexbox */
+  transition: transform 0.3s ease;
+}
+
+/* Specific reset for the install button to prevent fixed conflicts */
+button#installBtn.utility-button {
+  position: static !important;
+  margin: 0 !important;
 }
 
 .theme-btn {
@@ -1400,7 +1423,7 @@ body:has(#installBtn:not([style*="display: none"])) .theme-toggle-floating {
 
 /* Mobile adjustments */
 @media (max-width: 600px) {
-  .theme-toggle-floating {
+  .floating-stack {
     bottom: 12px;
     right: 12px;
   }
