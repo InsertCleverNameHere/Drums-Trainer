@@ -470,13 +470,13 @@ button:disabled {
   border-radius: 12px;
   box-shadow: 0 1px 4px var(--shadow);
   border: 1px solid var(--border);
-  /* THE CLOAK: Panels start invisible */
+  /* Cloak state */
   opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  will-change: transform, opacity;
 }
 
 /* Reveal when app is ready */
-.app-ready .panel {
+.app-ready .panel:not(.hidden) {
   opacity: 1;
 }
 
@@ -808,9 +808,15 @@ button svg,
 }
 
 @keyframes bpmFlash {
-  0%   { opacity: 0.85; }
-  15%  { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0.85;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* Overlay div that sits on top of the input inside .bpm-stepper.
@@ -819,7 +825,7 @@ button svg,
 .bpm-flash-overlay {
   position: absolute;
   inset: 0;
-  border-radius: 0;            /* flush with pill interior */
+  border-radius: 0; /* flush with pill interior */
   background-color: var(--accent);
   pointer-events: none;
   opacity: 0;
@@ -1624,7 +1630,11 @@ button#installBtn.utility-button:active {
 /* Separator flash: − button active → left border of input turns accent.
    The wrapper div is now between the button and the input, so we use
    the adjacent-sibling combinator to reach the wrapper, then the input. */
-.advanced-mode .bpm-stepper .bpm-adjust-btn[data-delta="-1"]:active + .bpm-input-wrap input {
+.advanced-mode
+  .bpm-stepper
+  .bpm-adjust-btn[data-delta="-1"]:active
+  + .bpm-input-wrap
+  input {
   border-left-color: var(--accent) !important;
 }
 
