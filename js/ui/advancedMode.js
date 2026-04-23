@@ -97,8 +97,8 @@ export function initAdvancedMode() {
   // 2. Sync utils.QUANTIZATION.groove so randomizeGroove() uses the live step
   utils.QUANTIZATION.groove = _step;
 
-  // 3. Apply DOM visibility (body.advanced-mode class)
-  _applyMode();
+  // 3. Apply DOM visibility — instant on load, animated on toggle
+  _applyModeInstant();
 
   // 4. Populate chip rows with current settings summary
   _renderChip();
@@ -196,12 +196,95 @@ function _wireGrooveAnchorToggle(toggle) {
 
 function _applyMode() {
   document.documentElement.classList.toggle("advanced-mode", _advanced);
-  // Keep randomizer step in sync with the active mode.
-  // Simple Mode always uses step=5; Advanced Mode uses the user preference.
   utils.QUANTIZATION.groove = _advanced ? _step : 5;
+
+  const advancedEls = [...document.querySelectorAll(".advanced-only")];
+  const simpleEls = [...document.querySelectorAll(".simple-only")];
+
+  if (_advanced) {
+    // Recede Simple elements (Outgoing)
+    gsap.killTweensOf(simpleEls);
+    gsap.to(simpleEls, {
+      opacity: 0,
+      scale: 0.96,
+      y: 10,
+      duration: 0.25,
+      ease: "power2.in",
+      onComplete: () => {
+        simpleEls.forEach((el) => {
+          el.classList.add("hidden");
+          gsap.set(el, { clearProps: "all" });
+        });
+      },
+    });
+
+    // Approach Advanced elements (Incoming)
+    advancedEls.forEach((el) => {
+      el.classList.remove("hidden");
+    });
+    gsap.fromTo(
+      advancedEls,
+      { opacity: 0, scale: 1.04, y: -10 },
+      {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.45,
+        ease: "power2.out",
+        stagger: 0.04,
+        clearProps: "all",
+      }
+    );
+  } else {
+    // Recede Advanced elements (Outgoing)
+    gsap.killTweensOf(advancedEls);
+    gsap.to(advancedEls, {
+      opacity: 0,
+      scale: 0.96,
+      y: 10,
+      duration: 0.25,
+      ease: "power2.in",
+      stagger: 0.02,
+      onComplete: () => {
+        advancedEls.forEach((el) => {
+          el.classList.add("hidden");
+          gsap.set(el, { clearProps: "all" });
+        });
+      },
+    });
+
+    // Approach Simple elements (Incoming)
+    simpleEls.forEach((el) => {
+      el.classList.remove("hidden");
+    });
+    gsap.fromTo(
+      simpleEls,
+      { opacity: 0, scale: 1.04, y: -10 },
+      {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.45,
+        ease: "power2.out",
+        stagger: 0.04,
+        clearProps: "all",
+      }
+    );
+  }
+
   debugLog(
     "advancedMode",
     `_applyMode: body.advanced-mode = ${_advanced}, QUANTIZATION.groove = ${utils.QUANTIZATION.groove}`
+  );
+}
+
+function _applyModeInstant() {
+  document.documentElement.classList.toggle("advanced-mode", _advanced);
+  utils.QUANTIZATION.groove = _advanced ? _step : 5;
+  // CSS handles display via .advanced-mode class — no animation needed
+  debugLog(
+    "advancedMode",
+    `_applyModeInstant: body.advanced-mode = ${_advanced}, QUANTIZATION.groove = ${utils.QUANTIZATION.groove}`
   );
 }
 
