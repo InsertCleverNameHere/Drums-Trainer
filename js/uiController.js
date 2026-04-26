@@ -226,6 +226,38 @@ export function initUI(deps) {
 }
 
 /**
+ * Executes a synchronized vertical reel (slide + fade) for text updates.
+ * @param {HTMLElement|HTMLElement[]} elements - Target element(s)
+ * @param {string|string[]} newTexts - Content to apply
+ */
+export function animateTextUpdate(elements, newTexts) {
+  const targets = Array.isArray(elements) ? elements : [elements];
+  const contents = Array.isArray(newTexts) ? newTexts : [newTexts];
+
+  gsap.killTweensOf(targets);
+  const tl = gsap.timeline();
+
+  tl.to(targets, {
+    opacity: 0,
+    y: -10,
+    duration: 0.15,
+    ease: "power2.in",
+    onComplete: () => {
+      targets.forEach((el, i) => {
+        el.textContent = contents[i];
+      });
+      gsap.set(targets, { y: 10 });
+    },
+  }).to(targets, {
+    opacity: 1,
+    y: 0,
+    duration: 0.3,
+    ease: "power2.out",
+    clearProps: "transform",
+  });
+}
+
+/**
  * Updates footer with version message and hierarchical color animation.
  *
  * @param {HTMLElement} footerEl - Footer element

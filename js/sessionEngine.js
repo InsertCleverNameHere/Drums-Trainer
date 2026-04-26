@@ -7,6 +7,7 @@ import * as visuals from "./visuals.js";
 import { showNotice } from "./ui/sliders.js";
 import { debugLog } from "./debug.js";
 import { isAdvancedMode, getGrooveAnchor } from "./ui/advancedMode.js";
+import { animateTextUpdate } from "./uiController.js";
 
 let activeModeOwner = null; // "groove" | "simple" | null
 
@@ -469,8 +470,14 @@ function runCycle() {
   let bpm, groove;
 
   if (isAdvancedMode()) {
-    let bpmMin = Math.max(30, Math.min(300, parseInt(ui.bpmMinEl.value, 10) || 30));
-    let bpmMax = Math.max(30, Math.min(300, parseInt(ui.bpmMaxEl.value, 10) || 60));
+    let bpmMin = Math.max(
+      30,
+      Math.min(300, parseInt(ui.bpmMinEl.value, 10) || 30)
+    );
+    let bpmMax = Math.max(
+      30,
+      Math.min(300, parseInt(ui.bpmMaxEl.value, 10) || 60)
+    );
     const step = utils.QUANTIZATION.groove;
 
     if (bpmMin >= bpmMax) {
@@ -512,13 +519,21 @@ function runCycle() {
     const anchorDir = getGrooveAnchor();
     const anchorValue = anchorDir === "max" ? bpmMax : bpmMin;
     ({ bpm, groove } = utils.randomizeGroove(
-      ui.groovesEl.value, bpmMin, bpmMax, anchorValue, anchorDir
+      ui.groovesEl.value,
+      bpmMin,
+      bpmMax,
+      anchorValue,
+      anchorDir
     ));
   } else {
     // Simple Mode: use existing sanitizeBpmRange path unchanged
     const originalMin = parseInt(ui.bpmMinEl.value);
     const originalMax = parseInt(ui.bpmMaxEl.value);
-    const { bpmMin, bpmMax, step: quantStep } = utils.sanitizeBpmRange(
+    const {
+      bpmMin,
+      bpmMax,
+      step: quantStep,
+    } = utils.sanitizeBpmRange(
       ui.bpmMinEl.value,
       ui.bpmMaxEl.value,
       utils.QUANTIZATION.groove
@@ -526,16 +541,24 @@ function runCycle() {
     ui.bpmMinEl.value = bpmMin;
     ui.bpmMaxEl.value = bpmMax;
     if (bpmMin !== originalMin || bpmMax !== originalMax) {
-      showNotice(`🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`);
+      showNotice(
+        `🎚️ BPM range adjusted to ${bpmMin}–${bpmMax} (step=${quantStep})`
+      );
     }
     ({ bpm, groove } = utils.randomizeGroove(
-      ui.groovesEl.value, bpmMin, bpmMax, null, "min"
+      ui.groovesEl.value,
+      bpmMin,
+      bpmMax,
+      null,
+      "min"
     ));
   }
 
   // update the UI to reflect current groove and BPM
-  ui.displayGroove.textContent = `Groove: ${groove}`;
-  ui.displayBpm.textContent = `BPM: ${bpm}`;
+  animateTextUpdate(
+    [ui.displayBpm, ui.displayGroove],
+    [`BPM: ${bpm}`, `Groove: ${groove}`]
+  );
 
   const durationValue = parseInt(ui.cycleDurationEl.value);
   const durationUnit = ui.cycleUnitEl.value;
