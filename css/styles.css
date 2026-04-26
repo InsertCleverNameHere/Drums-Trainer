@@ -10,14 +10,14 @@
 7. Update Button & Spinner
 8. Tooltip Dialog & Notices
 9. Animations & Effects
-10. Responsive Media Queries
-11. Subtle invalid input feedback
-12. Floating UI Notice (BPM Adjust / Info Messages)
-13. UNIFIED SLIDER STYLES (Groove & Simple)
-14. Time Signature Controls
-15. Hierarchical Beat Visuals
-16. Theme Toggle (Bottom Right, Animated Slider)
-17. Simple / Advanced Mode
+10. Subtle invalid input feedback
+11. Floating UI Notice (BPM Adjust / Info Messages)
+12. UNIFIED SLIDER STYLES (Groove & Simple)
+13. Time Signature Controls
+14. Hierarchical Beat Visuals
+15. Theme Toggle (Bottom Right, Animated Slider)
+16. Simple / Advanced Mode
+17. Responsive Media Queries
 ================================================== */
 
 /* ============================================
@@ -386,38 +386,6 @@ button:disabled {
 #simpleMetronomeDot.pulse {
   transform: scale(1.25);
   transition: transform 120ms ease;
-}
-.beats-and-sound-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  gap: 40px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.beats-section,
-.sound-section {
-  display: flex;
-  flex-direction: column;
-}
-.beats-section label,
-.sound-section label {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-#soundProfileGroove,
-#soundProfileSimple {
-  width: 90px;
-  padding: 4px 8px;
-  font-size: 14px;
-  border-radius: 8px;
-  appearance: none;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 10px;
 }
 
 /* ============================================
@@ -889,59 +857,8 @@ button#installBtn.utility-button:active {
   }
 }
 
-/* =============================
-📱 10. Responsive Media Queries
-================================ */
-@media (max-width: 600px) {
-  body {
-    margin: 12px auto;
-    padding: 0 12px;
-  }
-
-  .panel {
-    padding: 16px;
-  }
-
-  .status {
-    padding: 14px 14px 28px 14px;
-  }
-
-  label {
-    margin-top: 16px;
-  }
-
-  /* Ensure touch targets are large enough */
-  button {
-    min-height: 40px;
-  }
-
-  input[type="number"],
-  select {
-    min-height: 44px;
-  }
-  #VersionNumber {
-    font-size: 0.8rem;
-    padding: 6px 10px;
-  }
-
-  #tooltipDialog {
-    max-width: calc(100vw - 24px); /* 12px margin on each side */
-    right: 12px;
-    left: 12px;
-    top: 60px;
-    max-height: calc(100vh - 100px); /* More breathing room on mobile */
-  }
-}
-
-@media (max-width: 500px) {
-  .beats-and-sound-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
 /* ===================================
-   11. Subtle invalid input feedback
+   10. Subtle invalid input feedback
    =================================== */
 
 .invalid-flash {
@@ -972,7 +889,7 @@ button#installBtn.utility-button:active {
 }
 
 /* ============================================================
-📢 12. Floating UI Notice (BPM Adjust / Info Messages)
+📢 11. Floating UI Notice (BPM Adjust / Info Messages)
 ============================================================ */
 .ui-notice {
   position: fixed;
@@ -1030,7 +947,7 @@ button#installBtn.utility-button:active {
 }
 
 /* =================================================================
-   🎚️ 13. SLIDER COMPONENTS (Unified & Clean)
+   🎚️ 12. SLIDER COMPONENTS (Unified & Clean)
    ================================================================= */
 
 /* 📦 THE CONTAINER BOX */
@@ -1165,43 +1082,102 @@ button#installBtn.utility-button:active {
 }
 
 /* ============================================
-🎼 14. Time Signature Controls
+🎼 13. Time Signature Controls
 ============================================ */
-.beats-section {
-  /* Use flexbox to align our new controls */
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 24px;
-  flex-wrap: wrap;
+
+.advanced-mode .beats-and-sound-row.advanced-only {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr 1.3fr 0.7fr;
+  align-items: end; /* Keeps selects and inputs flush on the baseline */
+  width: 100%;
+  gap: 0;
+  margin-top: 16px;
 }
 
 .time-signature-controls {
-  display: flex;
-  flex-direction: column;
+  justify-self: start;
 }
 
-/* Width fix for all dropdowns in this section */
-#groovePresetSelect,
-#simplePresetSelect,
-#grooveSubdivisionSelect,
-#simpleSubdivisionSelect {
-  width: 100px;
-}
-
-.custom-time-signature-inputs {
+#grooveCustomTimeSignature,
+#simpleCustomTimeSignature,
+#grooveSubdivisionContainer,
+#simpleSubdivisionContainer {
+  justify-self: center;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  transition:
+    max-width 0.4s ease,
+    opacity 0.3s ease;
 }
 
-.custom-time-signature-inputs input[type="number"] {
-  width: 60px;
+#grooveCustomTimeSignature.visible,
+#simpleCustomTimeSignature.visible {
+  max-width: 250px;
+  opacity: 1;
+}
+
+#grooveCustomTimeSignature span,
+#simpleCustomTimeSignature span {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  user-select: none;
+}
+
+#grooveSubdivisionContainer,
+#simpleSubdivisionContainer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  flex-shrink: 0;
+  transition:
+    max-width 0.35s ease,
+    opacity 0.25s ease;
+}
+
+#grooveSubdivisionContainer.visible,
+#simpleSubdivisionContainer.visible {
+  max-width: 200px;
+  opacity: 1;
+}
+
+.sound-section {
+  justify-self: end;
+  margin-left: 0; /* Neutralize the old flex-based auto margin */
+}
+
+.sound-section label,
+.time-signature-controls label,
+#grooveSubdivisionContainer label,
+#simpleSubdivisionContainer label {
+  font-size: 14px;
+  margin-bottom: 4px;
+  margin-top: 0;
+}
+
+#soundProfileGroove,
+#soundProfileSimple {
+  width: 90px;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 8px;
+  appearance: none;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
 }
 
 /* ============================================
-🎵 15. Hierarchical Beat Visuals
+🎵 14. Hierarchical Beat Visuals
 ============================================ */
 
 /* --- Container Alignment Fix --- */
@@ -1293,7 +1269,7 @@ button#installBtn.utility-button:active {
 }
 
 /* ===============================================
-🌙 16. Theme Toggle (Bottom Right, Animated Slider)
+🌙 15. Theme Toggle (Bottom Right, Animated Slider)
 ================================================== */
 
 .theme-toggle-floating {
@@ -1440,7 +1416,7 @@ button#installBtn.utility-button:active {
 }
 
 /* ===============================
-🔧 17. Simple / Advanced Mode
+🔧 16. Simple / Advanced Mode
 ================================== */
 
 /* Elements hidden in Simple Mode, visible in Advanced Mode */
@@ -1640,4 +1616,137 @@ button#installBtn.utility-button:active {
 
 .advanced-mode .bpm-stepper:has(.bpm-adjust-btn[data-delta="1"]:active) input {
   border-right-color: var(--accent) !important;
+}
+
+/* =============================
+📱 17. Responsive Media Queries
+================================ */
+@media (max-width: 600px) {
+  body {
+    margin: 12px auto;
+    padding: 0 12px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .status {
+    padding: 14px 14px 28px 14px;
+  }
+
+  label {
+    margin-top: 16px;
+  }
+
+  /* Ensure touch targets are large enough */
+  button {
+    min-height: 40px;
+  }
+
+  input[type="number"],
+  select {
+    min-height: 44px;
+  }
+  #VersionNumber {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  #tooltipDialog {
+    max-width: calc(100vw - 24px); /* 12px margin on each side */
+    right: 12px;
+    left: 12px;
+    top: 60px;
+    max-height: calc(100vh - 100px); /* More breathing room on mobile */
+  }
+
+  .advanced-mode .beats-and-sound-row.advanced-only {
+    display: flex !important; /* Force out of Desktop Grid */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    margin-top: 16px;
+  }
+
+  .advanced-mode .beats-and-sound-row.advanced-only > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    margin: 0;
+    justify-self: stretch;
+  }
+
+  #grooveCustomTimeSignature,
+  #simpleCustomTimeSignature {
+    flex-direction: row !important; /* Keep numbers side-by-side */
+    align-items: center !important;
+    padding-top: 0 !important; /* Kill desktop 'phantom label' alignment */
+    margin-top: -12px !important; /* Cluster vertically with the TS dropdown above */
+  }
+
+  /* Force the subdivision pillar to anchor its internal label/select to the left */
+  #grooveSubdivisionContainer,
+  #simpleSubdivisionContainer {
+    align-items: flex-start !important;
+    opacity: 0; /* Hidden by default */
+  }
+
+  /* Allow the subdivision to become visible via class */
+  #grooveSubdivisionContainer.visible,
+  #simpleSubdivisionContainer.visible {
+    opacity: 1 !important;
+    max-width: 100% !important;
+  }
+
+  .sound-section {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 500px) {
+  .advanced-mode .beats-and-sound-row.advanced-only {
+    display: flex !important; /* Force out of Desktop Grid */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    margin-top: 16px;
+  }
+
+  .advanced-mode .beats-and-sound-row.advanced-only > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    margin: 0;
+    justify-self: stretch;
+  }
+
+  #grooveCustomTimeSignature,
+  #simpleCustomTimeSignature {
+    flex-direction: row !important; /* Keep numbers side-by-side */
+    align-items: center !important;
+    padding-top: 0 !important; /* Kill desktop 'phantom label' alignment */
+    margin-top: -12px !important; /* Cluster vertically with the TS dropdown above */
+  }
+
+  /* Force the subdivision pillar to anchor its internal label/select to the left */
+  #grooveSubdivisionContainer,
+  #simpleSubdivisionContainer {
+    align-items: flex-start !important;
+
+    opacity: 0; /* Hidden by default */
+  }
+
+  /* Allow the subdivision to become visible via class */
+  #grooveSubdivisionContainer.visible,
+  #simpleSubdivisionContainer.visible {
+    opacity: 1 !important;
+    max-width: 100% !important;
+  }
+
+  .sound-section {
+    margin-left: 0 !important;
+  }
 }

@@ -277,22 +277,23 @@ export function initTimeSignatureUI() {
       const presetValue = presetSelect.value;
 
       if (presetValue === "custom") {
-        customContainer.classList.remove("hidden");
+        requestAnimationFrame(() => customContainer.classList.add("visible"));
         beats = parseInt(customNumerator.value, 10);
         value = parseInt(customDenominator.value, 10);
       } else {
-        customContainer.classList.add("hidden");
+        customContainer.classList.remove("visible");
         [beats, value] = presetValue.split("/").map(Number);
       }
 
       core.setTimeSignature(beats, value);
       const updatedSignature = core.getTimeSignature();
 
-      // Show/hide subdivision dropdown based on denominator
       if (updatedSignature.value === 4) {
-        subdivisionContainer.classList.remove("hidden");
+        requestAnimationFrame(() =>
+          subdivisionContainer.classList.add("visible")
+        );
       } else {
-        subdivisionContainer.classList.add("hidden");
+        subdivisionContainer.classList.remove("visible");
         subdivisionSelect.value = "1";
         core.setTicksPerBeat(1);
       }
