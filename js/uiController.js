@@ -191,6 +191,38 @@ export function initUI(deps) {
     settingsDialog.classList.remove("visible");
     clearTimeout(settingsDialog._hideTimer);
   });
+
+  const helpAccordion = document.getElementById("helpAccordion");
+  if (helpAccordion) {
+    const summary = helpAccordion.querySelector("summary");
+    const contentItems = helpAccordion.querySelectorAll(
+      ".details-content-wrapper > *"
+    );
+
+    summary.addEventListener("click", () => {
+      // Check state BEFORE the attribute actually toggles
+      const isOpening = !helpAccordion.hasAttribute("open");
+      // KILL existing tweens to prevent state-clashing
+      gsap.killTweensOf(contentItems);
+
+      if (isOpening) {
+        gsap.fromTo(
+          contentItems,
+          { opacity: 0, y: 10 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            stagger: 0.05,
+            ease: "power2.out",
+            delay: 0.1, // Wait for the drawer to begin opening
+          }
+        );
+      } else {
+        gsap.to(contentItems, { opacity: 0, duration: 0.2, ease: "power2.in" });
+      }
+    });
+  }
 }
 
 /**

@@ -641,6 +641,7 @@ button svg,
   max-width: 340px;
   max-height: calc(100vh - 80px);
   overflow-y: auto;
+  scrollbar-gutter: stable;
   background: var(--bg-secondary);
   color: var(--text-primary);
   border-radius: 12px;
@@ -673,6 +674,7 @@ button svg,
 
 .settings-group {
   margin-bottom: 12px;
+  transition: opacity 0.25s ease;
 }
 
 .settings-group .toggle {
@@ -716,6 +718,42 @@ button svg,
   border-radius: 4px;
   box-shadow: 0 1px 2px var(--shadow);
   font-weight: 600;
+}
+
+#settingsDialog::-webkit-scrollbar {
+  width: 10px;
+}
+#settingsDialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+#settingsDialog::-webkit-scrollbar-thumb {
+  background-color: var(--text-secondary);
+  border-radius: 10px;
+  border: 2px solid transparent; /* Creates 6px visual thumb in 10px track */
+  background-clip: content-box;
+}
+
+#helpAccordion .details-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#helpAccordion[open] .details-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.details-content-wrapper {
+  overflow: hidden;
+}
+
+/* Hide default marker for a cleaner look */
+#helpAccordion summary::-webkit-details-marker {
+  display: none;
+}
+#helpAccordion summary {
+  list-style: none;
+  outline: none;
 }
 
 /* Mobile adjust */
@@ -1458,6 +1496,7 @@ button#installBtn.utility-button:active {
 .advanced-settings-chip:empty {
   visibility: hidden;
   min-height: 28px; /* Reserves vertical space */
+  pointer-events: none;
 }
 
 .advanced-mode .advanced-settings-chip {
