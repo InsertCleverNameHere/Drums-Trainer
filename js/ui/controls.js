@@ -298,6 +298,17 @@ export function initTimeSignatureUI() {
         core.setTicksPerBeat(1);
       }
       document.dispatchEvent(new Event("advancedSettings:changed"));
+
+      // --- Dispatch for grid re-render ---
+      document.dispatchEvent(
+        new CustomEvent("metronome:timeSigChanged", {
+          detail: {
+            beats: updatedSignature.beats,
+            value: updatedSignature.value,
+            ticksPerBeat: core.getTicksPerBeat(),
+          },
+        })
+      );
     };
 
     /**
@@ -309,6 +320,18 @@ export function initTimeSignatureUI() {
       const multiplier = parseInt(subdivisionSelect.value, 10);
       core.setTicksPerBeat(multiplier);
       document.dispatchEvent(new Event("advancedSettings:changed"));
+
+      // --- Dispatch for grid re-render ---
+      const sig = core.getTimeSignature();
+      document.dispatchEvent(
+        new CustomEvent("metronome:timeSigChanged", {
+          detail: {
+            beats: sig.beats,
+            value: sig.value,
+            ticksPerBeat: multiplier,
+          },
+        })
+      );
     };
 
     // Attach event listeners

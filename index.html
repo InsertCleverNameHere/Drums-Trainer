@@ -677,6 +677,27 @@ Funk
       </div>
 
       <div id="groove-settings-chip" class="advanced-settings-chip"></div>
+
+      <!-- Groove Pattern Editor -->
+      <div id="groove-editor-panel" class="advanced-only">
+        <div id="groove-editor-header">
+          <label id="groove-editor-groove-name">—</label>
+          <div class="groove-editor-actions">
+            <button id="saveGrooveBtn">Save Pattern</button>
+            <button id="clearGrooveBtn">Clear Pattern</button>
+            <button id="deleteGrooveBtn">Delete Saved</button>
+          </div>
+        </div>
+        <div id="groove-editor-grid"></div>
+        <div id="trackToggles">
+          <label class="toggle">
+            <input type="checkbox" id="toggleHHPed" checked />
+            <span>Hi-Hat Pedal</span>
+          </label>
+        </div>
+        <p id="groove-editor-hint" class="setting-description"></p>
+      </div>
+
       <div class="controls">
         <button id="startBtn">Start</button>
         <button id="pauseBtn" disabled>Pause</button>

@@ -78,17 +78,25 @@ function scheduleNote() {
     `Scheduling tick ${tickIndex} (measure tick ${tickInMeasure})`
   );
 
-  // --- CORRECTED LOGIC ---
   // We play a sound for EVERY tick.
   // The accent is only passed if it's a main beat.
   // This produces a strong DOWNBEAT, weaker main beats, and quietest subdivisions.
-  playTick(isMainBeat ? isPrimaryAccent : false);
-
+  // If a pattern is active, the callback returns TRUE and we skip the standard beep.
+  let isSuppressed = false;
   // Safe visual callback with more detailed info
   try {
-    onBeatVisual(tickIndex, isPrimaryAccent, isMainBeat);
+    isSuppressed = onBeatVisual(
+      tickIndex,
+      isPrimaryAccent,
+      isMainBeat,
+      nextNoteTime
+    );
   } catch (e) {
-    console.error("Visual callback error:", e);
+    console.error("Visual/Pattern callback error:", e);
+  }
+
+  if (!isSuppressed) {
+    playTick(isMainBeat ? isPrimaryAccent : false);
   }
 
   // Advance tick and schedule next tick
