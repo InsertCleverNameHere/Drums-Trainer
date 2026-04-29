@@ -18,6 +18,7 @@
 15. Theme Toggle (Bottom Right, Animated Slider)
 16. Simple / Advanced Mode
 17. Responsive Media Queries
+18. Groove Pattern Editor
 ================================================== */
 
 /* ============================================
@@ -1788,4 +1789,225 @@ button#installBtn.utility-button:active {
   .sound-section {
     margin-left: 0 !important;
   }
+}
+
+/* ============================================
+🥁 18. Groove Pattern Editor
+============================================ */
+
+#groove-editor-panel {
+  margin-top: 16px;
+  padding: 0 12px; /* Vertical padding handled by telescoping */
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  /* Natural Telescoping Logic */
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.4s ease,
+    padding 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#groove-editor-panel.visible {
+  max-height: 600px;
+  opacity: 1;
+  padding: 12px;
+}
+
+#groove-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#groove-editor-grid {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#groove-editor-groove-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.groove-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.groove-editor-actions button {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  min-height: unset;
+  margin-top: 0;
+}
+
+.groove-track {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  width: max-content;
+}
+
+.groove-track-label {
+  position: sticky;
+  left: 0;
+  width: 40px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  z-index: 10;
+  padding-right: 8px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.groove-track-label::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  opacity: 0.5;
+}
+
+.groove-track-cells {
+  display: flex;
+  gap: 3px;
+  overflow-x: visible;
+  padding-left: 6px;
+  padding-right: 20px;
+}
+
+.groove-cell {
+  width: 28px;
+  height: 28px;
+  min-height: unset;
+  margin: 0;
+  padding: 0;
+  border-radius: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.1s ease,
+    border-color 0.1s ease;
+}
+
+.groove-cell:hover:not(:disabled) {
+  background: var(--text-secondary);
+}
+
+.groove-cell.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Playhead highlight */
+.groove-cell.playing {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+/* Beat group grouping */
+.groove-cell.beat-start {
+  border-left: 2px solid var(--text-secondary);
+}
+
+.groove-cell.downbeat {
+  border-left: 2px solid var(--accent);
+}
+
+#trackToggles {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+#groove-editor-hint {
+  margin-top: 8px;
+  min-height: 1.2em;
+}
+
+#groove-interactive-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 12px 0;
+  list-style: none;
+}
+
+.groove-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.groove-list-item:hover {
+  border-color: var(--text-secondary);
+}
+
+.groove-name-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.groove-item-actions {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.groove-item-actions button {
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  min-height: unset;
+  margin: 0;
+}
+
+/* Natural transition refinement */
+#groove-textarea-container,
+#groove-list-container {
+  transition: opacity 0.3s ease;
+  will-change: transform, opacity;
+}
+
+.saved-badge {
+  color: #4caf50;
+  font-weight: bold;
 }

@@ -7,17 +7,14 @@ import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as uiController from "./uiController.js";
 import { initDarkMode } from "./ui/theme.js";
-import {
-  initSoundProfileUI,
-  initPanningModeUI,
-  initTimeSignatureUI,
-  initTempoSyncedUI,
-} from "./ui/controls.js";
+import * as controls from "./ui/controls.js";
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
 import { debugLog } from "./debug.js";
 import { Profiler } from "./profiler.js";
 import { initWakeLock } from "./ui/wakeLock.js";
 import { initAdvancedMode } from "./ui/advancedMode.js";
+import { patternScheduler } from "./patternScheduler.js";
+import { initGrooveEditor, updatePlayhead } from "./ui/grooveEditor.js";
 
 // Expose explicitly (redundant but safe)
 window.Profiler = Profiler;
@@ -111,9 +108,22 @@ let simpleVisualsCallback;
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     // 1. Create visual callbacks (DOM is ready)
-    grooveVisualsCallback = createVisualCallback("groove");
-    simpleVisualsCallback = createVisualCallback("simple");
+    const rawGrooveCallback = createVisualCallback("groove");
+    grooveVisualsCallback = (
+      tickIndex,
+      isPrimaryAccent,
+      isMainBeat,
+      nextNoteTime
+    ) => {
+      // Execute standard dot animations
+      rawGrooveCallback(tickIndex, isPrimaryAccent, isMainBeat);
+      // Update the editor grid playhead
+      updatePlayhead(tickIndex);
+      // Trigger procedural audio and return suppression status (true skips the metronome beep)
+      return patternScheduler.onTick(tickIndex, nextNoteTime);
+    };
 
+    simpleVisualsCallback = createVisualCallback("simple");
     // 2. Prime the visual containers
     primeVisuals("groove");
     primeVisuals("simple");
@@ -125,12 +135,13 @@ if (document.readyState === "loading") {
     // 4. Initialize UI controllers
     initDarkMode();
     initAdvancedMode();
-    initSoundProfileUI();
+    controls.initSoundProfileUI();
     uiController.initOwnershipGuards();
     initSimplePanelControls();
-    initPanningModeUI();
-    initTempoSyncedUI();
-    initTimeSignatureUI();
+    controls.initPanningModeUI();
+    controls.initTempoSyncedUI();
+    controls.initTimeSignatureUI();
+    initGrooveEditor();
     uiController.initAllUI(); // Hotkeys + sliders
     initWakeLock();
   });
@@ -147,12 +158,13 @@ if (document.readyState === "loading") {
 
   initDarkMode();
   initAdvancedMode();
-  initSoundProfileUI();
+  controls.initSoundProfileUI();
   uiController.initOwnershipGuards();
   initSimplePanelControls();
-  initPanningModeUI();
-  initTempoSyncedUI();
-  initTimeSignatureUI();
+  controls.initPanningModeUI();
+  controls.initTempoSyncedUI();
+  controls.initTimeSignatureUI();
+  initGrooveEditor();
   uiController.initAllUI(); // Hotkeys + sliders
   initWakeLock();
 }

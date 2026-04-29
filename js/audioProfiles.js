@@ -56,7 +56,7 @@ let activeProfileName = "digital";
 
 /**
  * Initializes the shared AudioContext if it doesn't exist.
- * 
+ *
  * @returns {AudioContext} Shared audio context instance
  */
 export function ensureAudio() {
@@ -68,7 +68,7 @@ export function ensureAudio() {
 
 /**
  * Syncs the scheduling time with metronome cores.
- * 
+ *
  * @param {number} time - Audio context time for next tick
  * @returns {void}
  * @internal
@@ -79,7 +79,7 @@ export function setNextNoteTime(time) {
 
 /**
  * Sets the active sound profile.
- * 
+ *
  * @param {string} name - Profile name (digital, soft, ping, bubble, clave)
  * @returns {void}
  * @example
@@ -95,7 +95,7 @@ export function setActiveProfile(name) {
 }
 /**
  * Returns the current active sound profile name.
- * 
+ *
  * @returns {string} Active profile name
  */
 export function getActiveProfile() {
@@ -104,7 +104,7 @@ export function getActiveProfile() {
 
 /**
  * Returns list of all available sound profiles.
- * 
+ *
  * @returns {string[]} Array of profile names
  * @example
  * const profiles = getAvailableProfiles();
@@ -116,7 +116,7 @@ export function getAvailableProfiles() {
 
 /**
  * Generates a procedural audio tick.
- * 
+ *
  * @param {boolean} isAccent - True for accent (downbeat), false for normal
  * @returns {void}
  * @internal
