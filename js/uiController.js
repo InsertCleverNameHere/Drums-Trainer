@@ -104,7 +104,6 @@ export function initUI(deps) {
   const _deps = deps;
 
   // DOM elements
-  const muteBtns = document.querySelectorAll(".mute-toggle-btn");
   const startBtn = document.getElementById("startBtn");
   const nextBtn = document.getElementById("nextBtn");
   const pauseBtn = document.getElementById("pauseBtn");
@@ -118,23 +117,6 @@ export function initUI(deps) {
   startBtn.onclick = () => sessionEngine.startSession();
   pauseBtn.onclick = () => sessionEngine.pauseSession();
   nextBtn.onclick = () => sessionEngine.nextCycle();
-
-  // Mute button logic
-  const updateMuteUI = (muted) => {
-    muteBtns.forEach((btn) => {
-      btn.classList.toggle("muted", muted);
-      btn.querySelector(".unmuted-icon").classList.toggle("hidden", muted);
-      btn.querySelector(".muted-icon").classList.toggle("hidden", !muted);
-    });
-  };
-
-  muteBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const newState = !audioProfiles.isMuted();
-      audioProfiles.setMuted(newState);
-      updateMuteUI(newState);
-    });
-  });
 
   const settingsTrigger = document.getElementById("settingsTrigger");
   const settingsDialog = document.getElementById("settingsDialog");

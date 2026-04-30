@@ -8,6 +8,8 @@ import { showNotice } from "./ui/sliders.js";
 import { debugLog } from "./debug.js";
 import { isAdvancedMode, getGrooveAnchor } from "./ui/advancedMode.js";
 import { animateTextUpdate } from "./uiController.js";
+import * as grooveStorage from "./grooveStorage.js";
+import { patternScheduler } from "./patternScheduler.js";
 
 let activeModeOwner = null; // "groove" | "simple" | null
 
@@ -130,6 +132,14 @@ export function initSessionEngine(deps) {
  * window.sessionEngine.startSession();
  */
 export function startSession() {
+  // Prevent starting if already active or counting in (fixes audio bug encountere while stress testing)
+  if (flags.sessionActive || flags.isCountingIn) {
+    // Added isCountingIn check
+    if (flags.isCountingIn || flags.isFinishingBar) {
+      debugLog("state", "⚠️ Already busy...");
+      return;
+    }
+  }
   // Ownership guard: refuse to start groove if another owner is active
   const currentOwner =
     typeof getActiveModeOwner === "function" ? getActiveModeOwner() : null;
@@ -220,6 +230,12 @@ export function startSession() {
         ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
+          const currentName = ui.displayGroove.textContent
+            .replace("Groove: ", "")
+            .trim();
+          const pattern = grooveStorage.getGroovePattern(currentName);
+          const measures = Math.max(1, parseInt(pattern?.measures, 10) || 1);
+
           debugLog(
             "state",
             "🟡 Session time reached — requesting end of current bar..."
@@ -286,9 +302,16 @@ export function pauseSession() {
         ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
+          // Check if the current pattern has multiple measures
+          const currentName = ui.displayGroove.textContent
+            .replace("Groove: ", "")
+            .trim();
+          const pattern = grooveStorage.getGroovePattern(currentName);
+          const measures = Math.max(1, parseInt(pattern?.measures, 10) || 1);
+
           metronome.requestEndOfCycle(() => {
             completeCycle();
-          });
+          }, measures);
         } else {
           metronome.stopMetronome();
           completeCycle();
@@ -560,6 +583,52 @@ function runCycle() {
     [`BPM: ${bpm}`, `Groove: ${groove}`]
   );
 
+  // --- Resolve and load pattern if it exists ---
+  const pattern = grooveStorage.getGroovePattern(groove);
+  if (pattern) {
+    patternScheduler.load(pattern);
+
+    // Apply Pattern Sovereignty: Override Metronome Core rhythm
+    const pTS = pattern.patternTimeSignature || {};
+    const beats = parseInt(pTS.beats, 10) || 4;
+    const value = parseInt(pTS.value, 10) || 4;
+    metronome.setTimeSignature(beats, value);
+    metronome.setTicksPerBeat(pattern.ticksPerBeat || 1);
+    // disable default UI controls that would conflict with pattern settings
+    _toggleGlobalRhythmLock(true);
+
+    debugLog(
+      "audio",
+      `🥁 Pattern Sovereignty: Applied ${beats}/${value}, Subdiv: ${pattern.ticksPerBeat}`
+    );
+  } else {
+    patternScheduler.clear();
+
+    // Restore Global Sovereignty: Revert to UI dropdown settings
+    const presetEl = document.getElementById("groovePresetSelect");
+    const subEl = document.getElementById("grooveSubdivisionSelect");
+
+    if (presetEl.value === "custom") {
+      const num = parseInt(
+        document.getElementById("grooveCustomNumerator").value,
+        10
+      );
+      const den = parseInt(
+        document.getElementById("grooveCustomDenominator").value,
+        10
+      );
+      metronome.setTimeSignature(num, den);
+    } else {
+      const [beats, value] = presetEl.value.split("/").map(Number);
+      metronome.setTimeSignature(beats, value);
+    }
+    metronome.setTicksPerBeat(parseInt(subEl.value, 10));
+    // Re-enable UI controls in case they were disabled by a pattern with sovereignty
+    _toggleGlobalRhythmLock(false);
+
+    debugLog("audio", "🍃 Global Sovereignty: Restored UI rhythmic settings");
+  }
+
   const durationValue = parseInt(ui.cycleDurationEl.value);
   const durationUnit = ui.cycleUnitEl.value;
   flags.remaining =
@@ -591,9 +660,17 @@ function runCycle() {
         ui.pauseBtn.disabled = true;
 
         if (typeof metronome.requestEndOfCycle === "function") {
+          // Resolve current groove name (stripping "Groove: " prefix)
+          const currentName = ui.displayGroove.textContent
+            .replace("Groove: ", "")
+            .trim();
+          // Check if the current pattern has multiple measures
+          const pattern = grooveStorage.getGroovePattern(currentName);
+          const measures = Math.max(1, parseInt(pattern?.measures, 10) || 1);
+
           metronome.requestEndOfCycle(() => {
             completeCycle();
-          });
+          }, measures);
         } else {
           metronome.stopMetronome();
           completeCycle();
@@ -735,6 +812,34 @@ function showCountdownVisual(step) {
     step,
     fadeIn: true,
   });
+}
+
+/**
+ * Disables/Enables global rhythm controls during sovereign pattern playback.
+ * @private
+ */
+function _toggleGlobalRhythmLock(locked) {
+  const ids = [
+    "groovePresetSelect",
+    "grooveCustomNumerator",
+    "grooveCustomDenominator",
+    "grooveSubdivisionSelect",
+  ];
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.disabled = locked;
+      el.style.opacity = locked ? "0.5" : "1";
+    }
+  });
+}
+
+/**
+ * Checks if the session is currently in the 3-2-1 count-in phase.
+ * @returns {boolean}
+ */
+export function isSessionCountingIn() {
+  return !!flags.isCountingIn;
 }
 
 /**

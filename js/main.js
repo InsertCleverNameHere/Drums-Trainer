@@ -61,6 +61,10 @@ sessionEngine.initSessionEngine({
     requestEndOfCycle: metronome.requestEndOfCycle,
     performCountIn: metronome.performCountIn,
     resetPlaybackFlag: metronome.resetPlaybackFlag,
+    setTimeSignature: metronome.setTimeSignature,
+    setTicksPerBeat: metronome.setTicksPerBeat,
+    getTimeSignature: metronome.getTimeSignature,
+    getTicksPerBeat: metronome.getTicksPerBeat,
   },
   ui: {
     startBtn,
@@ -147,7 +151,18 @@ if (document.readyState === "loading") {
   });
 } else {
   // DOM already loaded, initialize immediately
-  grooveVisualsCallback = createVisualCallback("groove");
+  const rawGrooveCallback = createVisualCallback("groove");
+  grooveVisualsCallback = (
+    tickIndex,
+    isPrimaryAccent,
+    isMainBeat,
+    nextNoteTime
+  ) => {
+    rawGrooveCallback(tickIndex, isPrimaryAccent, isMainBeat);
+    updatePlayhead(tickIndex);
+    return patternScheduler.onTick(tickIndex, nextNoteTime);
+  };
+
   simpleVisualsCallback = createVisualCallback("simple");
 
   primeVisuals("groove");

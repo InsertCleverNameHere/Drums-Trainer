@@ -17,6 +17,10 @@ let _currentTicks = 1;
 let _currentStepCount = 0;
 let _activeGrooveName = null;
 let _localPattern = null; // Temporary state before saving
+let _groovesTextArea = null;
+let _pendingSaveData = null; // --- Stores data while user picks a groove to replace ---
+let _pendingSaveName = null; // --- Stores the target name while user picks a groove to replace ---
+let _isReplacementMode = false; // --- Flag for the list state ---
 
 // Helper to get local rhythmic values
 function _getLocalRhythm() {
@@ -38,9 +42,21 @@ function _getLocalRhythm() {
  */
 export function initGrooveEditor() {
   const confirmBtn = document.getElementById("managePatternsBtn"); // "Confirm Names"
-  const changeBtn = document.getElementById("editGrooveNamesBtn"); // "Change Names"
+  const changeBtn = document.getElementById("editGrooveNamesBtn");
+  _groovesTextArea = document.getElementById("grooves"); // "Change Names"
 
   if (!confirmBtn || !changeBtn) return;
+
+  // --- Restore saved names from storage ---
+  const savedNames = localStorage.getItem("userGrooveNames");
+  if (savedNames) {
+    _groovesTextArea.value = savedNames;
+  }
+
+  // --- Persist names on every change ---
+  _groovesTextArea.addEventListener("input", () => {
+    localStorage.setItem("userGrooveNames", _groovesTextArea.value);
+  });
 
   // 1. State A -> B (Textarea to List)
   confirmBtn.addEventListener("click", () => _toggleState("list"));
@@ -74,12 +90,20 @@ export function initGrooveEditor() {
       document.getElementById(id).addEventListener("change", _renderGrid);
     }
   );
+
+  // --- Restore last used Editor State (Text vs List) ---
+  const savedState = localStorage.getItem("grooveEditorState") || "text";
+  if (savedState === "list" && isAdvancedMode()) {
+    _applyStateInstant("list");
+  }
 }
 
 /**
  * Swaps UI visibility between raw textarea and interactive list.
  */
 function _toggleState(mode) {
+  // Persist TextArea state
+  localStorage.setItem("grooveEditorState", mode);
   const textContainer = document.getElementById("groove-textarea-container");
   const listContainer = document.getElementById("groove-list-container");
   const editorPanel = document.getElementById("groove-editor-panel");
@@ -102,6 +126,7 @@ function _toggleState(mode) {
     });
   } else {
     _activeGrooveName = null;
+    _isReplacementMode = false; // Reset replacement mode if toggling back to text
     editorPanel.classList.remove("visible"); // Close editor on exit
     gsap.to(listContainer, {
       opacity: 0,
@@ -121,10 +146,8 @@ function _toggleState(mode) {
  */
 function _rebuildInteractiveList() {
   const list = document.getElementById("groove-interactive-list");
-  const grooves = document
-    .getElementById("grooves")
-    .value.split("\n")
-    .filter((g) => g.trim());
+  // Use the module-level reference for consistency
+  const grooves = _groovesTextArea.value.split("\n").filter((g) => g.trim());
 
   list.innerHTML = "";
   grooves.forEach((name) => {
@@ -132,15 +155,42 @@ function _rebuildInteractiveList() {
     li.className = "groove-list-item";
     const exists = grooveStorage.hasGroovePattern(name);
 
+    // Determine button label and action based on mode
+    let btnLabel = exists ? "Edit Pattern" : "Add Pattern";
+    if (_isReplacementMode) btnLabel = exists ? "Replace Pattern" : "Select";
+
     li.innerHTML = `
       <span class="groove-name-label">${name}</span>
       <div class="groove-item-actions">
-        <button class="edit-pattern-btn">${exists ? "Edit Pattern" : "Add Pattern"}</button>
+        <button class="edit-pattern-btn" ${_isReplacementMode && !exists ? "disabled" : ""}>${btnLabel}</button>
         ${exists ? '<span class="saved-badge">✓</span>' : ""}
       </div>
     `;
 
-    li.querySelector(".edit-pattern-btn").onclick = () => _openEditor(name);
+    li.querySelector(".edit-pattern-btn").onclick = (e) => {
+      if (_isReplacementMode) {
+        const btn = e.target;
+        if (btn.classList.contains("confirming")) {
+          _executeReplacement(name);
+        } else {
+          // Reset any other buttons in "confirming" state
+          list.querySelectorAll(".confirming").forEach((b) => {
+            b.classList.remove("confirming");
+            b.textContent = "Replace Pattern";
+          });
+
+          btn.classList.add("confirming");
+          btn.textContent = "Confirm?";
+          // Auto-reset after 3 seconds
+          setTimeout(() => {
+            btn.classList.remove("confirming");
+            btn.textContent = "Replace Pattern";
+          }, 3000);
+        }
+      } else {
+        _openEditor(name);
+      }
+    };
     list.appendChild(li);
   });
 }
@@ -149,6 +199,13 @@ function _rebuildInteractiveList() {
  * Loads a pattern and opens the grid panel.
  */
 function _openEditor(name) {
+  // --- Gatekeeper: Prevent entry if metronome is playing ---
+  const owner =
+    typeof window.sessionEngine?.getActiveModeOwner === "function"
+      ? window.sessionEngine.getActiveModeOwner()
+      : null;
+  if (owner === "groove" || owner === "simple") return;
+
   _activeGrooveName = name;
   document.getElementById("groove-editor-groove-name").textContent = name;
 
@@ -189,6 +246,11 @@ function _openEditor(name) {
 
   // Update Delete button state
   document.getElementById("deleteGrooveBtn").disabled = !saved;
+
+  // Claim ownership to block metronome starts while editing
+  if (typeof window.sessionEngine?.setActiveModeOwner === "function") {
+    window.sessionEngine.setActiveModeOwner("editing");
+  }
 }
 
 /**
@@ -254,10 +316,11 @@ function _renderGrid() {
 }
 
 function _saveActivePattern() {
+  const rhythm = _getLocalRhythm(); // Snapshots live UI values
   const data = {
-    patternTimeSignature: { beats: _currentBeats, value: _currentValue },
-    ticksPerBeat: _currentTicks,
-    measures: 1,
+    patternTimeSignature: { beats: rhythm.beats, value: rhythm.value },
+    ticksPerBeat: rhythm.ticksPerBeat,
+    measures: rhythm.measures,
     patterns: _localPattern,
   };
 
@@ -269,7 +332,13 @@ function _saveActivePattern() {
     _closeEditor();
     document.getElementById("deleteGrooveBtn").disabled = false;
   } else if (result.error === "FULL") {
-    showNotice("Storage full! Delete a groove first.");
+    // Enter Replacement Mode
+    _pendingSaveData = data;
+    _pendingSaveName = _activeGrooveName; // Store the name of the pattern we're trying to save for reference in the replacement flow
+    _isReplacementMode = true;
+    _closeEditor(); // Close current grid
+    _rebuildInteractiveList(); // Redraw list with "Replace" buttons
+    showNotice("⚠️ Storage Full. Delete a groove pattern to save this one.");
   }
 }
 
@@ -277,6 +346,12 @@ function _closeEditor() {
   _activeGrooveName = null;
   const panel = document.getElementById("groove-editor-panel");
   panel.classList.remove("visible");
+
+  // Release ownership so metronome can start again
+  if (typeof window.sessionEngine?.setActiveModeOwner === "function") {
+    window.sessionEngine.setActiveModeOwner(null);
+  }
+
   debugLog("state", "Closed groove editor");
 }
 
@@ -346,4 +421,54 @@ export function updatePlayhead(tickIndex) {
     `.groove-cell[data-step="${step}"]`
   );
   currentCells.forEach((el) => el.classList.add("playing"));
+}
+
+/**
+ * Forces the editor back to the raw textarea state (State A).
+ * Used when switching to Simple Mode.
+ * @public
+ */
+export function forceStateA() {
+  _toggleState("text");
+}
+
+/**
+ * Applies UI state (text vs list) instantly without animations.
+ * Used only during initialization to prevent layout flicker.
+ * @private
+ */
+function _applyStateInstant(mode) {
+  const textContainer = document.getElementById("groove-textarea-container");
+  const listContainer = document.getElementById("groove-list-container");
+
+  if (mode === "list") {
+    _rebuildInteractiveList();
+    textContainer.classList.add("hidden");
+    listContainer.classList.remove("hidden");
+  } else {
+    listContainer.classList.add("hidden");
+    textContainer.classList.remove("hidden");
+  }
+}
+
+/**
+ * Deletes the chosen pattern and saves the pending one.
+ * @private
+ */
+function _executeReplacement(nameToReplace) {
+  grooveStorage.deleteGroovePattern(nameToReplace);
+
+  // Use the preserved name, not the cleared active name
+  const result = grooveStorage.setGroovePattern(
+    _pendingSaveName,
+    _pendingSaveData
+  );
+
+  if (result.success) {
+    showNotice(`Replaced ${nameToReplace} with ${_pendingSaveName}`);
+    _isReplacementMode = false;
+    _pendingSaveData = null;
+    _pendingSaveName = null;
+    _rebuildInteractiveList();
+  }
 }

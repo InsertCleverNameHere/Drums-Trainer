@@ -132,6 +132,9 @@ export function initAdvancedMode() {
  */
 export function restoreDefaults() {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  localStorage.removeItem("userGrooveNames");
+  localStorage.removeItem("userGroovePatterns");
+  localStorage.removeItem("grooveEditorState");
   localStorage.clear();
   localStorage.setItem("darkMode", prefersDark ? "true" : "false");
   location.reload();
@@ -355,6 +358,11 @@ function _wireToggle(toggle) {
       _sanitiseBpmForSimpleMode();
     }
 
+    // Force editor back to Textarea state if it was in List state
+    import("./grooveEditor.js").then((module) => {
+      module.forceStateA();
+    });
+
     _applyMode();
 
     // Re-capture simpleBpm anchor from current DOM value whenever Advanced Mode
@@ -446,18 +454,63 @@ function _wireRestoreBtn() {
 
 function _wireOwnershipGuard() {
   document.addEventListener("metronome:ownerChanged", (e) => {
-    const isPlaying = e?.detail?.owner !== null;
+    const owner = e?.detail?.owner;
+    const isPlaying = owner === "groove" || owner === "simple";
+    const isEditing = owner === "editing";
+
+    // 1. Editor controls: Disable ONLY if a metronome is playing
+    const editorTargets = [
+      "managePatternsBtn",
+      "editGrooveNamesBtn",
+      "saveGrooveBtn",
+      "cancelGrooveBtn",
+      "clearGrooveBtn",
+      "deleteGrooveBtn",
+      "patNumerator",
+      "patDenominator",
+      "patSubdivision",
+      "patMeasures",
+      "toggleHHPed",
+      "grooves",
+    ];
+    editorTargets.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = isPlaying;
+    });
+
+    // --- Add sweep for dynamic list buttons ---
+    document.querySelectorAll(".edit-pattern-btn").forEach((btn) => {
+      btn.disabled = isPlaying;
+    });
+
+    // 2. Metronome controls: Disable ONLY if editing a pattern
+    const metronomeTargets = [
+      "startBtn",
+      "simpleStartBtn",
+      "pauseBtn",
+      "simplePauseBtn",
+    ];
+    metronomeTargets.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = isEditing;
+    });
+
+    // 3. Global Advanced controls: Disable if busy with EITHER
     ["advancedModeToggle", "bpmStepInput", "grooveAnchorToggle"].forEach(
       (id) => {
         const el = document.getElementById(id);
-        if (el) el.disabled = isPlaying;
+        if (el) el.disabled = isPlaying || isEditing;
       }
     );
-    // Disable/enable all ± stepper buttons
+
+    // 4. ± Stepper buttons: Disable if busy with EITHER
     document.querySelectorAll(".bpm-adjust-btn").forEach((btn) => {
-      btn.disabled = isPlaying;
+      btn.disabled = isPlaying || isEditing;
     });
-    debugLog("advancedMode", `ownership guard: isPlaying=${isPlaying}`);
+
+    // 5. Grid Cells: Logic guard inside grooveEditor.js handles this
+
+    debugLog("advancedMode", `ownership guard: owner=${owner}`);
   });
 }
 
