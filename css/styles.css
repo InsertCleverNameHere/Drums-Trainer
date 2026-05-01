@@ -1243,9 +1243,12 @@ button#installBtn.utility-button:active {
 #beat-indicator-container.pattern-mode {
   flex-direction: column;
   gap: 20px;
-  padding: 50px 10px;
+  /* Balanced horizontal padding (70px) ensures dots remain centered in the status box */
+  padding: 20px 70px 50px 70px;
   min-height: unset;
   height: auto;
+  width: 100%;
+  box-sizing: border-box; /* Force padding to stay inside the 100% width */
 }
 
 /* --- Wrapper & Text Alignment Fix --- */

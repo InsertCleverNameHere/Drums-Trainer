@@ -16,6 +16,7 @@
 
 import { VISUAL_TIMING } from "./constants.js";
 import { patternScheduler } from "./patternScheduler.js";
+import * as advancedMode from "./ui/advancedMode.js";
 import { debugLog } from "./debug.js";
 
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
@@ -125,8 +126,11 @@ function renderNewPhrase(
   const panningContainer = document.createElement("div");
   panningContainer.className = "panning-container";
   panningContainer.style.display = "flex";
-  // Determine if we're in pattern mode or standard mode
-  const isPatternMode = panelId === "groove" && patternScheduler.isActive();
+  // Determine if we're in pattern mode or standard mode (Respecting User Preference)
+  const isPatternMode =
+    panelId === "groove" &&
+    patternScheduler.isActive() &&
+    advancedMode.isDashboardEnabled();
   if (isPatternMode) {
     panningContainer.style.flexDirection = "column";
   }
@@ -293,7 +297,11 @@ function flashActiveDot(
   flashTimeoutRef,
   panelId
 ) {
-  const isPatternMode = panelId === "groove" && patternScheduler.isActive();
+  // Determine if we're in pattern mode or standard mode (Respecting User Preference)
+  const isPatternMode =
+    panelId === "groove" &&
+    patternScheduler.isActive() &&
+    advancedMode.isDashboardEnabled();
   clearTimeout(flashTimeoutRef);
 
   // 1. Unified cleanup of previous playhead and rhythmic color states
@@ -541,16 +549,15 @@ export function createVisualCallback(panelId = "groove") {
       const currentTickInMeasure = tickIndex % totalTicksInMeasure;
       const isPatternActive =
         panelId === "groove" && patternScheduler.isActive();
+      // Only show the 4-row dashboard if active AND enabled in settings
+      const showDashboard =
+        isPatternActive && advancedMode.isDashboardEnabled();
 
       // Detect if we need to swap between Standard and Pattern mode
-      if (
-        container.dataset.renderedMode !==
-        (isPatternActive ? "pattern" : "standard")
-      ) {
-        container.dataset.renderedMode = isPatternActive
-          ? "pattern"
-          : "standard";
-        container.classList.toggle("pattern-mode", isPatternActive);
+      const targetMode = showDashboard ? "pattern" : "standard";
+      if (container.dataset.renderedMode !== targetMode) {
+        container.dataset.renderedMode = targetMode;
+        container.classList.toggle("pattern-mode", showDashboard);
         lastRenderedSignature = ""; // Force a re-render
       }
 

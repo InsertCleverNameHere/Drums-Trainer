@@ -27,6 +27,7 @@ let _advanced = false; // mirrors localStorage['advancedMode']
 let _step = 5; // mirrors localStorage['bpmQuantizationStep']
 let _grooveAnchor = "min"; // "min" | "max" — persisted; randomizer grid direction only
 let _simpleBpmAnchor = 120; // NOT persisted — captured each time Advanced Mode is enabled
+let _dashboardEnabled = true; // -- Persisted mode visual choice --
 
 // ── Public API ───────────────────────────────────────────────────
 
@@ -93,6 +94,9 @@ export function initAdvancedMode() {
     "advancedMode",
     `init: advanced=${_advanced}, step=${_step}, grooveAnchor=${_grooveAnchor}`
   );
+  // Default to true if never set
+  _dashboardEnabled =
+    localStorage.getItem("patternDashboardEnabled") !== "false";
 
   // 2. Sync utils.QUANTIZATION.groove so randomizeGroove() uses the live step
   utils.QUANTIZATION.groove = _step;
@@ -111,6 +115,9 @@ export function initAdvancedMode() {
   const anchorToggle = document.getElementById("grooveAnchorToggle");
   if (anchorToggle) anchorToggle.checked = _grooveAnchor === "max";
 
+  const dashToggle = document.getElementById("patternDashboardToggle");
+  if (dashToggle) dashToggle.checked = _dashboardEnabled;
+
   // 6. Wire event listeners
   _wireToggle(modeToggle);
   _wireStepInput(stepInput);
@@ -118,6 +125,7 @@ export function initAdvancedMode() {
   _wireOwnershipGuard();
   _wireAdjustButtons();
   _wireGrooveAnchorToggle(anchorToggle);
+  _wireDashboardToggle(dashToggle);
 
   // 7. Re-render chip whenever a relevant setting changes
   document.addEventListener("advancedSettings:changed", _renderChip);
@@ -135,9 +143,14 @@ export function restoreDefaults() {
   localStorage.removeItem("userGrooveNames");
   localStorage.removeItem("userGroovePatterns");
   localStorage.removeItem("grooveEditorState");
+  localStorage.removeItem("patternDashboardEnabled");
   localStorage.clear();
   localStorage.setItem("darkMode", prefersDark ? "true" : "false");
   location.reload();
+}
+
+export function isDashboardEnabled(enabled) {
+  return _dashboardEnabled;
 }
 
 // ── Private: anchor grid helpers ───────────────────────────────
@@ -192,6 +205,25 @@ function _wireGrooveAnchorToggle(toggle) {
     _grooveAnchor = toggle.checked ? "max" : "min";
     localStorage.setItem("grooveAnchor", _grooveAnchor);
     debugLog("advancedMode", `grooveAnchor set to ${_grooveAnchor}`);
+  });
+}
+
+function _wireDashboardToggle(toggle) {
+  if (!toggle) return;
+  toggle.addEventListener("change", () => {
+    _dashboardEnabled = toggle.checked;
+    localStorage.setItem("patternDashboardEnabled", _dashboardEnabled);
+    debugLog(
+      "advancedMode",
+      `patternDashboardEnabled set to ${_dashboardEnabled}`
+    );
+
+    // Dispatch event so visuals.js can react if the metronome is idle
+    document.dispatchEvent(
+      new CustomEvent("metronome:visualModeChanged", {
+        detail: { enabled: _dashboardEnabled },
+      })
+    );
   });
 }
 
@@ -466,6 +498,7 @@ function _wireOwnershipGuard() {
       "cancelGrooveBtn",
       "clearGrooveBtn",
       "deleteGrooveBtn",
+      "patternDashboardToggle",
       "patNumerator",
       "patDenominator",
       "patSubdivision",
