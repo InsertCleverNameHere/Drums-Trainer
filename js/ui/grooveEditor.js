@@ -8,6 +8,7 @@ import * as grooveStorage from "../grooveStorage.js";
 import { patternScheduler } from "../patternScheduler.js";
 import { showNotice } from "./sliders.js";
 import { isAdvancedMode } from "./advancedMode.js";
+import { generateMeasureLayout } from "../visuals.js";
 import { debugLog } from "../debug.js";
 
 // --- Internal State ---
@@ -265,6 +266,35 @@ function _renderGrid() {
 
   gsap.killTweensOf(grid.querySelectorAll(".groove-cell"));
   grid.innerHTML = "";
+
+  // --- NEW: Phonation Labels Header Row ---
+  const labelsRow = document.createElement("div");
+  labelsRow.className = "groove-track labels-header";
+
+  const spacer = document.createElement("span");
+  spacer.className = "groove-track-label"; // Fixed width spacer
+  labelsRow.appendChild(spacer);
+
+  const labelsCont = document.createElement("div");
+  labelsCont.className = "groove-track-cells labels-container";
+
+  // Use visuals.js logic to get labels for one measure
+  const layout = generateMeasureLayout(
+    { beats: rhythm.beats, value: rhythm.value },
+    rhythm.ticksPerBeat
+  );
+
+  // Repeat labels for total measure count
+  for (let m = 0; m < rhythm.measures; m++) {
+    layout.forEach((item) => {
+      const label = document.createElement("span");
+      label.className = "groove-cell-label";
+      label.textContent = item.label;
+      labelsCont.appendChild(label);
+    });
+  }
+  labelsRow.appendChild(labelsCont);
+  grid.appendChild(labelsRow);
 
   tracks.forEach((trackID) => {
     const row = document.createElement("div");

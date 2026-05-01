@@ -1227,6 +1227,8 @@ button#installBtn.utility-button:active {
   align-items: center;
   flex-wrap: nowrap;
   gap: 14px;
+  min-height: 160px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 14px;
   padding: 0 10px;
   overflow: hidden;
@@ -1235,6 +1237,15 @@ button#installBtn.utility-button:active {
   background: var(--bg-secondary);
   border-radius: 12px;
   box-shadow: inset 0 1px 3px var(--shadow);
+}
+
+/* --- Pattern Mode Layout --- */
+#beat-indicator-container.pattern-mode {
+  flex-direction: column;
+  gap: 20px;
+  padding: 50px 10px;
+  min-height: unset;
+  height: auto;
 }
 
 /* --- Wrapper & Text Alignment Fix --- */
@@ -1273,7 +1284,99 @@ button#installBtn.utility-button:active {
   height: 36px;
 }
 
-/* --- Restored Flashing & Accent Logic --- */
+#beat-indicator-container.pattern-mode {
+  flex-direction: column;
+  gap: 20px;
+  /* Reserved 70px on left for labels to prevent overlap */
+  padding: 20px 20px 50px 70px;
+  min-height: unset;
+  height: auto;
+}
+
+.pattern-row {
+  display: flex;
+  gap: 0 7 px;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+  position: relative;
+}
+
+.pattern-row-label {
+  position: absolute;
+  /* Shifted into the 70px gutter */
+  left: -60px;
+  width: 50px;
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  user-select: none;
+  pointer-events: none;
+}
+
+.pattern-dot {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%; /* Mandatory: Circular design */
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  opacity: 0.3;
+  transition: all 0.1s ease;
+  box-shadow: 0 1px 3px var(--shadow);
+  flex-shrink: 0;
+}
+
+/* Active hit in the pattern */
+.pattern-dot.active {
+  opacity: 0.6;
+  background: var(--text-secondary);
+  border-color: var(--text-secondary);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+/* The vertical playhead highlight */
+.pattern-dot.playing {
+  outline: 3px solid var(--text-primary);
+  outline-offset: 3px;
+  opacity: 0.9;
+  z-index: 2;
+}
+
+.pattern-dot.active.playing {
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Instrument-specific colors for active dots */
+.pattern-row[data-track="hihat"] .pattern-dot.active {
+  background: #46f0f0;
+  border-color: #46f0f0;
+}
+.pattern-row[data-track="kick"] .pattern-dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.pattern-row[data-track="snare"] .pattern-dot.active {
+  background: #3cb44b;
+  border-color: #3cb44b;
+}
+.pattern-row[data-track="HHPed"] .pattern-dot.active {
+  background: #ffe119;
+  border-color: #ffe119;
+}
+
+/* Phonation labels in pattern mode */
+.pattern-labels-row {
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* --- Flashing & Accent Logic --- */
 .beat-dot {
   /* Keep the smooth transition */
   transition: all 0.15s ease;
@@ -1286,17 +1389,17 @@ button#installBtn.utility-button:active {
   outline: 1px solid transparent;
 }
 
-/* COLOR for Accent Beats (Downbeat) - RESTORED */
+/* COLOR for Accent Beats (Downbeat) */
 .beat-dot.flashing.accent-flash {
   background-color: #b22222; /* Red */
 }
 
-/* COLOR for Normal Beats - RESTORED */
+/* COLOR for Normal Beats */
 .beat-dot.flashing.normal-flash {
   background-color: #006400; /* Green */
 }
 
-/* --- Flashing Text Colors (Unchanged) --- */
+/* --- Flashing Text Colors --- */
 .phonation-text.flash-primary {
   color: #b22222;
 }
@@ -1937,6 +2040,26 @@ button#installBtn.utility-button:active {
 
 .groove-cell.downbeat {
   border-left: 2px solid var(--accent);
+}
+
+.groove-cell-label {
+  width: 28px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.labels-header {
+  margin-bottom: 4px;
+  pointer-events: none;
+}
+
+.labels-container {
+  gap: 3px; /* Must match .groove-track-cells gap */
+  padding-left: 6px; /* Must match fixed playhead gutter */
 }
 
 #trackToggles {

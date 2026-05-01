@@ -15,6 +15,8 @@ import { initWakeLock } from "./ui/wakeLock.js";
 import { initAdvancedMode } from "./ui/advancedMode.js";
 import { patternScheduler } from "./patternScheduler.js";
 import { initGrooveEditor, updatePlayhead } from "./ui/grooveEditor.js";
+import { loadDrumSamples } from "./sampleLoader.js";
+import { ensureAudio } from "./audioProfiles.js";
 
 // Expose explicitly (redundant but safe)
 window.Profiler = Profiler;
@@ -146,6 +148,7 @@ if (document.readyState === "loading") {
     controls.initTempoSyncedUI();
     controls.initTimeSignatureUI();
     initGrooveEditor();
+    loadDrumSamples(); // Load audio samples before initializing related UI
     uiController.initAllUI(); // Hotkeys + sliders
     initWakeLock();
   });
@@ -180,6 +183,7 @@ if (document.readyState === "loading") {
   controls.initTempoSyncedUI();
   controls.initTimeSignatureUI();
   initGrooveEditor();
+  loadDrumSamples(); // Load audio samples before initializing related UI
   uiController.initAllUI(); // Hotkeys + sliders
   initWakeLock();
 }
@@ -302,3 +306,20 @@ requestAnimationFrame(() => {
 });
 
 uiController.initUpdateUI();
+
+// --- Global AudioContext Unlocker ---
+// Browsers suspend audio until a user gesture. This one-time listener
+// ensures the clock is running as soon as the user touches the app.
+const unlockAudio = () => {
+  const ctx = ensureAudio();
+  if (ctx.state === "suspended") {
+    ctx.resume().then(() => {
+      debugLog("audio", "🔊 AudioContext Unlocked & Running");
+    });
+  }
+  window.removeEventListener("click", unlockAudio);
+  window.removeEventListener("keydown", unlockAudio);
+};
+
+window.addEventListener("click", unlockAudio);
+window.addEventListener("keydown", unlockAudio);
