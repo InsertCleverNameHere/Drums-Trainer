@@ -4,7 +4,7 @@
  * @module patternScheduler
  */
 
-import { ensureAudio } from "./audioProfiles.js";
+import { ensureAudio, isMuted } from "./audioProfiles.js";
 import { getSampleBuffer } from "./sampleLoader.js";
 
 let _activePattern = null;
@@ -47,6 +47,8 @@ export const patternScheduler = {
    */
   onTick(tickIndex, time) {
     if (!_activePattern || _stepCount === 0) return false;
+
+    if (isMuted()) return true; // Suppress audio if muted, but still return true to keep metronome silent
 
     const audioCtx = ensureAudio();
     const currentStep = tickIndex % _stepCount;

@@ -55,6 +55,19 @@ const SOUND_PROFILES = {
 // Active profile state
 let activeProfileName = "digital";
 
+// --- Persisted Mute State ---
+let _isMuted = localStorage.getItem("audioMuted") === "true";
+
+export function isMuted() {
+  return _isMuted;
+}
+
+export function setMuted(val) {
+  _isMuted = !!val;
+  localStorage.setItem("audioMuted", _isMuted);
+  debugLog("audio", `🔇 Audio Mute: ${_isMuted}`);
+}
+
 // =========================
 // Public API
 // =========================
@@ -127,7 +140,8 @@ export function getAvailableProfiles() {
  * @internal
  */
 export function playTick(isAccent) {
-  if (!audioCtx) return;
+  // Check mute state and audio context availability
+  if (!audioCtx || isMuted()) return;
 
   const profileName = getActiveProfile();
   const profile = SOUND_PROFILES[profileName] || SOUND_PROFILES.digital;

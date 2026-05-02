@@ -19,6 +19,7 @@
 16. Simple / Advanced Mode
 17. Responsive Media Queries
 18. Groove Pattern Editor
+19. Mute button
 ================================================== */
 
 /* ============================================
@@ -335,8 +336,7 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   position: relative;
-  min-height: 160px;
-  padding-top: 12px;
+  margin-top: 15px;
 }
 .beat-dot,
 .beat-dot-simple {
@@ -378,10 +378,11 @@ button:disabled {
 ============================================ */
 
 #metronomeVisualsSimple {
-  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  margin-top: 15px;
 }
 
 #simpleMetronomeDot.pulse {
@@ -2136,4 +2137,62 @@ button#installBtn.utility-button:active {
 .saved-badge {
   color: #4caf50;
   font-weight: bold;
+}
+
+/* ============================================
+🥁 19. Mute Button
+============================================ */
+.mute-toggle-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  min-width: 36px; /* Prevent flex/layout distortion */
+  min-height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  z-index: 20;
+  margin-top: 0 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+}
+
+.mute-toggle-btn:hover {
+  background: var(--border);
+  transform: scale(1.05);
+}
+
+/* Default: Unmuted state */
+.mute-toggle-btn .muted-icon {
+  display: none;
+}
+.mute-toggle-btn .unmuted-icon {
+  display: block;
+}
+
+/* Muted state: Driven by the HTML attribute for zero-flicker */
+[data-audio-muted="true"] .mute-toggle-btn {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--bg-primary);
+}
+
+[data-audio-muted="true"] .mute-toggle-btn .unmuted-icon {
+  display: none !important;
+}
+
+[data-audio-muted="true"] .mute-toggle-btn .muted-icon {
+  display: block !important;
+}
+
+.mute-toggle-btn svg {
+  width: 20px;
+  height: 20px;
 }

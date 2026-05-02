@@ -6,11 +6,12 @@
  * @module uiController
  */
 
-import { debugLog } from "./debug.js";
+import * as audioProfiles from "./audioProfiles.js";
 import { VISUAL_TIMING } from "./constants.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
+import { debugLog } from "./debug.js";
 
 // Import UI submodules
 import { initDarkMode } from "./ui/theme.js";
@@ -223,6 +224,58 @@ export function initUI(deps) {
       }
     });
   }
+}
+
+/**
+ * Initializes the Audio Privacy (Mute) buttons across both panels.
+ * Synchronizes state between buttons and reflects current localStorage preference.
+ */
+export function initMuteControl() {
+  const muteBtns = document.querySelectorAll(".mute-toggle-btn");
+  if (muteBtns.length === 0) return;
+
+  /**
+   * Updates all mute button icons and classes based on the current state.
+   * @param {boolean} muted
+   */
+  const updateMuteUI = (muted) => {
+    // Synchronize HTML attribute for the CSS engine
+    if (muted) {
+      document.documentElement.setAttribute("data-audio-muted", "true");
+    } else {
+      document.documentElement.removeAttribute("data-audio-muted");
+    }
+
+    muteBtns.forEach((btn) => {
+      // We no longer strictly need the .muted class on the button itself,
+      // but keeping it for potential CSS transitions or specific overrides
+      btn.classList.toggle("muted", muted);
+    });
+  };
+
+  // 1. Initial Sync: Reflect saved preference immediately on load
+  updateMuteUI(audioProfiles.isMuted());
+
+  // 2. Wire Clicks: Toggle state and sync all buttons
+  muteBtns.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevent any parent click events
+
+      const isCurrentlyMuted = audioProfiles.isMuted();
+      const newState = !isCurrentlyMuted;
+
+      // Update the logic/storage
+      audioProfiles.setMuted(newState);
+
+      // Update all buttons in the UI
+      updateMuteUI(newState);
+
+      debugLog(
+        "state",
+        `🔊 Audio Privacy toggled: ${newState ? "MUTED" : "UNMUTED"}`
+      );
+    });
+  });
 }
 
 /**

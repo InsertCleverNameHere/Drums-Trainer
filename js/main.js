@@ -148,6 +148,7 @@ if (document.readyState === "loading") {
     controls.initTempoSyncedUI();
     controls.initTimeSignatureUI();
     initGrooveEditor();
+    uiController.initMuteControl(); // Sync mute state
     loadDrumSamples(); // Load audio samples before initializing related UI
     uiController.initAllUI(); // Hotkeys + sliders
     initWakeLock();
@@ -183,6 +184,7 @@ if (document.readyState === "loading") {
   controls.initTempoSyncedUI();
   controls.initTimeSignatureUI();
   initGrooveEditor();
+  uiController.initMuteControl(); // Sync mute state
   loadDrumSamples(); // Load audio samples before initializing related UI
   uiController.initAllUI(); // Hotkeys + sliders
   initWakeLock();
