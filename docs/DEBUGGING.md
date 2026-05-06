@@ -29,14 +29,15 @@ DEBUG.audio = false; // etc.
 
 ### Category Details
 
-| Category    | What It Logs                                            |
-| ----------- | ------------------------------------------------------- |
-| `audio`     | Scheduler ticks, BPM changes, count-in audio            |
-| `visuals`   | Phrase boundaries, pattern comparisons, GSAP animations |
-| `ownership` | Mode ownership claims/releases (groove/simple/null)     |
-| `hotkeys`   | Keyboard events, target modes, blocked actions          |
-| `timing`    | Performance measurements (warns if >16.67ms)            |
-| `state`     | Button states, input validation, session lifecycle      |
+| Category       | What It Logs                                                     |
+| -------------- | ---------------------------------------------------------------- |
+| `audio`        | Scheduler ticks, BPM changes, count-in audio                     |
+| `visuals`      | Phrase boundaries, pattern comparisons, GSAP animations          |
+| `ownership`    | Mode ownership claims/releases (groove/simple/null)              |
+| `hotkeys`      | Keyboard events, target modes, blocked actions                   |
+| `timing`       | Performance measurements (warns if >16.67ms)                     |
+| `state`        | Button states, input validation, session lifecycle               |
+| `advancedMode` | Mode toggles, step changes, chip rendering, dashboard preference |
 
 ---
 
@@ -101,7 +102,8 @@ DEBUG.state = true;
 
 // Try switching modes or starting metronomes:
 // - "Owner changed: null → groove" (expected)
-// - "Cannot start simple metronome: owner is groove" (expected conflict)
+// - "Owner changed: null → editing" (entering pattern editor)
+// - "Cannot start simple metronome: owner is editing" (expected conflict)
 // - Check for unexpected ownership changes
 ```
 
@@ -158,11 +160,14 @@ DEBUG.timing = true;
 - Are event listeners being removed?
 - Are timers being cleared? (`clearTimeout`, `clearInterval`)
 
-**Expected Memory Growth**:
+**Expected Memory Baseline**:
 
-- 60-120 BPM: <2 MB per 5 minutes ✅
-- 180-240 BPM: 3-4 MB per 5 minutes ✅
-- 300 BPM with 16ths: ~6 MB per 3 minutes (edge case) ⚠️
+- **Footprint**: 15–18 MB (Baseline includes pre-cached WAV buffers).
+- **Dashboard Mode**: Expect ~2 MB increase over standard mode.
+- **Growth**: Negligible (< 1 MB per 10 minutes of practice).
+
+**Leak Detection**:
+If the node count reported by the "Churn Monitor" macro exceeds 50 during a 4/4 session, or if heap usage climbs consistently above 25 MB, verify that `gsap.killTweensOf` is reaching every container in `renderNewPhrase`.
 
 ### 6. Wake Lock Issues
 
@@ -173,6 +178,21 @@ DEBUG.timing = true;
 **Issue**: "Released by system" log appearing twice
 **Cause**: Event listener wasn't removed before manual release.
 **Solution**: Fixed in `wakeLock.js` via `handleSystemRelease`.
+
+---
+
+### 7. Sampler & Pattern Sync Issues
+
+**Symptoms**: No drum sounds, playhead missing, beeps still audible with patterns.
+
+**Debug**:
+
+1. Check if samples are loaded:
+   `import('./js/sampleLoader.js').then(m => console.log(m.getSampleBuffer('kick')))`
+2. Verify Handshake:
+   `window.sessionEngine.getActiveModeOwner()` should return `"editing"` while editor is open.
+3. Check Suppression:
+   Start pattern. Visual callback must return `true` to silence default beep.
 
 ---
 
@@ -251,6 +271,28 @@ window.AudioContext.prototype.createOscillator = function () {
   return osc;
 };
 // Start metronome with count-in enabled
+```
+
+### Pattern and Sample Tests
+
+```javascript
+// 1. Check if a pattern is active in the scheduler
+import("./js/patternScheduler.js").then((m) =>
+  console.log("Active:", m.patternScheduler.isActive())
+);
+
+// 2. Verify drum sample presence
+import("./js/sampleLoader.js").then((m) => {
+  const buf = m.getSampleBuffer("kick");
+  console.log(buf ? "✅ Kick loaded" : "❌ Kick missing");
+});
+
+// 3. Test multi-measure end-of-cycle
+// Start a 2-bar pattern, then run:
+window.metronome.requestEndOfCycle(
+  () => console.log("End of pattern reached"),
+  2
+);
 ```
 
 ### Ownership Test

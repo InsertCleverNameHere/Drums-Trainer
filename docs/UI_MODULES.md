@@ -13,6 +13,7 @@ js/
 ├── uiController.js         (~440 lines)  Main orchestrator
 └── ui/
     ├── advancedMode.js     (~500 lines)  Simple/Advanced toggle, step, chip, steppers
+    ├── grooveEditor.js     (~450 lines)  Pattern grid, State A/B logic, list management
     ├── theme.js            (~133 lines)  Dark mode
     ├── hotkeys.js          (~235 lines)  Keyboard shortcuts (dynamic step-aware)
     ├── sliders.js          (~308 lines)  noUiSlider, blur-pair validation
@@ -42,6 +43,7 @@ js/
 - `initUI(deps)` - Initialize main UI
 - `initOwnershipGuards()` - Prevent mode conflicts
 - `updateFooterMessage()` - Version display
+- `initMuteControl`
 - `initUpdateUI()` - Update check UI
 - `initAllUI()` - Initialize all submodules
 - Re-exports: `initDarkMode`, `showNotice`, `initSoundProfileUI`, `initSimplePanelControls`, `initAdvancedMode`, `restoreDefaults`, `isAdvancedMode`, `getQuantizationStep`
@@ -54,6 +56,7 @@ js/
 - Update check UI
 - Simple metronome UI sync
 - Ownership guards
+- Audio Privacy (Mute) synchronization
 
 ---
 
@@ -74,6 +77,7 @@ js/
 - `getSimpleBpmAnchor()` / `setSimpleBpmAnchor(v)` - simpleBpm anchor
 - `snapToGrid(value, step, anchor, min, max)` - Anchor-relative snap
 - `restoreDefaults()` - Full reset + reload
+- `isDashboardEnabled()`
 
 **Responsibilities**:
 
@@ -84,11 +88,37 @@ js/
 - Wires ± stepper buttons by synthesising `KeyboardEvent` on `window` (hotkeys pipeline reuse)
 - Ownership guard: disables toggle/step/anchor controls during playback
 - `_correctMarginIfViolated()`: adjusts bpmMin/bpmMax when a new step makes gap < step
+- Management of `editing` state to the ownership guard for bidirectional lockout.
+- Persistence and management of the Multi-track Dashboard preference.
 
 **BPM grid rules**:
 
 - `bpmMin`/`bpmMax`: hard-limit clamp only on blur; no snap. Margin enforced via blur-pair deferral in `sliders.js` (`checkGrooveMargin`). `lastValidValue` written only by `checkGrooveMargin`.
 - `simpleBpm`: anchor-relative snap on blur. Anchor = last blurred simpleBpm value. Updated by `setSimpleBpmAnchor()` from `sliders.js`.
+
+---
+
+### `js/ui/grooveEditor.js`
+
+**Imports**:
+
+- `grooveStorage.js` - Data persistence
+- `patternScheduler.js` - Audio sync
+- `visuals.js` - Layout generator
+
+**Exports**:
+
+- `initGrooveEditor()` - Initialize A/B state, list restoration, and grid listeners.
+- `updatePlayhead(tick)` - Drive visual highlight on the pattern grid.
+- `forceStateA()` - Revert to textarea when switching to Simple Mode.
+
+**Responsibilities**:
+
+- State A/B Management: GSAP-powered transitions between raw textarea and chip list.
+- Grid Rendering: Dynamic 4-track grid generation based on local rhythmic sovereignty.
+- Data Reconciliation: Syncing local UI inputs with persistent pattern storage.
+- Storage UX: "Replacement Mode" flow for handling the 100-pattern capacity limit.
+- Ownership: Claiming `"editing"` owner state to lock metronome controls.
 
 ---
 
@@ -276,6 +306,7 @@ main.js
   ↓
 uiController.js
   ├─→ advancedMode.js ─→ debug, constants, utils
+  ├─→ grooveEditor.js ─→ debug, grooveStorage, patternScheduler, visuals, advancedMode
   ├─→ theme.js ─────────→ debug, constants, utils
   ├─→ hotkeys.js ───────→ debug, constants, sessionEngine, simpleMetronome, sliders, advancedMode
   ├─→ sliders.js ───────→ debug, constants, utils, advancedMode
@@ -310,21 +341,25 @@ uiController.js
 
 ### Custom Events Dispatched
 
-| Event                    | Module             | Payload                               | Purpose                                |
-| ------------------------ | ------------------ | ------------------------------------- | -------------------------------------- |
-| `panningModeChanged`     | controls.js        | `{intelligent: boolean}`              | Notify visuals.js of mode change       |
-| `metronome:ownerChanged` | sessionEngine.js   | `{owner: string\|null}`               | Notify all modules of ownership change |
-| `simpleMetronome:state`  | simpleMetronome.js | `{running: boolean, paused: boolean}` | Notify UI of state change              |
-| `toggleTooltip`          | uiController.js    | none                                  | Toggle help dialog                     |
+| Event                        | Module             | Payload                               | Purpose                                  |
+| ---------------------------- | ------------------ | ------------------------------------- | ---------------------------------------- |
+| `panningModeChanged`         | controls.js        | `{intelligent: boolean}`              | Notify visuals.js of mode change         |
+| `metronome:ownerChanged`     | sessionEngine.js   | `{owner: string\|null}`               | Notify all modules of ownership change   |
+| `simpleMetronome:state`      | simpleMetronome.js | `{running: boolean, paused: boolean}` | Notify UI of state change                |
+| `toggleTooltip`              | uiController.js    | none                                  | Toggle help dialog                       |
+| `metronome:timeSigChanged`   | controls.js        | {beats, value, ticksPerBeat}          | Notify Editor Grid to re-render          |
+| `metronome:visalmodeChanged` | advancedMode.js    | {enabled: boolean}                    | Notify visuals.js to swap Dashboard mode |
 
 ### Custom Events Listened
 
-| Event                    | Module                 | Handler                   |
-| ------------------------ | ---------------------- | ------------------------- |
-| `DOMContentLoaded`       | theme.js               | initQuantization()        |
-| `metronome:ownerChanged` | controls.js, panels.js | Enable/disable controls   |
-| `simpleMetronome:state`  | uiController.js        | Update simple panel UI    |
-| `toggleTooltip`          | uiController.js        | Toggle tooltip visibility |
+| Event                        | Module                 | Handler                   |
+| ---------------------------- | ---------------------- | ------------------------- |
+| `DOMContentLoaded`           | theme.js               | initQuantization()        |
+| `metronome:ownerChanged`     | controls.js, panels.js | Enable/disable controls   |
+| `simpleMetronome:state`      | uiController.js        | Update simple panel UI    |
+| `toggleTooltip`              | uiController.js        | Toggle tooltip visibility |
+| `metronome:timeSigChanged`   | grooveEditor.js        | -                         |
+| `metronome:visalmodeChanged` | visuals.js             | -                         |
 
 ---
 
@@ -342,19 +377,23 @@ uiController.js
 
 ### localStorage Keys
 
-| Key                      | Module          | Type              | Purpose                         |
-| ------------------------ | --------------- | ----------------- | ------------------------------- |
-| `darkMode`               | theme.js        | `"true"\|"false"` | Theme preference                |
-| `intelligentPanningMode` | controls.js     | `"true"\|"false"` | Reduce Motion preference        |
-| `activeSoundProfile`     | controls.js     | string            | Active sound profile            |
-| `lastSeenVersion`        | uiController.js | string            | Version tracking                |
-| `lastSeenHash`           | uiController.js | string            | Hash tracking                   |
-| `cachedMsgCount`         | uiController.js | number            | Footer message suppression      |
-| `updateMsgCount`         | uiController.js | number            | Footer message suppression      |
-| `wakeLockEnabled`        | wakeLock.js     | `"true"\|"false"` | Wake lock preference            |
-| `advancedMode`           | advancedMode.js | `"true"\|"false"` | Simple/Advanced mode preference |
-| `bpmQuantizationStep`    | advancedMode.js | number string     | User-defined BPM step (1–150)   |
-| `grooveAnchor`           | advancedMode.js | `"min"\|"max"`    | Groove grid anchor direction    |
+| Key                       | Module           | Type              | Purpose                         |
+| ------------------------- | ---------------- | ----------------- | ------------------------------- |
+| `darkMode`                | theme.js         | `"true"\|"false"` | Theme preference                |
+| `intelligentPanningMode`  | controls.js      | `"true"\|"false"` | Reduce Motion preference        |
+| `activeSoundProfile`      | controls.js      | string            | Active sound profile            |
+| `lastSeenVersion`         | uiController.js  | string            | Version tracking                |
+| `lastSeenHash`            | uiController.js  | string            | Hash tracking                   |
+| `cachedMsgCount`          | uiController.js  | number            | Footer message suppression      |
+| `updateMsgCount`          | uiController.js  | number            | Footer message suppression      |
+| `wakeLockEnabled`         | wakeLock.js      | `"true"\|"false"` | Wake lock preference            |
+| `advancedMode`            | advancedMode.js  | `"true"\|"false"` | Simple/Advanced mode preference |
+| `bpmQuantizationStep`     | advancedMode.js  | number string     | User-defined BPM step (1–150)   |
+| `grooveAnchor`            | advancedMode.js  | `"min"\|"max"`    | Groove grid anchor direction    |
+| `userGrooveNames`         | grooveEditor.js  | string            | Persisted practice list content |
+| `patternDashboardEnabled` | advancedMode.js  | `"true"\|"false"` | User visual preference (rows)   |
+| `audioMuted`              | audioProfiles.js | `"true"\|"false"` | Audio privacy preference        |
+| `grooveEditorState`       | grooveEditor.js  | `"text"\|"list"`  | State A/B UI choice persistence |
 
 ---
 
@@ -386,6 +425,13 @@ Run in DevTools console against live page. Covers all of the below:
 - [x] Ownership: tabs lock during playback, re-enable on stop
 - [x] Tap tempo unaffected by custom step (always step=5)
 - [ ] Visual regression tests
+- [x] Mute Sync: Toggling mute on Groove panel updates Simple panel icon instantly.
+- [x] Mute FUOC: Mute state persists through refresh with zero "White-to-Red" flicker.
+- [x] State Persistence: Textarea list and "Confirm Names" state survive page reloads.
+- [x] Sovereignty: Programmed 7/8 pattern overrides global 4/4 metronome and grays out controls.
+- [x] Multi-measure: 2-bar pattern plays to end of 2nd bar before stopping cycle.
+- [x] Replacement: Saving 101st pattern triggers chip-list "Confirm?" overwrite flow.
+- [x] Exclusivity: Opening the Editor disables the metronome "Start" buttons (Owner: editing).
 
 ---
 

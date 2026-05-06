@@ -20,9 +20,12 @@
 └── styles.css 🎨 Main stylesheet (layout, theme, dropdowns)
 
 📁 js/
-├── audioProfiles.js 🎧 Procedural sound profiles (Digital, Soft, Ping, Bubble, Clave)
+├── audioProfiles.js 🎧 Sound profile manager (Oscillator & Sample support)
+├── grooveStorage.js 💾 LocalStorage layer for patterns and name lists
 ├── metronomeCore.js 🧠 Groove metronome core logic
-├── sessionEngine.js 🎛 Session lifecycle, timing, and ownership
+├── patternScheduler.js 🥁 Rhythmic engine for programmed grooves
+├── sampleLoader.js 📦 WAV asset fetcher and buffer cache
+├── sessionEngine.js 🎛 Session lifecycle, timing, and pattern automation
 ├── simpleMetronome.js 🎚 Simple metronome UI controller
 ├── simpleMetronomeCore.js 🪘 Lightweight simple metronome audio core
 ├── uiController.js 🧩 Global UI binding and event management
@@ -33,6 +36,7 @@
 ├── main.js 🚀 Entry point — initializes modules, handles profile sync
 └── 📁 ui/
     ├── advancedMode.js 🔬 Simple/Advanced toggle, BPM step, chip row, stepper buttons
+    ├── grooveEditor.js 🖋️ Pattern grid UI, State A/B logic, and chip list
     ├── theme.js 🌙 Dark mode toggle
     ├── hotkeys.js ⌨️ Keyboard shortcuts (dynamic step-aware)
     ├── sliders.js 🎚️ noUiSlider instances, blur-pair validation
@@ -292,57 +296,45 @@
 
 ---
 
-### 🔮 Phase 5.2 — Groove Pattern Editor
+### ✅ Phase 5.2 — Groove Pattern Editor & Persistence — COMPLETED
 
-> **Estimated dev time: 4–6 days**
-> **Requires:** Phase 5.1 complete
+#### The Sampler & Rhythmic Engine
 
-- Visual beat grid: four instrument rows (Hi-Hat, Kick, Snare, Hi-Hat
-  Control), displayed as a sequence of tappable circles
-- Click / tap toggles a hit on or off per step per instrument
-- Grid is time-signature-aware (step count derived from beats × subdivision)
-- Active circles light up and play in sync with the running metronome
-- Supports grooves spanning multiple measures (e.g. Bossa Nova = 2 bars)
-- Optional preview playback for testing a pattern without starting a full
-  session
-- Available in Advanced Mode only; hidden in Simple Mode
+- **Acoustic Drum Kit**: High-fidelity WAV samples for Kick, Snare, Hi-Hat, and Pedal.
+- **Sample-Based Metronome**: New "Crossstick" profile using acoustic assets.
+- **Pattern Scheduler**: Sample-accurate triggering of drum hits synced to the metronome clock.
+- **Rhythmic Suppression**: Logic to silence the metronome "beep" when a pattern hit is active.
 
----
+#### The Pattern Editor (Advanced Mode Only)
 
-### 🔮 Phase 5.3 — User Groove Persistence
+- **Two-State UI**: Seamless GSAP transition between raw Textarea (State A) and Interactive Chip List (State B).
+- **Multi-Track Grid**: Sovereign rhythmic grid (HH, Kick, Snare, Pedal) with local Time Signature, Subdivision, and Measure controls.
+- **Sovereign Overrides**: Patterns automatically override global metronome settings during playback and restore them on completion.
+- **Visual Dashboard**: 4-row visualizer display synced to the pattern, featuring a vertical playhead and rhythmic color-coding.
+- **User Preference**: A toggle to switch the visualizer between the 4-track Dashboard and the standard single-row view.
 
-> **Estimated dev time: 2–3 days**
-> **Requires:** Phase 5.2 complete
+#### Persistence & Security
 
-- Save, edit, rename, and delete user-defined groove patterns
-- Stored in `localStorage` as JSON (lightweight, offline-ready)
-- Example stored structure:
+- **Smart Storage**: Persistent `localStorage` for both rhythmic patterns and the custom groove name list.
+- **Replacement Mode**: Intelligent handling of the 100-pattern storage limit with non-intrusive overwrite flow.
+- **Bidirectional Ownership**: Rigid mutual exclusivity between the Editor and the Metronome to prevent state corruption.
+- **Audio Privacy**: Floating Mute/Unmute toggle with zero-flicker reload state and cross-panel synchronization.
 
-  ```json
-  {
-    "userGrooves": {
-      "My Funk Groove": {
-        "timeSignature": "4/4",
-        "patterns": {
-          "hihat": [1, 0, 1, 0, 1, 0, 1, 0],
-          "snare": [0, 0, 1, 0, 0, 0, 1, 0],
-          "kick": [1, 0, 0, 0, 1, 0, 0, 1]
-        },
-        "measures": 1
-      }
-    }
-  }
-  ```
+#### Delivered
 
-- Automatically reload last-used groove at startup
-- Groove patterns are not tied to a fixed BPM
+- ✅ `js/sampleLoader.js` & `js/patternScheduler.js` — Sampler and Rhythmic logic.
+- ✅ `js/grooveStorage.js` — Data persistence layer.
+- ✅ `js/ui/grooveEditor.js` — Full Editor UI and state machine.
+- ✅ Overhauled `visuals.js` — Dual-mode rendering engine.
+- ✅ Global AudioContext Unlocker in `main.js`.
+- ✅ Integrated Mute logic with FUOC prevention.
 
 ---
 
-### 🔮 Phase 5.4 — Default Groove Library
+### 🔮 Phase 5.3 — Default Groove Library
 
 > **Estimated dev time: 1–2 days**
-> **Requires:** Phase 5.3 complete
+> **Requires:** Phase 5.2 complete
 
 - Small bundled `defaultGrooves.json` with starter patterns
   (e.g. Rock 4/4, Bossa Nova, Funk, Shuffle)
@@ -351,10 +343,10 @@
 
 ---
 
-### 🔮 Phase 5.5 — Accessibility Layer
+### 🔮 Phase 5.4 — Accessibility Layer
 
 > **Estimated dev time: 1–2 days**
-> **Can run in parallel with 5.3 / 5.4**
+> **Can run in parallel with 5.2 / 5.3**
 
 - Keyboard-navigable controls (`Tab`, `Enter`) across all panels
 - `aria-label` attributes on all interactive elements

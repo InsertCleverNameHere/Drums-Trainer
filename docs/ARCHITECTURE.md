@@ -17,14 +17,14 @@ The Random Groove Trainer follows these core principles:
 ```bash
 ┌─────────────────────────────────────────────────────────┐
 │                      index.html                         │
-│  (App Shell — inline FUOC script sets data-theme and    │
-│   html.advanced-mode synchronously before CSS/JS runs)  │
+│  (App Shell — inline FUOC script sets data-theme,       │
+│   audio-muted, and html.advanced-mode synchronously)    │
 └─────────────────────────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────┐
 │                      main.js                            │
-│              (Bootstrap & Orchestration)                │
+│              (Bootstrap, Wiring, & Context Unlock)      │
 └─────────────────────────────────────────────────────────┘
          │              │              │              │
          ▼              ▼              ▼              ▼
@@ -32,10 +32,16 @@ The Random Groove Trainer follows these core principles:
 │sessionEngine│ │uiController │ │  visuals.js │ │  utils.js   │
 │    .js      │ │    .js      │ │             │ │             │
 └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
-         │              │              │
-         ▼              ▼              ▼
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│ metronome   │ │  simple     │ │audioProfiles│
+    │        │          │              │               │
+    ▼        └──────────┼──────────────┤               ▼
+┌─────────────┐         │        ┌─────────────┐ ┌─────────────┐
+│grooveStorage│         │        │  pattern    │ │ sampleLoader│
+│    .js      │         │        │ Scheduler.js│ │     .js     │
+└─────────────┘         │        └─────────────┘ └─────────────┘
+         │              │              │               │
+         ▼              ▼              ▼               │
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │
+│ metronome   │ │  simple     │ │audioProfiles│<───────┘
 │  Core.js    │ │Metronome.js │ │    .js      │
 └─────────────┘ └─────────────┘ └─────────────┘
          │              │              │
@@ -115,6 +121,33 @@ UI submodules (under `js/ui/`): `advancedMode.js`, `theme.js`, `hotkeys.js`, `sl
 - `getAvailableProfiles()` - List all profiles
 
 **Dependencies**: `debug.js`
+
+#### `js/sampleLoader.js`
+
+**Purpose**: Management of acoustic WAV assets.
+**Responsibilities**:
+
+- Asynchronous fetching and decoding of drum samples.
+- Memory caching of AudioBuffers for latency-free playback.
+- Single-point asset manifest for the acoustic kit and WAV-based metronome profiles.
+
+#### `js/patternScheduler.js`
+
+**Purpose**: The rhythmic "brain" for programmed grooves.
+**Responsibilities**:
+
+- Mapping metronome ticks to pattern steps across multiple measures.
+- Triggering sample playback with 1:1 synchronization to the metronome clock.
+- Logic for suppressing standard metronome beeps when a drum hit is scheduled.
+
+#### `js/grooveStorage.js`
+
+**Purpose**: Persistent data layer for user-defined rhythms.
+**Responsibilities**:
+
+- LocalStorage CRUD operations for rhythmic patterns and metadata.
+- Management of the 100-pattern capacity limit.
+- Persistence of the user's custom groove name list.
 
 ---
 
@@ -350,6 +383,19 @@ UI submodules (under `js/ui/`): `advancedMode.js`, `theme.js`, `hotkeys.js`, `sl
 
 ---
 
+#### `js/ui/grooveEditor.js`
+
+**Purpose**: Pattern editing UI and State A/B management.
+**Responsibilities**:
+
+- Managing the transition between raw textarea (State A) and interactive list (State B).
+- Rendering the multi-track rhythmic grid based on local pattern sovereignty.
+- Driving the visual playhead highlight in the editor grid.
+- Handling "Replacement Mode" flow for managing storage capacity.
+- Persisting the Editor's UI state (Text vs List) across reloads.
+
+---
+
 #### `js/simpleMetronome.js`
 
 **Purpose**: Simple metronome panel controller
@@ -563,10 +609,11 @@ Release ownership (null)
 
 **Mechanism**:
 
-- `sessionEngine.getActiveModeOwner()` returns: `"groove"` | `"simple"` | `null`
+- `sessionEngine.getActiveModeOwner()` returns: `"groove"` | `"simple"` | `editing` | `null`
 - Ownership is claimed before starting audio
 - Ownership is released on stop/error
 - UI guards prevent starting conflicting modes
+- Exclusivity : If the app is in `"editing"` mode, the metronomes cannot start. If a metronome is "groove" or "simple", the editor is locked.
 
 **Enforcement Points**:
 
@@ -584,7 +631,14 @@ Release ownership (null)
    setActiveModeOwner("simple");
    ```
 
-3. **Hotkeys** (`uiController.js`):
+3. Editor Open (`"grooveEditor.js"`)
+
+```javascript
+if (owner === "groove" || owner === "simple") return;
+setActiveModeOwner("editing");
+```
+
+4. **Hotkeys** (`uiController.js`):
 
    ```javascript
    if (owner && owner !== target) {
@@ -593,7 +647,7 @@ Release ownership (null)
    }
    ```
 
-4. **Mode Tabs** (`uiController.js`):
+5. **Mode Tabs** (`uiController.js`):
 
    ```javascript
    if (owner === "groove") {
@@ -614,7 +668,9 @@ See [`docs/VISUALS_SYSTEM.md`](./VISUALS_SYSTEM.md) for detailed documentation.
 - Uses GSAP for smooth panning animations
 - Properly manages memory (kills tweens before DOM removal)
 
----
+### **Pattern Dashboard Mode**
+
+## When a pattern is active, the visualizer can switch from "Standard Big Dots" to a 4-track "Acoustic Dashboard" (Kick, Snare, HH, Pedal). This mode is user-configurable via Advanced Settings and uses the same phrase-based logic to maintain visual focus.
 
 ## 🎨 Hierarchical Version Color System
 

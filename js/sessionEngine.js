@@ -403,6 +403,7 @@ export function stopSession(message = "") {
   }
 
   setFinishingBar(false);
+  _toggleGlobalRhythmLock(false);
 
   if (ui.startBtn) {
     ui.startBtn.textContent = "Start";

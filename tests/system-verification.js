@@ -58,7 +58,7 @@
   };
 
   // Click with brief visual highlight
-  const click = async (selector, delayMs = 150) => {
+  const click = async (selector, delayMs = 800) => {
     const el = document.querySelector(selector);
     if (!el) throw new Error(`click: element not found — ${selector}`);
     const orig = el.style.outline;
@@ -92,13 +92,33 @@
   const isVisible = (selector) => {
     const el = document.querySelector(selector);
     if (!el) return false;
-    if (el.classList.contains("hidden")) return false;
-    // Check computed display — catches .advanced-only / .simple-only CSS rules
-    // Element must not be .hidden AND must have a layout position (offsetWidth > 0)
-    // This correctly detects if a parent container is display:none
+    const style = window.getComputedStyle(el);
+    // An element is visible if it's not hidden, has dimensions, and isn't transparent
     return (
-      !el.classList.contains("hidden") && !!(el.offsetWidth || el.offsetHeight)
+      !el.classList.contains("hidden") &&
+      style.display !== "none" &&
+      el.offsetHeight > 0
     );
+  };
+
+  // Polling Helper: Waits up to 'timeout' for element to appear
+  const waitForVisible = async (selector, timeout = 2000) => {
+    const start = performance.now();
+    while (performance.now() - start < timeout) {
+      if (isVisible(selector)) return true;
+      await wait(50); // Check every 50ms
+    }
+    return false;
+  };
+
+  // Ownership Helper: Waits for metronome to release control
+  const waitUntilIdle = async (timeout = 3000) => {
+    const start = performance.now();
+    while (performance.now() - start < timeout) {
+      if (window.sessionEngine.getActiveModeOwner() === null) return true;
+      await wait(100);
+    }
+    return false;
   };
 
   // Safe groove range setter (avoids transient min>max states)
@@ -234,6 +254,19 @@
       "restoreDefaultsBtn",
       "groove-settings-chip",
       "simple-settings-chip",
+      "managePatternsBtn",
+      "editGrooveNamesBtn",
+      "groove-textarea-container",
+      "groove-list-container",
+      "groove-editor-panel",
+      "saveGrooveBtn",
+      "cancelGrooveBtn",
+      "deleteGrooveBtn",
+      "patNumerator",
+      "patDenominator",
+      "patSubdivision",
+      "patMeasures",
+      "patternDashboardToggle",
       // Phase 5.1 — stepper buttons exist (visibility is CSS-controlled)
       // checked via querySelectorAll below
     ];
@@ -656,6 +689,132 @@
       !grooveTab.disabled && !grooveTab.classList.contains("disabled"),
       "Groove tab re-enabled after Simple Metronome stops"
     );
+
+    // =========================================================================
+    // 9. Groove Editor & Persistence (Phase 5.2)
+    // =========================================================================
+    console.log(`\n%c📝 9. Groove Editor & Persistence`, S);
+
+    // --- Ensure metronome is fully stopped before entering Editor tests ---
+    await waitUntilIdle();
+
+    await ensureAdvancedMode();
+    const groovesArea = document.getElementById("grooves");
+    const originalNames = groovesArea.value;
+    const testName = "Verify_" + Date.now();
+
+    // Test Name Persistence
+    groovesArea.value = testName;
+    groovesArea.dispatchEvent(new Event("input", { bubbles: true }));
+
+    await click("#managePatternsBtn");
+    // Wait for the chained animation (Textarea close -> List unhide)
+    const listIsReady = await waitForVisible("#groove-list-container");
+    assert(
+      listIsReady,
+      "State B: Interactive list is visible after transition"
+    );
+
+    // Check Ownership: Metronome Start should be disabled while Editing
+    await click(".edit-pattern-btn");
+    assert(
+      window.sessionEngine.getActiveModeOwner() === "editing",
+      "Ownership: 'editing' claimed correctly"
+    );
+    assert(
+      document.getElementById("startBtn").disabled,
+      "Start button blocked during edit session (Mutual Exclusivity)"
+    );
+
+    // Grid Interaction & Saving
+    await click(".groove-cell", 100); // Toggle a cell
+    await click("#saveGrooveBtn");
+    assert(!isVisible("#groove-editor-panel"), "Editor closed after Save");
+    assert(
+      document.querySelector(".saved-badge"),
+      "Saved badge (✓) appears in list after saving"
+    );
+
+    // =========================================================================
+    // 10. Pattern Sovereignty & Dashboard (Phase 5.2)
+    // =========================================================================
+    console.log(`\n%c🥁 10. Pattern Sovereignty & Dashboard`, S);
+
+    // Set 7/8 local rhythm in the editor
+    await click(".edit-pattern-btn");
+    const pDen = document.getElementById("patDenominator");
+    pDen.value = "8";
+    pDen.dispatchEvent(new Event("change"));
+    await type("#patNumerator", "7");
+    await click("#saveGrooveBtn");
+
+    // Set high BPM for fast tick detection
+    await type("#bpmMin", "180");
+    await type("#bpmMax", "190");
+
+    await click("#startBtn");
+    console.log("   ⏳ Waiting for metronome pulse (2.5s)...");
+    await wait(2500); // Account for count-in and first ticks
+
+    // Verify Core Override
+    const coreSig = window.metronome.getTimeSignature();
+    assert(
+      coreSig.beats === 7 && coreSig.value === 8,
+      `Sovereignty: Metronome Core playing in ${coreSig.beats}/${coreSig.value}`
+    );
+    assert(
+      document.getElementById("groovePresetSelect").disabled,
+      "UI Lockout: Global rhythm controls locked"
+    );
+
+    // Dashboard Class Check
+    const container = document.getElementById("beat-indicator-container");
+    if (document.getElementById("patternDashboardToggle").checked) {
+      assert(
+        container.classList.contains("pattern-mode"),
+        "Dashboard: .pattern-mode class applied to visualizer"
+      );
+    }
+
+    await click("#startBtn"); // Stop
+    await wait(1000);
+    assert(
+      !document.getElementById("groovePresetSelect").disabled,
+      "UI Unlock: Global controls re-enabled after session stop"
+    );
+
+    // =========================================================================
+    // 11. Audio Privacy (Mute) (Phase 5.2)
+    // =========================================================================
+    console.log(`\n%c🔇 11. Audio Privacy (Mute Sync)`, S);
+
+    const initialMuteState =
+      document.documentElement.hasAttribute("data-audio-muted");
+    await click(".mute-toggle-btn");
+    const afterMuteState =
+      document.documentElement.hasAttribute("data-audio-muted");
+
+    assert(
+      initialMuteState !== afterMuteState,
+      "Mute: HTML attribute toggled on <html>"
+    );
+
+    // Sync check on Metronome tab
+    await click("#tab-metronome");
+    const simpleMuteBtn = document.querySelector(
+      "#metronomeVisualsSimple .mute-toggle-btn"
+    );
+    assert(
+      simpleMuteBtn.classList.contains("muted") === afterMuteState,
+      "Mute: Sync verified between Groove and Simple panels"
+    );
+
+    // Cleanup: Restore original state
+    if (afterMuteState !== initialMuteState) await click(".mute-toggle-btn");
+    await click("#tab-groove");
+    await click("#editGrooveNamesBtn");
+    groovesArea.value = originalNames;
+    groovesArea.dispatchEvent(new Event("input", { bubbles: true }));
 
     // =========================================================================
     // Summary
