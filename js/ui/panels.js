@@ -35,8 +35,8 @@ function _animateSwap(toShow, toHide, onComplete) {
 
   gsap.to(toHide, {
     opacity: 0,
-    y: -10,
-    duration: 0.3,
+    y: -30,
+    duration: 0.45,
     ease: "power2.in",
     onComplete: () => {
       toHide.classList.add("hidden");
@@ -49,7 +49,7 @@ function _animateSwap(toShow, toHide, onComplete) {
         {
           opacity: 1,
           y: 0,
-          duration: 0.5,
+          duration: 0.35,
           ease: "expo.out",
           clearProps: "transform",
           onComplete: onComplete,

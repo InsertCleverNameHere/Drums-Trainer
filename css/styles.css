@@ -433,6 +433,7 @@ button:disabled {
   opacity: 0.6;
   box-shadow: none;
 }
+
 .panel {
   margin-top: 8px;
   padding: 20px;
@@ -443,6 +444,8 @@ button:disabled {
   /* Cloak state */
   opacity: 0;
   will-change: transform, opacity;
+  /* Primed transition: Browser is now ready to animate any opacity change */
+  transition: opacity 0.6s ease-in-out;
 }
 
 /* Reveal when app is ready */
