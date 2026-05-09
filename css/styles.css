@@ -953,6 +953,28 @@ button#installBtn.utility-button:active {
     transform 0.4s ease;
 }
 
+.ui-notice.interactive {
+  pointer-events: auto;
+  background: #2c2c31; /* Explicit dark grey */
+  color: #ffffff !important; /* Force white text for Firefox/Safari visibility */
+  padding: 20px;
+  border: 1px solid var(--accent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  max-width: 320px; /* Better mobile containment */
+  line-height: 1.4;
+}
+
+/* Ensure buttons inside the notice have clear contrast */
+.ui-notice.interactive button {
+  margin-top: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ui-notice.interactive #seed-no {
+  background: #4a4a4f;
+  color: white;
+}
+
 /* When shown */
 .ui-notice.show {
   opacity: 1;

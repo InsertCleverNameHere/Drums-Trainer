@@ -333,13 +333,9 @@
 
 ### 🔮 Phase 5.3 — Default Groove Library
 
-> **Estimated dev time: 1–2 days**
-> **Requires:** Phase 5.2 complete
-
-- Small bundled `defaultGrooves.json` with starter patterns
-  (e.g. Rock 4/4, Bossa Nova, Funk, Shuffle)
-- Users can load these as reference templates
-- Read-only; cannot be overwritten, only copied to user grooves
+- ✅ Small bundled `defaultGrooves.json` with starter patterns
+- ✅ Users can load these as reference templates
+- ✅ Read-only; cannot be overwritten, only copied to user grooves
 
 ---
 

@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "library": {
+    "Rock": {
+      "patternTimeSignature": { "beats": 4, "value": 4 },
+      "ticksPerBeat": 2,
+      "measures": 1,
+      "patterns": {
+        "hihat": [1, 1, 1, 1, 1, 1, 1, 1],
+        "kick": [1, 0, 0, 0, 1, 1, 0, 0],
+        "snare": [0, 0, 1, 0, 0, 0, 1, 0],
+        "HHPed": [0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    "Funk": {
+      "patternTimeSignature": { "beats": 4, "value": 4 },
+      "ticksPerBeat": 4,
+      "measures": 1,
+      "patterns": {
+        "hihat": [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0],
+        "kick": [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+        "snare": [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0],
+        "HHPed": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    "واحدة ونص": {
+      "patternTimeSignature": { "beats": 4, "value": 4 },
+      "ticksPerBeat": 2,
+      "measures": 1,
+      "patterns": {
+        "hihat": [1, 1, 1, 1, 1, 1, 1, 1],
+        "kick": [1, 0, 0, 1, 1, 0, 0, 0],
+        "snare": [0, 1, 0, 0, 0, 0, 1, 0],
+        "HHPed": [0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    "مقسوم": {
+      "patternTimeSignature": { "beats": 4, "value": 4 },
+      "ticksPerBeat": 2,
+      "measures": 1,
+      "patterns": {
+        "hihat": [1, 1, 1, 1, 1, 1, 1, 1],
+        "kick": [1, 0, 0, 1, 1, 0, 0, 0],
+        "snare": [0, 1, 0, 0, 0, 0, 1, 0],
+        "HHPed": [0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    "وحدة كبيرة": {
+      "patternTimeSignature": { "beats": 4, "value": 4 },
+      "ticksPerBeat": 4,
+      "measures": 1,
+      "patterns": {
+        "hihat": [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+        "kick": [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "snare": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        "HHPed": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    "ملفوف": {
+      "patternTimeSignature": { "beats": 2, "value": 2 },
+      "ticksPerBeat": 4,
+      "measures": 1,
+      "patterns": {
+        "hihat": [1, 0, 1, 0, 1, 0, 1, 0],
+        "kick": [1, 0, 0, 0, 1, 0, 0, 0],
+        "snare": [0, 0, 0, 1, 0, 0, 1, 0],
+        "HHPed": [0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    }
+  }
+}

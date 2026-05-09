@@ -139,13 +139,21 @@ export function initAdvancedMode() {
  * The one justified reload in the system — full state rebuild required.
  */
 export function restoreDefaults() {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  localStorage.removeItem("userGrooveNames");
-  localStorage.removeItem("userGroovePatterns");
-  localStorage.removeItem("grooveEditorState");
-  localStorage.removeItem("patternDashboardEnabled");
+  // 1. Capture current theme to prevent visual jarring on reload
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+
+  // 2. Total Wipe: This clears patterns, session settings, and our library seed flag.
   localStorage.clear();
-  localStorage.setItem("darkMode", prefersDark ? "true" : "false");
+
+  // 3. Restore the theme preference only
+  localStorage.setItem("darkMode", isDark ? "true" : "false");
+
+  debugLog(
+    "advancedMode",
+    "♻️ Factory Reset: Storage purged. Starter Kit will reload on boot."
+  );
+
+  // 4. Full reload is required to re-initialize all modules from zero
   location.reload();
 }
 
