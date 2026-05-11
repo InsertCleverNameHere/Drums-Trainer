@@ -557,6 +557,7 @@ function _wireOwnershipGuard() {
 
 /**
  * Wires the delegated click handler for all .bpm-adjust-btn elements.
+ * Supports single-tap and long-press (hold) to rapidly increment/decrement BPM.
  * Synthesises ArrowUp/ArrowDown KeyboardEvents on window so the existing
  * hotkeys.js handler processes button clicks identically to key presses —
  * ownership guard, margin guard, flash animation, and setBpm call are
@@ -566,28 +567,69 @@ function _wireOwnershipGuard() {
  * Does NOT update _simpleBpmAnchor — consistent with arrow key behaviour:
  * anchor updates only on blur, not during grid navigation.
  */
+
 let _adjustButtonsWired = false;
+let _repeatTimeout = null;
+let _repeatInterval = null;
+
 function _wireAdjustButtons() {
   if (_adjustButtonsWired) return;
   _adjustButtonsWired = true;
-  document.addEventListener("click", (e) => {
+
+  const stopRepeat = () => {
+    clearTimeout(_repeatTimeout);
+    clearInterval(_repeatInterval);
+    _repeatTimeout = null;
+    _repeatInterval = null;
+  };
+
+  const handlePress = (e) => {
     const btn = e.target.closest(".bpm-adjust-btn");
     if (!btn || !_advanced) return;
 
-    const target = btn.dataset.target; // "min" | "max" | "simple"
-    const delta = parseInt(btn.dataset.delta, 10); // +1 or -1
+    // Prevent context menu on long-press for mobile
+    if (e.type === "touchstart" && e.cancelable) e.preventDefault();
+
+    const target = btn.dataset.target;
+    const delta = parseInt(btn.dataset.delta, 10);
     const code = delta > 0 ? "ArrowUp" : "ArrowDown";
 
+    // Injection: Must set target BEFORE firing so hotkeys.js knows which field to move
     if (target === "min" || target === "max") {
       window.__adjustingTarget = target;
     }
     // For "simple", decideTarget() in hotkeys.js returns "simple" when
     // panel-metronome is visible, which it is when the stepper is shown.
 
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { code, bubbles: true, cancelable: true })
-    );
+    const fireAction = () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", { code, bubbles: true, cancelable: true })
+      );
+    };
+
+    // 1. Initial Pulse (Handles the single-tap)
+    fireAction();
+
+    // 2. Setup Auto-Repeat
+    _repeatTimeout = setTimeout(() => {
+      _repeatInterval = setInterval(fireAction, 60); // 60ms = fast but readable reel
+    }, 400); // 400ms = delay before repeating starts
+  };
+
+  // Attach listeners to document for delegation
+  document.addEventListener("mousedown", (e) => {
+    if (e.button === 0) handlePress(e); // Only left-click
   });
+
+  document.addEventListener("touchstart", handlePress, { passive: false });
+
+  // Cleanup listeners on window to ensure we catch release even if mouse drifts
+  window.addEventListener("mouseup", stopRepeat);
+  window.addEventListener("touchend", stopRepeat);
+  window.addEventListener("touchcancel", stopRepeat);
+
+  // Mouseleave on the document ensures we stop if user drags out of the window
+  document.addEventListener("mouseleave", stopRepeat);
 }
 
 // ── Private: step change cascade ─────────────────────────────────
