@@ -257,7 +257,7 @@ if (document.readyState === "loading") {
 
   const LIBRARY_SEED_KEY = "rgt_library_seeded";
   if (!localStorage.getItem(LIBRARY_SEED_KEY)) {
-    fetch("./defaultGrooves.json")
+    fetch("../data/defaultGrooves.json")
       .then((res) => res.json())
       .then((data) => {
         const noticeEl = document.getElementById("uiNotice");
