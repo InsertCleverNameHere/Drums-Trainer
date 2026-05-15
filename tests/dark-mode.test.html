@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dark Mode Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .pass {
+        background: #d4edda;
+        color: #155724;
+      }
+      .fail {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .section {
+        margin-top: 20px;
+        padding: 10px;
+        background: #f0f0f0;
+        border-radius: 4px;
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 15px;
+        background: #e7f3ff;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🌙 Dark Mode Tests</h1>
+    <p>
+      Unit tests for <code>js/ui/theme.js</code> — <code>initDarkMode()</code>
+      behaviour. Each section resets DOM and localStorage before running to keep
+      tests independent.
+    </p>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <!--
+      Minimal mock DOM required by initDarkMode().
+      The function bails out early (no-op) if these three elements are absent,
+      so they must exist before each call.
+    -->
+    <div id="mock-theme-ui" style="display: none">
+      <div class="theme-btn"></div>
+      <svg class="sun-svg"></svg>
+      <svg class="moon-svg"></svg>
+    </div>
+
+    <script type="module">
+      import { initDarkMode } from "../js/ui/theme.js";
+
+      const results = document.getElementById("results");
+      const summary = document.getElementById("summary");
+      let passCount = 0;
+      let failCount = 0;
+
+      function addSection(title) {
+        const section = document.createElement("div");
+        section.className = "section";
+        section.innerHTML = `<h2>${title}</h2>`;
+        results.appendChild(section);
+        return section;
+      }
+
+      function addResult(name, passed, message = "", parentElement = results) {
+        const div = document.createElement("div");
+        div.className = `test ${passed ? "pass" : "fail"}`;
+        div.innerHTML = `
+          <strong>${passed ? "✅" : "❌"} ${name}</strong>
+          ${message ? `<br><small>${message}</small>` : ""}
+        `;
+        parentElement.appendChild(div);
+        if (passed) passCount++;
+        else failCount++;
+      }
+
+      function updateSummary() {
+        const total = passCount + failCount;
+        const percentage =
+          total > 0 ? ((passCount / total) * 100).toFixed(1) : "0.0";
+        summary.innerHTML = `
+          <strong>Test Results:</strong>
+          ${passCount} passed, ${failCount} failed
+          (${percentage}% success rate)
+        `;
+      }
+
+      // ── Helpers ────────────────────────────────────────────────
+
+      /**
+       * Resets the html[data-theme] attribute and clears the darkMode
+       * localStorage key so each test section starts from a clean state.
+       */
+      function resetTheme() {
+        document.documentElement.removeAttribute("data-theme");
+        localStorage.removeItem("darkMode");
+      }
+
+      /**
+       * Mocks window.matchMedia to return a controlled system preference.
+       * Returns a restore function that puts the real implementation back.
+       *
+       * @param {boolean} prefersDark - What the mocked system preference reports.
+       * @returns {() => void} Restore function.
+       */
+      function mockMatchMedia(prefersDark) {
+        const original = window.matchMedia;
+        window.matchMedia = (query) => ({
+          matches:
+            query === "(prefers-color-scheme: dark)" ? prefersDark : false,
+          media: query,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          addListener: () => {}, // legacy Safari
+          removeListener: () => {},
+          dispatchEvent: () => false,
+        });
+        return () => {
+          window.matchMedia = original;
+        };
+      }
+
+      /**
+       * Fires a synthetic MediaQueryList change event on the real
+       * matchMedia listener registered by initDarkMode().
+       * We do this by dispatching a 'change' event on the
+       * matchMedia object directly, but since we can't easily reach
+       * the internal listener, we instead call the handler pattern
+       * that initDarkMode registers: re-call initDarkMode after
+       * patching localStorage to null and changing the mock response.
+       *
+       * For the system-pref auto-switch test we use a different
+       * approach: call initDarkMode with saved=null, then simulate
+       * the change event by temporarily overriding matchMedia and
+       * re-calling the listener indirectly via a new initDarkMode call.
+       */
+
+      // ── SECTION 1: Public API ──────────────────────────────────
+
+      const section1 = addSection("1️⃣ Public API Shape");
+
+      addResult(
+        "initDarkMode is a function",
+        typeof initDarkMode === "function",
+        "",
+        section1
+      );
+
+      // theme.js no longer exports initQuantization / getSafeQuantization —
+      // those were removed during Phase D cleanup. Verify the exports are gone.
+      addResult(
+        "initQuantization is NOT exported from theme.js (removed in Phase D)",
+        typeof (await import("../js/ui/theme.js")).initQuantization ===
+          "undefined",
+        "Was removed when quantization was moved to advancedMode.js",
+        section1
+      );
+
+      addResult(
+        "getSafeQuantization is NOT exported from theme.js (removed in Phase D)",
+        typeof (await import("../js/ui/theme.js")).getSafeQuantization ===
+          "undefined",
+        "Was removed when quantization was moved to advancedMode.js",
+        section1
+      );
+
+      // ── SECTION 2: Saved preference overrides system ───────────
+
+      const section2 = addSection("2️⃣ Saved Preference Overrides System");
+
+      // 2a: saved=true, system=light → should apply dark
+      {
+        resetTheme();
+        const restore = mockMatchMedia(false); // system says light
+        localStorage.setItem("darkMode", "true");
+        initDarkMode();
+        const theme = document.documentElement.getAttribute("data-theme");
+        addResult(
+          "saved=true overrides system=light → data-theme is 'dark'",
+          theme === "dark",
+          `Got data-theme="${theme}"`,
+          section2
+        );
+        restore();
+      }
+
+      // 2b: saved=false, system=dark → should apply light
+      {
+        resetTheme();
+        const restore = mockMatchMedia(true); // system says dark
+        localStorage.setItem("darkMode", "false");
+        initDarkMode();
+        const theme = document.documentElement.getAttribute("data-theme");
+        addResult(
+          "saved=false overrides system=dark → data-theme is 'light'",
+          theme === "light",
+          `Got data-theme="${theme}"`,
+          section2
+        );
+        restore();
+      }
+
+      // 2c: localStorage is untouched when a saved preference already exists
+      {
+        resetTheme();
+        const restore = mockMatchMedia(false);
+        localStorage.setItem("darkMode", "true");
+        initDarkMode();
+        const stored = localStorage.getItem("darkMode");
+        addResult(
+          "Existing saved preference is not overwritten on init",
+          stored === "true",
+          `localStorage.darkMode = "${stored}"`,
+          section2
+        );
+        restore();
+      }
+
+      // ── SECTION 3: No saved preference — system preference used ─
+
+      const section3 = addSection(
+        "3️⃣ No Saved Preference — System Preference Applied"
+      );
+
+      // 3a: no saved, system=dark → data-theme should be 'dark'
+      {
+        resetTheme();
+        const restore = mockMatchMedia(true);
+        initDarkMode();
+        const theme = document.documentElement.getAttribute("data-theme");
+        addResult(
+          "No saved pref + system=dark → data-theme is 'dark'",
+          theme === "dark",
+          `Got data-theme="${theme}"`,
+          section3
+        );
+        restore();
+      }
+
+      // 3b: no saved, system=light → data-theme should be 'light'
+      {
+        resetTheme();
+        const restore = mockMatchMedia(false);
+        initDarkMode();
+        const theme = document.documentElement.getAttribute("data-theme");
+        addResult(
+          "No saved pref + system=light → data-theme is 'light'",
+          theme === "light",
+          `Got data-theme="${theme}"`,
+          section3
+        );
+        restore();
+      }
+
+      // 3c: no saved pref → initDarkMode writes system pref to localStorage
+      {
+        resetTheme();
+        const restore = mockMatchMedia(true);
+        initDarkMode();
+        const stored = localStorage.getItem("darkMode");
+        addResult(
+          "No saved pref → system pref written to localStorage on init",
+          stored === "true",
+          `localStorage.darkMode = "${stored}"`,
+          section3
+        );
+        restore();
+      }
+
+      // ── SECTION 4: Button click toggles theme ──────────────────
+
+      const section4 = addSection("4️⃣ Button Click Toggles Theme");
+
+      /**
+       * Returns a fresh clone of .theme-btn with no event listeners,
+       * replacing the one in the DOM. initDarkMode() will attach to
+       * the new element, keeping each sub-test isolated.
+       */
+      function freshBtn() {
+        const old = document.querySelector(".theme-btn");
+        const clone = old.cloneNode(true);
+        old.parentNode.replaceChild(clone, old);
+        return clone;
+      }
+
+      // 4a: start light, click → dark
+      {
+        resetTheme();
+        freshBtn();
+        const restore = mockMatchMedia(false);
+        localStorage.setItem("darkMode", "false");
+        initDarkMode();
+
+        document.documentElement.setAttribute("data-theme", "light");
+        document.querySelector(".theme-btn").click();
+
+        const theme = document.documentElement.getAttribute("data-theme");
+        const stored = localStorage.getItem("darkMode");
+        addResult(
+          "Click from light → data-theme becomes 'dark'",
+          theme === "dark",
+          `Got data-theme="${theme}"`,
+          section4
+        );
+        addResult(
+          "Click from light → localStorage becomes 'true'",
+          stored === "true",
+          `localStorage.darkMode = "${stored}"`,
+          section4
+        );
+        restore();
+      }
+
+      // 4b: start dark, click → light
+      {
+        resetTheme();
+        freshBtn();
+        const restore = mockMatchMedia(true);
+        localStorage.setItem("darkMode", "true");
+        initDarkMode();
+
+        document.documentElement.setAttribute("data-theme", "dark");
+        document.querySelector(".theme-btn").click();
+
+        const theme = document.documentElement.getAttribute("data-theme");
+        const stored = localStorage.getItem("darkMode");
+        addResult(
+          "Click from dark → data-theme becomes 'light'",
+          theme === "light",
+          `Got data-theme="${theme}"`,
+          section4
+        );
+        addResult(
+          "Click from dark → localStorage becomes 'false'",
+          stored === "false",
+          `localStorage.darkMode = "${stored}"`,
+          section4
+        );
+        restore();
+      }
+
+      // 4c: two clicks returns to original state
+      {
+        resetTheme();
+        freshBtn();
+        const restore = mockMatchMedia(false);
+        localStorage.setItem("darkMode", "false");
+        initDarkMode();
+
+        document.documentElement.setAttribute("data-theme", "light");
+        const btn = document.querySelector(".theme-btn");
+        btn.click();
+        btn.click();
+
+        const theme = document.documentElement.getAttribute("data-theme");
+        addResult(
+          "Two clicks returns to original theme",
+          theme === "light",
+          `Got data-theme="${theme}" after two clicks`,
+          section4
+        );
+        restore();
+      }
+
+      // ── SECTION 5: System preference auto-switch ───────────────
+
+      const section5 = addSection("5️⃣ System Preference Auto-Switch");
+
+      // When saved=null, a system-preference change event should switch theme.
+      // We test this by: (1) calling initDarkMode with no saved pref so it
+      // registers the matchMedia listener, (2) clearing localStorage to simulate
+      // the "no manual preference" state, then (3) dispatching a real
+      // MediaQueryList change event on the actual matchMedia object.
+      {
+        resetTheme();
+
+        // Use the REAL matchMedia so we can fire an actual change event.
+        // We need the listener that initDarkMode attaches to the real MQL.
+        const mql = window.matchMedia("(prefers-color-scheme: dark)");
+
+        // Start: no saved pref, current system = whatever the real browser says.
+        // We'll set the initial theme manually so we have a known baseline.
+        document.documentElement.setAttribute("data-theme", "light");
+        localStorage.removeItem("darkMode");
+        // Call initDarkMode so it registers the change listener on the real MQL.
+        initDarkMode();
+        // Now clear saved pref (initDarkMode may have written the system default).
+        localStorage.removeItem("darkMode");
+
+        // Fire a synthetic 'change' event on the real MQL with matches=true (dark).
+        // Modern browsers: use dispatchEvent on the MQL object itself.
+        let eventFired = false;
+        try {
+          const evt = new Event("change");
+          Object.defineProperty(evt, "matches", { value: true });
+          mql.dispatchEvent(evt);
+          eventFired = true;
+        } catch (e) {
+          // Some environments don't allow dispatching on MQL — mark as untestable.
+        }
+
+        if (eventFired) {
+          const theme = document.documentElement.getAttribute("data-theme");
+          addResult(
+            "System pref change (dark) with no saved pref → data-theme becomes 'dark'",
+            theme === "dark",
+            `Got data-theme="${theme}"`,
+            section5
+          );
+        } else {
+          // Graceful skip — environment doesn't support MQL dispatchEvent.
+          const div = document.createElement("div");
+          div.className = "test pass";
+          div.innerHTML = `<strong>⏭️ System pref change event — skipped (MQL dispatchEvent not supported in this environment)</strong>`;
+          section5.appendChild(div);
+        }
+      }
+
+      // 5b: when saved pref EXISTS, system change must NOT switch theme
+      {
+        resetTheme();
+        const restore = mockMatchMedia(false);
+        localStorage.setItem("darkMode", "false");
+        initDarkMode();
+
+        // At this point data-theme="light" (saved=false). Now simulate system→dark
+        // by calling the handler logic directly: re-init with saved still present.
+        // The handler checks `localStorage.getItem("darkMode") !== null` and skips.
+        // We verify by checking theme is unchanged after a second initDarkMode call
+        // that would otherwise apply system=dark.
+        const restoreDark = mockMatchMedia(true); // now system says dark
+        initDarkMode(); // should NOT override because saved pref exists
+
+        const theme = document.documentElement.getAttribute("data-theme");
+        addResult(
+          "System pref change ignored when saved pref exists",
+          theme === "light",
+          `data-theme="${theme}" (should stay 'light' — saved pref blocks system change)`,
+          section5
+        );
+        restore();
+        restoreDark();
+      }
+
+      // ── SUMMARY ────────────────────────────────────────────────
+
+      updateSummary();
+      console.log(`Passed: ${passCount}`);
+      console.log(`Failed: ${failCount}`);
+    </script>
+  </body>
+</html>

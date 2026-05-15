@@ -11,6 +11,7 @@ import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
 import { debugLog } from "./debug.js";
 import * as utils from "./utils.js";
+import { animateTextUpdate } from "./uiController.js";
 
 export const core = simpleCore;
 
@@ -36,7 +37,20 @@ function getSimpleDisplayBpmEl() {
 function updateSimpleDisplayBpm() {
   const el = getSimpleDisplayBpmEl();
   if (!el) return;
-  el.textContent = `BPM: ${bpm || "—"}`;
+
+  const newText = `BPM: ${bpm || "—"}`;
+
+  // Use reel for big jumps, fast fade for minor increments (arrows/slider)
+  const currentBpm = parseInt(el.textContent.replace(/\D/g, "")) || 0;
+  const isMinorChange = Math.abs(currentBpm - bpm) <= 1;
+
+  if (isMinorChange) {
+    el.textContent = newText;
+    gsap.killTweensOf(el);
+    gsap.fromTo(el, { opacity: 0.5 }, { opacity: 1, duration: 0.2 });
+  } else {
+    animateTextUpdate(el, newText);
+  }
 }
 
 /**

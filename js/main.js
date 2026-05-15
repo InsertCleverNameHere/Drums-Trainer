@@ -7,16 +7,17 @@ import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as uiController from "./uiController.js";
 import { initDarkMode } from "./ui/theme.js";
-import {
-  initSoundProfileUI,
-  initPanningModeUI,
-  initTimeSignatureUI,
-  initTempoSyncedUI,
-} from "./ui/controls.js";
+import * as controls from "./ui/controls.js";
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
 import { debugLog } from "./debug.js";
 import { Profiler } from "./profiler.js";
 import { initWakeLock } from "./ui/wakeLock.js";
+import { initAdvancedMode } from "./ui/advancedMode.js";
+import { patternScheduler } from "./patternScheduler.js";
+import { initGrooveEditor, updatePlayhead } from "./ui/grooveEditor.js";
+import * as grooveStorage from "./grooveStorage.js";
+import { loadDrumSamples } from "./sampleLoader.js";
+import { ensureAudio } from "./audioProfiles.js";
 
 // Expose explicitly (redundant but safe)
 window.Profiler = Profiler;
@@ -63,6 +64,10 @@ sessionEngine.initSessionEngine({
     requestEndOfCycle: metronome.requestEndOfCycle,
     performCountIn: metronome.performCountIn,
     resetPlaybackFlag: metronome.resetPlaybackFlag,
+    setTimeSignature: metronome.setTimeSignature,
+    setTicksPerBeat: metronome.setTicksPerBeat,
+    getTimeSignature: metronome.getTimeSignature,
+    getTicksPerBeat: metronome.getTicksPerBeat,
   },
   ui: {
     startBtn,
@@ -110,9 +115,22 @@ let simpleVisualsCallback;
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     // 1. Create visual callbacks (DOM is ready)
-    grooveVisualsCallback = createVisualCallback("groove");
-    simpleVisualsCallback = createVisualCallback("simple");
+    const rawGrooveCallback = createVisualCallback("groove");
+    grooveVisualsCallback = (
+      tickIndex,
+      isPrimaryAccent,
+      isMainBeat,
+      nextNoteTime
+    ) => {
+      // Execute standard dot animations
+      rawGrooveCallback(tickIndex, isPrimaryAccent, isMainBeat);
+      // Update the editor grid playhead
+      updatePlayhead(tickIndex);
+      // Trigger procedural audio and return suppression status (true skips the metronome beep)
+      return patternScheduler.onTick(tickIndex, nextNoteTime);
+    };
 
+    simpleVisualsCallback = createVisualCallback("simple");
     // 2. Prime the visual containers
     primeVisuals("groove");
     primeVisuals("simple");
@@ -123,18 +141,102 @@ if (document.readyState === "loading") {
 
     // 4. Initialize UI controllers
     initDarkMode();
-    initSoundProfileUI();
+    initAdvancedMode();
+    controls.initSoundProfileUI();
     uiController.initOwnershipGuards();
     initSimplePanelControls();
-    initPanningModeUI();
-    initTempoSyncedUI();
-    initTimeSignatureUI();
+    controls.initPanningModeUI();
+    controls.initTempoSyncedUI();
+    controls.initTimeSignatureUI();
+    initGrooveEditor();
+
+    const LIBRARY_SEED_KEY = "rgt_library_seeded";
+    if (!localStorage.getItem(LIBRARY_SEED_KEY)) {
+      fetch("./defaultGrooves.json")
+        .then((res) => res.json())
+        .then((data) => {
+          const noticeEl = document.getElementById("uiNotice");
+          if (!noticeEl) return;
+
+          // 1. Setup the UI Content
+          noticeEl.innerHTML = `
+            <div style="margin-bottom: 12px; font-weight: 600;">
+              Welcome: would you like to use the default grooves with actual drum sounds?
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button id="seed-yes" style="background: var(--accent); color: white; min-height: 36px; padding: 0 16px;">Yes</button>
+              <button id="seed-no" style="min-height: 36px; padding: 0 16px;">No</button>
+            </div>
+          `;
+
+          // 2. Animate Entrance using GSAP
+          noticeEl.classList.remove("hidden");
+          noticeEl.classList.add("interactive");
+          gsap.fromTo(
+            noticeEl,
+            { y: -20, opacity: 0 },
+            { y: 5, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
+          );
+
+          const libNames = Object.keys(data.library).join("\n");
+
+          const finalizeChoice = () => {
+            localStorage.setItem(LIBRARY_SEED_KEY, "true");
+            gsap.to(noticeEl, {
+              y: -20,
+              opacity: 0,
+              duration: 0.3,
+              onComplete: () => {
+                noticeEl.classList.add("hidden");
+                noticeEl.classList.remove("interactive");
+                // Refresh list if user is already looking at it
+                if (localStorage.getItem("grooveEditorState") === "list") {
+                  document.dispatchEvent(
+                    new CustomEvent("metronome:ownerChanged", {
+                      detail: { owner: null },
+                    })
+                  );
+                }
+              },
+            });
+          };
+
+          // 3. Choice Logic
+          document.getElementById("seed-yes").onclick = () => {
+            grooveStorage.ingestLibrary(data.library, false);
+            localStorage.setItem("userGrooveNames", libNames);
+            if (groovesEl) groovesEl.value = libNames;
+            finalizeChoice();
+          };
+
+          document.getElementById("seed-no").onclick = () => {
+            localStorage.setItem("userGrooveNames", libNames);
+            if (groovesEl) groovesEl.value = libNames;
+            finalizeChoice();
+          };
+        })
+        .catch((err) => debugLog("state", "Library fetch skipped or failed"));
+    }
+
+    uiController.initMuteControl(); // Sync mute state
+    loadDrumSamples(); // Load audio samples before initializing related UI
     uiController.initAllUI(); // Hotkeys + sliders
     initWakeLock();
   });
 } else {
   // DOM already loaded, initialize immediately
-  grooveVisualsCallback = createVisualCallback("groove");
+  const rawGrooveCallback = createVisualCallback("groove");
+  grooveVisualsCallback = (
+    tickIndex,
+    isPrimaryAccent,
+    isMainBeat,
+    nextNoteTime
+  ) => {
+    rawGrooveCallback(tickIndex, isPrimaryAccent, isMainBeat);
+    updatePlayhead(tickIndex);
+    return patternScheduler.onTick(tickIndex, nextNoteTime);
+  };
+
   simpleVisualsCallback = createVisualCallback("simple");
 
   primeVisuals("groove");
@@ -144,12 +246,85 @@ if (document.readyState === "loading") {
   simpleMetronome.core.registerVisualCallback(simpleVisualsCallback);
 
   initDarkMode();
-  initSoundProfileUI();
+  initAdvancedMode();
+  controls.initSoundProfileUI();
   uiController.initOwnershipGuards();
   initSimplePanelControls();
-  initPanningModeUI();
-  initTempoSyncedUI();
-  initTimeSignatureUI();
+  controls.initPanningModeUI();
+  controls.initTempoSyncedUI();
+  controls.initTimeSignatureUI();
+  initGrooveEditor();
+
+  const LIBRARY_SEED_KEY = "rgt_library_seeded";
+  if (!localStorage.getItem(LIBRARY_SEED_KEY)) {
+    fetch("./defaultGrooves.json")
+      .then((res) => res.json())
+      .then((data) => {
+        const noticeEl = document.getElementById("uiNotice");
+        if (!noticeEl) return;
+
+        // 1. Setup the UI Content
+        noticeEl.innerHTML = `
+            <div style="margin-bottom: 12px; font-weight: 600;">
+              Welcome: would you like to use the default grooves with actual drum sounds?
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button id="seed-yes" style="background: var(--accent); color: white; min-height: 36px; padding: 0 16px;">Yes</button>
+              <button id="seed-no" style="min-height: 36px; padding: 0 16px;">No</button>
+            </div>
+          `;
+
+        // 2. Animate Entrance using GSAP
+        noticeEl.classList.remove("hidden");
+        noticeEl.classList.add("interactive");
+        gsap.fromTo(
+          noticeEl,
+          { y: -20, opacity: 0 },
+          { y: 5, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
+        );
+
+        const libNames = Object.keys(data.library).join("\n");
+
+        const finalizeChoice = () => {
+          localStorage.setItem(LIBRARY_SEED_KEY, "true");
+          gsap.to(noticeEl, {
+            y: -20,
+            opacity: 0,
+            duration: 0.3,
+            onComplete: () => {
+              noticeEl.classList.add("hidden");
+              noticeEl.classList.remove("interactive");
+              // Refresh list if user is already looking at it
+              if (localStorage.getItem("grooveEditorState") === "list") {
+                document.dispatchEvent(
+                  new CustomEvent("metronome:ownerChanged", {
+                    detail: { owner: null },
+                  })
+                );
+              }
+            },
+          });
+        };
+
+        // 3. Choice Logic
+        document.getElementById("seed-yes").onclick = () => {
+          grooveStorage.ingestLibrary(data.library, false);
+          localStorage.setItem("userGrooveNames", libNames);
+          if (groovesEl) groovesEl.value = libNames;
+          finalizeChoice();
+        };
+
+        document.getElementById("seed-no").onclick = () => {
+          localStorage.setItem("userGrooveNames", libNames);
+          if (groovesEl) groovesEl.value = libNames;
+          finalizeChoice();
+        };
+      })
+      .catch((err) => debugLog("state", "Library fetch skipped or failed"));
+  }
+
+  uiController.initMuteControl(); // Sync mute state
+  loadDrumSamples(); // Load audio samples before initializing related UI
   uiController.initAllUI(); // Hotkeys + sliders
   initWakeLock();
 }
@@ -264,4 +439,28 @@ window.addEventListener("beforeinstallprompt", (e) => {
   }
 });
 
+// Tell the browser initialization is 100% complete.
+// We use requestAnimationFrame so the browser handles the opacity
+// change on the next clean repaint.
+requestAnimationFrame(() => {
+  document.documentElement.classList.add("app-ready");
+});
+
 uiController.initUpdateUI();
+
+// --- Global AudioContext Unlocker ---
+// Browsers suspend audio until a user gesture. This one-time listener
+// ensures the clock is running as soon as the user touches the app.
+const unlockAudio = () => {
+  const ctx = ensureAudio();
+  if (ctx.state === "suspended") {
+    ctx.resume().then(() => {
+      debugLog("audio", "🔊 AudioContext Unlocked & Running");
+    });
+  }
+  window.removeEventListener("click", unlockAudio);
+  window.removeEventListener("keydown", unlockAudio);
+};
+
+window.addEventListener("click", unlockAudio);
+window.addEventListener("keydown", unlockAudio);

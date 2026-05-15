@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -81,6 +81,28 @@
       <div id="simpleMetronomeSlider"></div>
       <div id="simple-slider-wrapper"></div>
       <div id="groove-slider-wrapper"></div>
+
+      <!-- Extra elements required by initAdvancedMode() for Section 6 -->
+      <input id="advancedModeToggle" type="checkbox" />
+      <input id="bpmStepInput" type="number" value="5" />
+      <input id="grooveAnchorToggle" type="checkbox" />
+      <button id="restoreDefaultsBtn">Restore</button>
+      <div id="groove-settings-chip"></div>
+      <div id="simple-settings-chip"></div>
+      <select id="groovePresetSelect">
+        <option value="4/4" selected>4/4</option>
+      </select>
+      <select id="simplePresetSelect">
+        <option value="4/4" selected>4/4</option>
+      </select>
+      <select id="grooveSubdivisionSelect">
+        <option value="1" selected>None</option>
+      </select>
+      <select id="simpleSubdivisionSelect">
+        <option value="1" selected>None</option>
+      </select>
+      <select id="soundProfileGroove"></select>
+      <select id="soundProfileSimple"></select>
     </div>
 
     <script>
@@ -113,6 +135,11 @@
     <script type="module">
       import { setupHotkeys } from "../js/ui/hotkeys.js";
       import * as sessionEngine from "../js/sessionEngine.js";
+      import {
+        initAdvancedMode,
+        isAdvancedMode,
+        getQuantizationStep,
+      } from "../js/ui/advancedMode.js";
 
       const results = document.getElementById("results");
       const summary = document.getElementById("summary");
@@ -221,8 +248,11 @@
 
         // ===============================================
         // SECTION 2: BPM Adjustment
+        // NOTE: These tests run with Advanced Mode OFF (default state).
+        // Step is therefore always 5. Section 6 tests the dynamic step
+        // behaviour when Advanced Mode is enabled.
         // ===============================================
-        addSection("2️⃣ BPM Adjustment (Up/Down)");
+        addSection("2️⃣ BPM Adjustment (Up/Down) — Simple Mode, step=5");
 
         const minInput = document.getElementById("bpmMin");
         const maxInput = document.getElementById("bpmMax");
@@ -352,6 +382,81 @@
           "Hotkey ignored when Input has focus",
           minInput.value === "50",
           `Value should stay 50. Actual: ${minInput.value}`
+        );
+
+        document.activeElement.blur(); // Remove focus for next tests
+
+        // ===============================================
+        // SECTION 6: Dynamic Step (Advanced Mode)
+        // Enables Advanced Mode with a custom step, then verifies
+        // that ArrowUp/Down uses that step instead of the hardcoded 5.
+        // ===============================================
+        addSection("6️⃣ Dynamic Step in Advanced Mode");
+
+        // Enable Advanced Mode with step=10 via localStorage + initAdvancedMode()
+        localStorage.setItem("advancedMode", "true");
+        localStorage.setItem("bpmQuantizationStep", "10");
+        initAdvancedMode();
+
+        addResult(
+          "isAdvancedMode() returns true after init",
+          isAdvancedMode() === true,
+          `Got: ${isAdvancedMode()}`
+        );
+
+        addResult(
+          "getQuantizationStep() returns 10 after init with step=10",
+          getQuantizationStep() === 10,
+          `Got: ${getQuantizationStep()}`
+        );
+
+        // ArrowUp on Groove Min should now step by 10, not 5
+        minInput.value = "60";
+        maxInput.value = "120";
+        window.__adjustingTarget = "min";
+        await wait(250); // clear hotkey lock (150ms lock + buffer for initAdvancedMode overhead)
+        pressKey("ArrowUp");
+
+        addResult(
+          "ArrowUp increments Groove Min by custom step (+10)",
+          minInput.value === "70",
+          `60 -> ${minInput.value} (expected 70)`
+        );
+
+        // ArrowDown on Groove Max should step by 10
+        window.__adjustingTarget = "max";
+        await wait(250);
+        pressKey("ArrowDown");
+
+        addResult(
+          "ArrowDown decrements Groove Max by custom step (-10)",
+          maxInput.value === "110",
+          `120 -> ${maxInput.value} (expected 110)`
+        );
+
+        // Margin guard must also use step=10: min=60, max=70 (gap=10=step)
+        // trying to increase min should be blocked
+        minInput.value = "60";
+        maxInput.value = "70";
+        window.__adjustingTarget = "min";
+        await wait(250);
+        pressKey("ArrowUp"); // next=70, otherVal=70, margin=10 -> 70 >= 70-10+1=61 -> blocked
+
+        addResult(
+          "Margin guard uses dynamic step: gap=step blocks increment",
+          minInput.value === "60",
+          `Value should stay 60. Actual: ${minInput.value}`
+        );
+
+        // Restore Simple Mode so no state leaks into summary
+        localStorage.setItem("advancedMode", "false");
+        localStorage.removeItem("bpmQuantizationStep");
+        initAdvancedMode();
+
+        addResult(
+          "Restored to Simple Mode (step back to 5)",
+          isAdvancedMode() === false && getQuantizationStep() === 5,
+          `advanced=${isAdvancedMode()}, step=${getQuantizationStep()}`
         );
 
         // Finalize

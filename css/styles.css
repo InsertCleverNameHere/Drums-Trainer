@@ -10,13 +10,16 @@
 7. Update Button & Spinner
 8. Tooltip Dialog & Notices
 9. Animations & Effects
-10. Responsive Media Queries
-11. Subtle invalid input feedback
-12. Floating UI Notice (BPM Adjust / Info Messages)
-13. UNIFIED SLIDER STYLES (Groove & Simple)
-14. Time Signature Controls
-15. Hierarchical Beat Visuals
-16. Theme Toggle (Bottom Right, Animated Slider)
+10. Subtle invalid input feedback
+11. Floating UI Notice (BPM Adjust / Info Messages)
+12. UNIFIED SLIDER STYLES (Groove & Simple)
+13. Time Signature Controls
+14. Hierarchical Beat Visuals
+15. Theme Toggle (Bottom Right, Animated Slider)
+16. Simple / Advanced Mode
+17. Responsive Media Queries
+18. Groove Pattern Editor
+19. Mute button
 ================================================== */
 
 /* ============================================
@@ -124,9 +127,28 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  outline: none;
+  outline: none; /* Keyboard ring handled by :focus-visible below */
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1);
+}
+
+/* ====================
+♿ Focus-visible rings
+======================= */
+button:focus-visible,
+.tab:focus-visible,
+.groove-cell:focus-visible,
+.theme-btn:focus-visible,
+.mute-toggle-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 input:disabled,
@@ -333,8 +355,7 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   position: relative;
-  min-height: 160px;
-  padding-top: 12px;
+  margin-top: 15px;
 }
 .beat-dot,
 .beat-dot-simple {
@@ -376,47 +397,16 @@ button:disabled {
 ============================================ */
 
 #metronomeVisualsSimple {
-  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  margin-top: 15px;
 }
 
 #simpleMetronomeDot.pulse {
   transform: scale(1.25);
   transition: transform 120ms ease;
-}
-.beats-and-sound-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  gap: 40px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.beats-section,
-.sound-section {
-  display: flex;
-  flex-direction: column;
-}
-.beats-section label,
-.sound-section label {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-#soundProfileGroove,
-#soundProfileSimple {
-  width: 90px;
-  padding: 4px 8px;
-  font-size: 14px;
-  border-radius: 8px;
-  appearance: none;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 10px;
 }
 
 /* ============================================
@@ -462,6 +452,7 @@ button:disabled {
   opacity: 0.6;
   box-shadow: none;
 }
+
 .panel {
   margin-top: 8px;
   padding: 20px;
@@ -469,7 +460,18 @@ button:disabled {
   border-radius: 12px;
   box-shadow: 0 1px 4px var(--shadow);
   border: 1px solid var(--border);
+  /* Cloak state */
+  opacity: 0;
+  will-change: transform, opacity;
+  /* Primed transition: Browser is now ready to animate any opacity change */
+  transition: opacity 0.6s ease-in-out;
 }
+
+/* Reveal when app is ready */
+.app-ready .panel:not(.hidden) {
+  opacity: 1;
+}
+
 .hidden {
   display: none !important;
 }
@@ -663,6 +665,7 @@ button svg,
   max-width: 340px;
   max-height: calc(100vh - 80px);
   overflow-y: auto;
+  scrollbar-gutter: stable;
   background: var(--bg-secondary);
   color: var(--text-primary);
   border-radius: 12px;
@@ -671,13 +674,17 @@ button svg,
   box-shadow: 0 4px 12px var(--shadow-hover);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.5s ease;
+  visibility: hidden;
+  transition:
+    opacity 0.5s ease,
+    visibility 0.5s ease;
   z-index: 9999;
 }
 
 #settingsDialog.visible {
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
 }
 
 .settings-section {
@@ -695,6 +702,7 @@ button svg,
 
 .settings-group {
   margin-bottom: 12px;
+  transition: opacity 0.25s ease;
 }
 
 .settings-group .toggle {
@@ -738,6 +746,42 @@ button svg,
   border-radius: 4px;
   box-shadow: 0 1px 2px var(--shadow);
   font-weight: 600;
+}
+
+#settingsDialog::-webkit-scrollbar {
+  width: 10px;
+}
+#settingsDialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+#settingsDialog::-webkit-scrollbar-thumb {
+  background-color: var(--text-secondary);
+  border-radius: 10px;
+  border: 2px solid transparent; /* Creates 6px visual thumb in 10px track */
+  background-clip: content-box;
+}
+
+#helpAccordion .details-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#helpAccordion[open] .details-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.details-content-wrapper {
+  overflow: hidden;
+}
+
+/* Hide default marker for a cleaner look */
+#helpAccordion summary::-webkit-details-marker {
+  display: none;
+}
+#helpAccordion summary {
+  list-style: none;
+  outline: none;
 }
 
 /* Mobile adjust */
@@ -799,26 +843,31 @@ button svg,
 
 @keyframes bpmFlash {
   0% {
-    background-color: #f5e8b0;
+    opacity: 0.85;
+  }
+  15% {
+    opacity: 1;
   }
   100% {
-    background-color: inherit;
+    opacity: 0;
   }
 }
 
-@keyframes bpmFlash {
-  0% {
-    background-color: #f5e8b0;
-    box-shadow: 0 0 8px rgba(245, 232, 176, 0.8);
-  }
-  100% {
-    background-color: #fff;
-    box-shadow: none;
-  }
+/* Overlay div that sits on top of the input inside .bpm-stepper.
+   Animates instead of the input itself — Firefox refuses to animate
+   keyframes on replaced form elements (input[type=number]). */
+.bpm-flash-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 0; /* flush with pill interior */
+  background-color: var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  animation: none;
 }
 
-.bpm-flash {
-  animation: bpmFlash 0.3s ease-in-out;
+.bpm-flash-overlay.animating {
+  animation: bpmFlash 0.4s ease-out forwards;
 }
 
 @keyframes tapPulse {
@@ -874,59 +923,8 @@ button#installBtn.utility-button:active {
   }
 }
 
-/* =============================
-📱 10. Responsive Media Queries
-================================ */
-@media (max-width: 600px) {
-  body {
-    margin: 12px auto;
-    padding: 0 12px;
-  }
-
-  .panel {
-    padding: 16px;
-  }
-
-  .status {
-    padding: 14px 14px 28px 14px;
-  }
-
-  label {
-    margin-top: 16px;
-  }
-
-  /* Ensure touch targets are large enough */
-  button {
-    min-height: 40px;
-  }
-
-  input[type="number"],
-  select {
-    min-height: 44px;
-  }
-  #VersionNumber {
-    font-size: 0.8rem;
-    padding: 6px 10px;
-  }
-
-  #tooltipDialog {
-    max-width: calc(100vw - 24px); /* 12px margin on each side */
-    right: 12px;
-    left: 12px;
-    top: 60px;
-    max-height: calc(100vh - 100px); /* More breathing room on mobile */
-  }
-}
-
-@media (max-width: 500px) {
-  .beats-and-sound-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
 /* ===================================
-   11. Subtle invalid input feedback
+   10. Subtle invalid input feedback
    =================================== */
 
 .invalid-flash {
@@ -957,7 +955,7 @@ button#installBtn.utility-button:active {
 }
 
 /* ============================================================
-📢 12. Floating UI Notice (BPM Adjust / Info Messages)
+📢 11. Floating UI Notice (BPM Adjust / Info Messages)
 ============================================================ */
 .ui-notice {
   position: fixed;
@@ -976,6 +974,28 @@ button#installBtn.utility-button:active {
   transition:
     opacity 0.4s ease,
     transform 0.4s ease;
+}
+
+.ui-notice.interactive {
+  pointer-events: auto;
+  background: #2c2c31; /* Explicit dark grey */
+  color: #ffffff !important; /* Force white text for Firefox/Safari visibility */
+  padding: 20px;
+  border: 1px solid var(--accent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  max-width: 320px; /* Better mobile containment */
+  line-height: 1.4;
+}
+
+/* Ensure buttons inside the notice have clear contrast */
+.ui-notice.interactive button {
+  margin-top: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ui-notice.interactive #seed-no {
+  background: #4a4a4f;
+  color: white;
 }
 
 /* When shown */
@@ -1015,7 +1035,7 @@ button#installBtn.utility-button:active {
 }
 
 /* =================================================================
-   🎚️ 13. SLIDER COMPONENTS (Unified & Clean)
+   🎚️ 12. SLIDER COMPONENTS (Unified & Clean)
    ================================================================= */
 
 /* 📦 THE CONTAINER BOX */
@@ -1150,43 +1170,102 @@ button#installBtn.utility-button:active {
 }
 
 /* ============================================
-🎼 14. Time Signature Controls
+🎼 13. Time Signature Controls
 ============================================ */
-.beats-section {
-  /* Use flexbox to align our new controls */
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 24px;
-  flex-wrap: wrap;
+
+.advanced-mode .beats-and-sound-row.advanced-only {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr 1.3fr 0.7fr;
+  align-items: end; /* Keeps selects and inputs flush on the baseline */
+  width: 100%;
+  gap: 0;
+  margin-top: 16px;
 }
 
 .time-signature-controls {
-  display: flex;
-  flex-direction: column;
+  justify-self: start;
 }
 
-/* Width fix for all dropdowns in this section */
-#groovePresetSelect,
-#simplePresetSelect,
-#grooveSubdivisionSelect,
-#simpleSubdivisionSelect {
-  width: 100px;
-}
-
-.custom-time-signature-inputs {
+#grooveCustomTimeSignature,
+#simpleCustomTimeSignature,
+#grooveSubdivisionContainer,
+#simpleSubdivisionContainer {
+  justify-self: center;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  transition:
+    max-width 0.4s ease,
+    opacity 0.3s ease;
 }
 
-.custom-time-signature-inputs input[type="number"] {
-  width: 60px;
+#grooveCustomTimeSignature.visible,
+#simpleCustomTimeSignature.visible {
+  max-width: 250px;
+  opacity: 1;
+}
+
+#grooveCustomTimeSignature span,
+#simpleCustomTimeSignature span {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  user-select: none;
+}
+
+#grooveSubdivisionContainer,
+#simpleSubdivisionContainer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  flex-shrink: 0;
+  transition:
+    max-width 0.35s ease,
+    opacity 0.25s ease;
+}
+
+#grooveSubdivisionContainer.visible,
+#simpleSubdivisionContainer.visible {
+  max-width: 200px;
+  opacity: 1;
+}
+
+.sound-section {
+  justify-self: end;
+  margin-left: 0; /* Neutralize the old flex-based auto margin */
+}
+
+.sound-section label,
+.time-signature-controls label,
+#grooveSubdivisionContainer label,
+#simpleSubdivisionContainer label {
+  font-size: 14px;
+  margin-bottom: 4px;
+  margin-top: 0;
+}
+
+#soundProfileGroove,
+#soundProfileSimple {
+  width: 90px;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 8px;
+  appearance: none;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.5' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
 }
 
 /* ============================================
-🎵 15. Hierarchical Beat Visuals
+🎵 14. Hierarchical Beat Visuals
 ============================================ */
 
 /* --- Container Alignment Fix --- */
@@ -1197,6 +1276,8 @@ button#installBtn.utility-button:active {
   align-items: center;
   flex-wrap: nowrap;
   gap: 14px;
+  min-height: 160px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 14px;
   padding: 0 10px;
   overflow: hidden;
@@ -1205,6 +1286,18 @@ button#installBtn.utility-button:active {
   background: var(--bg-secondary);
   border-radius: 12px;
   box-shadow: inset 0 1px 3px var(--shadow);
+}
+
+/* --- Pattern Mode Layout --- */
+#beat-indicator-container.pattern-mode {
+  flex-direction: column;
+  gap: 20px;
+  /* Balanced horizontal padding (70px) ensures dots remain centered in the status box */
+  padding: 20px 70px 50px 70px;
+  min-height: unset;
+  height: auto;
+  width: 100%;
+  box-sizing: border-box; /* Force padding to stay inside the 100% width */
 }
 
 /* --- Wrapper & Text Alignment Fix --- */
@@ -1263,22 +1356,22 @@ button#installBtn.utility-button:active {
 
 /* COLOR for Normal Beats*/
 .beat-dot.flashing.normal-flash {
-  background-color: #006400; /* Green */
+  background-color: #1565c0;
 }
 
-/* --- Flashing Text Colors (Unchanged) --- */
+/* --- Flashing Text Colors --- */
 .phonation-text.flash-primary {
   color: #b22222;
 }
 .phonation-text.flash-secondary {
-  color: #1e90ff;
+  color: #1565c0;
 }
 .phonation-text.flash-tertiary {
-  color: #ff8c00;
+  color: #b45309;
 }
 
 /* ===============================================
-🌙 16. Theme Toggle (Bottom Right, Animated Slider)
+🌙 15. Theme Toggle (Bottom Right, Animated Slider)
 ================================================== */
 
 .floating-stack {
@@ -1446,4 +1539,644 @@ button#installBtn.utility-button {
     width: 22px;
     height: 22px;
   }
+}
+
+/* ===============================
+🔧 16. Simple / Advanced Mode
+================================== */
+
+/* Elements hidden in Simple Mode, visible in Advanced Mode */
+.advanced-only {
+  display: none;
+}
+
+.advanced-mode .advanced-only {
+  display: block;
+}
+
+.advanced-mode .row.advanced-only {
+  display: flex;
+}
+
+/* Elements visible in Simple Mode, hidden in Advanced Mode */
+.advanced-mode .simple-only {
+  display: none;
+}
+
+/* ---- Persistent settings chip row ---- */
+.advanced-settings-chip {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin-bottom: 8px;
+  text-align: center;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s ease;
+}
+
+.advanced-settings-chip:empty {
+  visibility: hidden;
+  min-height: 28px; /* Reserves vertical space */
+  pointer-events: none;
+}
+
+.advanced-mode .advanced-settings-chip {
+  display: none;
+}
+
+/* ---- BPM inputs: hide native spinners ---- */
+/* Native spinners use the browser's own step grid which conflicts with our
+   quantization system. Custom ± buttons are planned as a future replacement. */
+#bpmMin::-webkit-outer-spin-button,
+#bpmMin::-webkit-inner-spin-button,
+#bpmMax::-webkit-outer-spin-button,
+#bpmMax::-webkit-inner-spin-button,
+#simpleBpm::-webkit-outer-spin-button,
+#simpleBpm::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+#bpmMin,
+#bpmMax,
+#simpleBpm {
+  -moz-appearance: textfield;
+}
+
+/* ---- Restore Defaults danger button ---- */
+.danger-btn {
+  background: transparent;
+  color: var(--danger, #c0392b);
+  border: 1px solid var(--danger, #c0392b);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  width: 100%;
+}
+
+.danger-btn:hover {
+  background: var(--danger, #c0392b);
+  color: #fff;
+}
+
+.danger-btn.confirming {
+  background: var(--danger, #c0392b);
+  color: #fff;
+}
+
+/* ---- ± BPM stepper (The Flex-Centering Pill) ---- */
+.bpm-stepper {
+  display: none;
+}
+
+.advanced-mode .bpm-stepper {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  width: 142px;
+  margin: 10px 0 0 0 !important;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.advanced-mode .bpm-stepper:focus-within {
+  border-color: var(--accent);
+}
+
+/* Wrapper that scopes the flash overlay to the input cell only */
+.advanced-mode .bpm-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.advanced-mode .bpm-stepper input[type="number"] {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: 38px !important;
+
+  /* Force kill inherited layout styles */
+  margin: 0 !important;
+  padding: 0 !important;
+
+  /* Visuals */
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: center;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: border-color 0.4s ease;
+
+  /* Kill internal UA styles that cause sunken text */
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+  outline: none;
+}
+
+.advanced-mode .bpm-stepper .bpm-adjust-btn {
+  flex: 0 0 40px; /* Fixed 40px width buttons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  transition:
+    background 0.4s ease,
+    color 0.4s ease;
+  user-select: none;
+}
+
+.advanced-mode .bpm-stepper .bpm-adjust-btn:hover:not(:disabled) {
+  background-color: rgba(128, 128, 128, 0.15);
+  color: var(--text-primary);
+}
+
+.advanced-mode .bpm-stepper .bpm-adjust-btn:active:not(:disabled) {
+  background-color: var(--accent) !important;
+  color: #ffffff !important;
+  transition: none !important;
+}
+
+.advanced-mode .bpm-stepper .bpm-adjust-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Separator flash: − button active → left border of input turns accent.
+   The wrapper div is now between the button and the input, so we use
+   the adjacent-sibling combinator to reach the wrapper, then the input. */
+.advanced-mode
+  .bpm-stepper
+  .bpm-adjust-btn[data-delta="-1"]:active
+  + .bpm-input-wrap
+  input {
+  border-left-color: var(--accent) !important;
+}
+
+.advanced-mode .bpm-stepper:has(.bpm-adjust-btn[data-delta="1"]:active) input {
+  border-right-color: var(--accent) !important;
+}
+
+/* =============================
+📱 17. Responsive Media Queries
+================================ */
+@media (max-width: 600px) {
+  body {
+    margin: 12px auto;
+    padding: 0 12px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .status {
+    padding: 14px 14px 28px 14px;
+  }
+
+  label {
+    margin-top: 16px;
+  }
+
+  /* Ensure touch targets are large enough */
+  button {
+    min-height: 40px;
+  }
+
+  input[type="number"],
+  select {
+    min-height: 44px;
+  }
+  #VersionNumber {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  #tooltipDialog {
+    max-width: calc(100vw - 24px); /* 12px margin on each side */
+    right: 12px;
+    left: 12px;
+    top: 60px;
+    max-height: calc(100vh - 100px); /* More breathing room on mobile */
+  }
+
+  .advanced-mode .beats-and-sound-row.advanced-only {
+    display: flex !important; /* Force out of Desktop Grid */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    margin-top: 16px;
+  }
+
+  .advanced-mode .beats-and-sound-row.advanced-only > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    margin: 0;
+    justify-self: stretch;
+  }
+
+  #grooveCustomTimeSignature,
+  #simpleCustomTimeSignature {
+    flex-direction: row !important; /* Keep numbers side-by-side */
+    align-items: center !important;
+    padding-top: 0 !important; /* Kill desktop 'phantom label' alignment */
+    margin-top: -12px !important; /* Cluster vertically with the TS dropdown above */
+  }
+
+  /* Force the subdivision pillar to anchor its internal label/select to the left */
+  #grooveSubdivisionContainer,
+  #simpleSubdivisionContainer {
+    align-items: flex-start !important;
+    opacity: 0; /* Hidden by default */
+  }
+
+  /* Allow the subdivision to become visible via class */
+  #grooveSubdivisionContainer.visible,
+  #simpleSubdivisionContainer.visible {
+    opacity: 1 !important;
+    max-width: 100% !important;
+  }
+
+  .sound-section {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 500px) {
+  .advanced-mode .beats-and-sound-row.advanced-only {
+    display: flex !important; /* Force out of Desktop Grid */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    margin-top: 16px;
+  }
+
+  .advanced-mode .beats-and-sound-row.advanced-only > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    margin: 0;
+    justify-self: stretch;
+  }
+
+  #grooveCustomTimeSignature,
+  #simpleCustomTimeSignature {
+    flex-direction: row !important; /* Keep numbers side-by-side */
+    align-items: center !important;
+    padding-top: 0 !important; /* Kill desktop 'phantom label' alignment */
+    margin-top: -12px !important; /* Cluster vertically with the TS dropdown above */
+  }
+
+  /* Force the subdivision pillar to anchor its internal label/select to the left */
+  #grooveSubdivisionContainer,
+  #simpleSubdivisionContainer {
+    align-items: flex-start !important;
+
+    opacity: 0; /* Hidden by default */
+  }
+
+  /* Allow the subdivision to become visible via class */
+  #grooveSubdivisionContainer.visible,
+  #simpleSubdivisionContainer.visible {
+    opacity: 1 !important;
+    max-width: 100% !important;
+  }
+
+  .sound-section {
+    margin-left: 0 !important;
+  }
+}
+
+/* ============================================
+🥁 18. Groove Pattern Editor
+============================================ */
+
+#groove-editor-panel {
+  margin-top: 16px;
+  padding: 0 12px; /* Vertical padding handled by telescoping */
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  /* Natural Telescoping Logic */
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.4s ease,
+    padding 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#groove-editor-panel.visible {
+  max-height: 600px;
+  opacity: 1;
+  padding: 12px;
+}
+
+#groove-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#groove-editor-grid {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 15px 5px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#groove-editor-groove-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.groove-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.groove-editor-actions button {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  min-height: unset;
+  margin-top: 0;
+}
+
+.groove-track {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px; /* Vertical track spacing */
+  width: max-content;
+}
+
+.groove-track-label {
+  position: sticky;
+  left: 0;
+  width: 45px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: var(--text-primary); /* Use primary text for better visibility */
+  background: transparent; /* Removed the blocky background */
+  z-index: 20;
+  padding-right: 12px;
+  flex-shrink: 0;
+  text-align: right;
+  text-transform: uppercase;
+  /* Text protection: ensure labels are readable when overlapping squares */
+  text-shadow:
+    1px 1px 2px var(--bg-primary),
+    -1px -1px 2px var(--bg-primary),
+    0 0 8px var(--bg-primary);
+}
+
+.groove-track-cells,
+.labels-container {
+  display: flex;
+  gap: 12px;
+  margin-left: -40px; /* Pulls the mask start point to the left */
+  padding-left: 46px; /* Pushes content back to align with labels */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 10px,
+    black 40px
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 10px,
+    black 40px
+  );
+}
+
+.groove-cell {
+  width: 32px;
+  height: 32px;
+  min-height: unset;
+  margin: 0;
+  padding: 0;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s ease;
+  position: relative;
+}
+
+.groove-cell:hover:not(:disabled) {
+  background: var(--text-secondary);
+}
+
+.groove-cell.active {
+  background: var(--accent);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 0 10px rgba(178, 34, 34, 0.3);
+}
+
+/* Playhead highlight */
+.groove-cell.playing {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+/* --- Rhythmic Grouping via Border Color (No Geometry Shifts) --- */
+.groove-cell.beat-start {
+  border-color: var(--text-secondary);
+}
+
+.groove-cell.downbeat {
+  border-color: var(--accent);
+}
+
+.groove-cell-label {
+  width: 32px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-align: center;
+  flex-shrink: 0;
+  user-select: none;
+  opacity: 0.6;
+}
+
+.labels-header .groove-track-label {
+  visibility: hidden; /* Keep the space but hide the top-left text */
+}
+
+#trackToggles {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+#groove-editor-hint {
+  margin-top: 8px;
+  min-height: 1.2em;
+}
+
+#groove-interactive-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 12px 0;
+  list-style: none;
+}
+
+.groove-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.groove-list-item:hover {
+  border-color: var(--text-secondary);
+}
+
+.groove-name-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.groove-item-actions {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.groove-item-actions button {
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  min-height: unset;
+  margin: 0;
+}
+
+/* Natural transition refinement */
+#groove-textarea-container,
+#groove-list-container {
+  transition: opacity 0.3s ease;
+  will-change: transform, opacity;
+}
+
+.saved-badge {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* ============================================
+🥁 19. Mute Button
+============================================ */
+.mute-toggle-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  min-width: 36px; /* Prevent flex/layout distortion */
+  min-height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  z-index: 20;
+  margin-top: 0 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+}
+
+.mute-toggle-btn:hover {
+  background: var(--border);
+  transform: scale(1.05);
+}
+
+/* Default: Unmuted state */
+.mute-toggle-btn .muted-icon {
+  display: none;
+}
+.mute-toggle-btn .unmuted-icon {
+  display: block;
+}
+
+/* Muted state: Driven by the HTML attribute for zero-flicker */
+[data-audio-muted="true"] .mute-toggle-btn {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--bg-primary);
+}
+
+[data-audio-muted="true"] .mute-toggle-btn .unmuted-icon {
+  display: none !important;
+}
+
+[data-audio-muted="true"] .mute-toggle-btn .muted-icon {
+  display: block !important;
+}
+
+.mute-toggle-btn svg {
+  width: 20px;
+  height: 20px;
 }

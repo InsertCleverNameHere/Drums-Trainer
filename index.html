@@ -13,6 +13,16 @@
           "data-theme",
           isDark ? "dark" : "light"
         );
+
+        // Mode Lock: Apply class instantly to prevent mode-switch flicker
+        if (localStorage.getItem("advancedMode") === "true") {
+          document.documentElement.classList.add("advanced-mode");
+        }
+
+        // --- Mute Lock: Prevent visual state flicker ---
+        if (localStorage.getItem("audioMuted") === "true") {
+          document.documentElement.setAttribute("data-audio-muted", "true");
+        }
       })();
     </script>
     <!-- Manifest -->
@@ -260,7 +270,14 @@
       <p class="tagline">Practice smarter. Land any groove.</p>
     </header>
     <!-- Settings Trigger Button -->
-    <div id="settingsTrigger" title="Settings & Help">
+    <div
+      id="settingsTrigger"
+      role="button"
+      tabindex="0"
+      aria-label="Settings and help"
+      aria-expanded="false"
+      aria-controls="settingsDialog"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="28"
@@ -275,11 +292,84 @@
     </div>
 
     <!-- Settings Dialog -->
-    <div id="settingsDialog">
+    <div
+      id="settingsDialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Settings and help"
+    >
       <div class="settings-content">
         <!-- Settings Section -->
         <section class="settings-section">
           <h2>⚙️ Settings</h2>
+          <!-- Advanced Mode Toggle -->
+          <div class="settings-group">
+            <label class="toggle">
+              <input id="advancedModeToggle" type="checkbox" />
+              <span>Advanced Mode</span>
+            </label>
+            <p class="setting-description">
+              Unlocks manual BPM entry, custom quantization step, and full
+              session controls.
+            </p>
+          </div>
+          <!-- BPM Step Input — advanced-only -->
+          <div class="settings-group advanced-only">
+            <label for="bpmStepInput">BPM Step (snap interval)</label>
+            <input
+              id="bpmStepInput"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="150"
+              value="5"
+              step="1"
+            />
+            <p class="setting-description">
+              Quantization step for all BPM inputs and arrow key adjustments.
+              Range: 1–150. Tap Tempo always uses step 5 regardless of this
+              setting.
+            </p>
+          </div>
+          <!-- Groove Anchor Toggle — advanced-only -->
+          <div class="settings-group advanced-only">
+            <label class="toggle">
+              <input id="grooveAnchorToggle" type="checkbox" />
+              <span>Anchor groove grid to max BPM</span>
+            </label>
+            <p class="setting-description">
+              Off (default): randomizer grid starts at min BPM and steps
+              upward.<br />
+              On: randomizer grid starts at max BPM and steps downward.<br />
+              Does not affect your typed values — only changes which BPMs are
+              picked at play time.
+            </p>
+          </div>
+          <!-- Pattern Dashboard Toggle — advanced-only -->
+          <div class="settings-group advanced-only">
+            <label class="toggle">
+              <input id="patternDashboardToggle" type="checkbox" checked />
+              <span>Multi-track pattern dashboard</span>
+            </label>
+            <p class="setting-description">
+              When a pattern is active, show separate visual rows for Kick,
+              Snare, and Hi-Hats. If off, a single row of dots is shown.
+            </p>
+          </div>
+          <!-- Restore Defaults — always visible -->
+          <div class="settings-group">
+            <button
+              id="restoreDefaultsBtn"
+              class="danger-btn"
+              aria-describedby="restore-desc"
+            >
+              Restore to Defaults
+            </button>
+            <p class="setting-description" id="restore-desc">
+              Resets all settings, grooves, and preferences to factory state.
+              Cannot be undone.
+            </p>
+          </div>
           <div class="settings-group">
             <label class="toggle">
               <input id="wakeLockToggle" type="checkbox" />
@@ -319,49 +409,72 @@
           </div>
         </section>
 
-        <!-- Help Section (Existing Content) -->
+        <!-- Help Section (Accordion Style) -->
         <section class="help-section">
-          <h2>🎵 How It Works</h2>
-          <p>
-            A lightweight, fun way to train groove transitions with randomized
-            BPM ranges. Includes a full-featured
-            <strong>Groove Randomizer</strong> for practice sessions and a
-            <strong>Simple Metronome</strong> for everyday use.
-          </p>
+          <details id="helpAccordion">
+            <summary
+              style="
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 1.1rem;
+                margin-bottom: 8px;
+                list-style: none;
+              "
+            >
+              🎵 How It Works
+              <span
+                style="font-size: 0.8rem; font-weight: normal; margin-left: 5px"
+                >(Tap to show/hide)</span
+              >
+            </summary>
 
-          <p><strong>Quick Start:</strong></p>
-          <ul>
-            <li>Set your desired BPM range (multiples of 5)</li>
-            <li>Enter groove names (one per line)</li>
-            <li>Choose session duration or cycle count</li>
-            <li>Press <strong>Space</strong> or tap <strong>Start</strong></li>
-          </ul>
+            <div class="details-wrapper">
+              <div class="details-content-wrapper">
+                <p style="margin-top: 12px">
+                  A lightweight, fun way to train groove transitions with
+                  randomized BPM ranges. Includes a full-featured
+                  <strong>Groove Randomizer</strong> for practice sessions and a
+                  <strong>Simple Metronome</strong> for everyday use.
+                </p>
 
-          <p><strong>Features:</strong></p>
-          <ul>
-            <li>Randomized BPM and groove selection</li>
-            <li>Built-in metronome with accurate timing</li>
-            <li>Rhythmic Count-in (toggle available)</li>
-            <li>Visual beat indicators with subdivisions</li>
-            <li>Dark mode and offline support</li>
-          </ul>
+                <p><strong>Quick Start:</strong></p>
+                <ul>
+                  <li>Set your desired BPM range (multiples of 5)</li>
+                  <li>Enter groove names (one per line)</li>
+                  <li>Choose session duration or cycle count</li>
+                  <li>
+                    Press <strong>Space</strong> or tap <strong>Start</strong>
+                  </li>
+                </ul>
 
-          <p><strong>Hotkeys:</strong></p>
-          <ul>
-            <li><kbd>H</kbd> = Show this help</li>
-            <li><kbd>Space</kbd> = ▶️ Start / ⏹️ Stop</li>
-            <li><kbd>P</kbd> = ⏸️ Pause / ▶️ Resume</li>
-            <li><kbd>N</kbd> = ⏭️ Next Groove</li>
-            <li><kbd>↑</kbd> / <kbd>↓</kbd> = Adjust BPM (±5)</li>
-            <li><kbd>←</kbd> / <kbd>→</kbd> = Switch Min/Max</li>
-          </ul>
+                <p><strong>Features:</strong></p>
+                <ul>
+                  <li>Randomized BPM and groove selection</li>
+                  <li>Built-in metronome with accurate timing</li>
+                  <li>Rhythmic Count-in (toggle available)</li>
+                  <li>Visual beat indicators with subdivisions</li>
+                  <li>Dark mode and offline support</li>
+                </ul>
+
+                <p><strong>Hotkeys:</strong></p>
+                <ul>
+                  <li><kbd>H</kbd> = Show this help</li>
+                  <li><kbd>Space</kbd> = ▶️ Start / ⏹️ Stop</li>
+                  <li><kbd>P</kbd> = ⏸️ Pause / ▶️ Resume</li>
+                  <li><kbd>N</kbd> = ⏭️ Next Groove</li>
+                  <li><kbd>↑</kbd> / <kbd>↓</kbd> = Adjust BPM (±BPM Step)</li>
+                  <li><kbd>←</kbd> / <kbd>→</kbd> = Switch Min/Max</li>
+                </ul>
+              </div>
+            </div>
+          </details>
         </section>
       </div>
     </div>
     <button
       id="checkUpdatesBtn"
       class="update-button"
-      title="Check for updates"
+      aria-label="Check for updates"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -386,113 +499,239 @@
         class="tab active"
         role="tab"
         aria-selected="true"
+        aria-controls="panel-groove"
+        tabindex="0"
       >
         Groove Randomizer
       </button>
-      <button id="tab-metronome" class="tab" role="tab" aria-selected="false">
+      <button
+        id="tab-metronome"
+        class="tab"
+        role="tab"
+        aria-selected="false"
+        aria-controls="panel-metronome"
+        tabindex="-1"
+      >
         Metronome
       </button>
     </div>
 
     <!-- PANELS -->
     <!-- Groove panel -->
-    <div id="panel-groove" class="panel">
+    <div
+      id="panel-groove"
+      class="panel"
+      role="tabpanel"
+      aria-labelledby="tab-groove"
+    >
       <!-- BEGIN existing Groove UI -->
-      <label>BPM range (min / max)</label>
-      <div class="row">
+      <label class="advanced-only"> BPM range (min / max)</label>
+      <div class="row advanced-only">
         <div class="col">
-          <input
-            id="bpmMin"
-            type="number"
-            inputmode="numeric"
-            min="5"
-            max="300"
-            value="30"
-            step="5"
-            data-dynamic-step="true"
-          />
+          <div class="bpm-stepper advanced-only">
+            <button
+              class="bpm-adjust-btn"
+              data-target="min"
+              data-delta="-1"
+              aria-label="Decrease minimum BPM"
+            >
+              −
+            </button>
+            <div class="bpm-input-wrap">
+              <input
+                id="bpmMin"
+                type="number"
+                inputmode="numeric"
+                min="5"
+                max="300"
+                value="30"
+                aria-label="Minimum BPM"
+              />
+              <div class="bpm-flash-overlay"></div>
+            </div>
+            <button
+              class="bpm-adjust-btn"
+              data-target="min"
+              data-delta="1"
+              aria-label="Increase minimum BPM"
+            >
+              +
+            </button>
+          </div>
         </div>
         <div class="col">
-          <input
-            id="bpmMax"
-            type="number"
-            inputmode="numeric"
-            min="5"
-            max="300"
-            value="60"
-            step="5"
-            data-dynamic-step="true"
-          />
+          <div class="bpm-stepper advanced-only">
+            <button
+              class="bpm-adjust-btn"
+              data-target="max"
+              data-delta="-1"
+              aria-label="Decrease maximum BPM"
+            >
+              −
+            </button>
+            <div class="bpm-input-wrap">
+              <input
+                id="bpmMax"
+                type="number"
+                inputmode="numeric"
+                min="5"
+                max="300"
+                value="60"
+                aria-label="Maximum BPM"
+              />
+              <div class="bpm-flash-overlay"></div>
+            </div>
+            <button
+              class="bpm-adjust-btn"
+              data-target="max"
+              data-delta="1"
+              aria-label="Increase maximum BPM"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
       <!-- Groove Slider -->
-      <div id="groove-slider-container" class="bpm-slider-box">
+      <div id="groove-slider-container" class="bpm-slider-box simple-only">
         <div id="groove-slider-wrapper">
           <div id="groove-slider"></div>
         </div>
       </div>
 
       <label>Groove names (one per line)</label>
-      <textarea
-        id="grooves"
-        rows="10"
-        placeholder="Rock
+      <div id="groove-textarea-container">
+        <textarea
+          id="grooves"
+          rows="10"
+          placeholder="Rock
 Funk
 واحدة ونص
 مقسوم
 وحدة كبيرة
 ملفوف"
-      >
+        >
 Rock
 Funk
 واحدة ونص
 مقسوم
 وحدة كبيرة
 ملفوف</textarea
-      >
+        >
+        <!-- State A -> B Trigger -->
+        <button id="managePatternsBtn" class="advanced-only">
+          Confirm Names
+        </button>
+      </div>
 
-      <div class="row beats-and-sound-row">
-        <div class="beats-section">
-          <!-- Time Signature Controls -->
-          <div class="time-signature-controls">
-            <label for="groovePresetSelect">Time Signature</label>
-            <select id="groovePresetSelect">
-              <option value="4/4" selected>4/4</option>
-              <option value="3/4">3/4</option>
-              <option value="2/4">2/4</option>
-              <option value="6/8">6/8</option>
-              <option value="7/8">7/8</option>
-              <option value="12/8">12/8</option>
-              <option value="custom">Custom</option>
-            </select>
-            <!-- Custom Inputs (hidden by default) -->
-            <div id="grooveCustomTimeSignature" class="hidden">
+      <div id="groove-list-container" class="hidden">
+        <ul id="groove-interactive-list"></ul>
+        <!-- State B -> A Trigger -->
+        <button id="editGrooveNamesBtn">Change Names</button>
+      </div>
+
+      <!-- Groove Pattern Editor -->
+      <div id="groove-editor-panel" class="advanced-only">
+        <div id="groove-editor-header">
+          <label id="groove-editor-groove-name">—</label>
+          <div class="groove-editor-actions">
+            <button id="saveGrooveBtn">Save Pattern</button>
+            <button id="cancelGrooveBtn">Cancel</button>
+            <button id="clearGrooveBtn">Clear Pattern</button>
+            <button id="deleteGrooveBtn" class="danger-btn">
+              Delete Saved
+            </button>
+          </div>
+        </div>
+        <!-- Local Pattern Settings (Pattern Sovereignty) -->
+        <div id="groove-pattern-settings" class="row">
+          <div class="col" style="min-width: 120px">
+            <label>Local Time Sig</label>
+            <div class="row" style="gap: 4px">
               <input
                 type="number"
-                id="grooveCustomNumerator"
+                id="patNumerator"
                 value="4"
                 min="1"
                 max="16"
+                style="width: 50px"
               />
               <span>/</span>
-              <input
-                type="number"
-                id="grooveCustomDenominator"
-                value="4"
-                min="2"
-                max="16"
-              />
+              <select id="patDenominator" style="width: 60px">
+                <option value="2">2</option>
+                <option value="4" selected>4</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+              </select>
             </div>
           </div>
-          <!-- Subdivision Controls (conditionally visible) -->
-          <div id="grooveSubdivisionContainer">
-            <label for="grooveSubdivisionSelect">Display Subdivision</label>
-            <select id="grooveSubdivisionSelect">
-              <option value="1" selected>None</option>
-              <option value="2">8th Notes</option>
-              <option value="4">16th Notes</option>
+          <div class="col" style="min-width: 100px">
+            <label>Subdiv</label>
+            <select id="patSubdivision" style="width: 90px">
+              <option value="1">None</option>
+              <option value="2">8ths</option>
+              <option value="4">16ths</option>
             </select>
           </div>
+          <div class="col" style="min-width: 80px">
+            <label>Bars</label>
+            <select id="patMeasures" style="width: 70px">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="groove-editor-grid"></div>
+        <div id="trackToggles">
+          <label class="toggle">
+            <input type="checkbox" id="toggleHHPed" checked />
+            <span>Hi-Hat Pedal</span>
+          </label>
+        </div>
+        <p id="groove-editor-hint" class="setting-description"></p>
+      </div>
+
+      <div class="beats-and-sound-row advanced-only">
+        <div class="time-signature-controls">
+          <label for="groovePresetSelect">Time Signature</label>
+          <select id="groovePresetSelect">
+            <option value="4/4" selected>4/4</option>
+            <option value="3/4">3/4</option>
+            <option value="2/4">2/4</option>
+            <option value="6/8">6/8</option>
+            <option value="7/8">7/8</option>
+            <option value="12/8">12/8</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <div id="grooveCustomTimeSignature">
+          <input
+            type="number"
+            id="grooveCustomNumerator"
+            value="4"
+            min="1"
+            max="16"
+          />
+          <span>/</span>
+          <input
+            type="number"
+            id="grooveCustomDenominator"
+            value="4"
+            min="2"
+            max="16"
+          />
+        </div>
+
+        <div id="grooveSubdivisionContainer">
+          <label for="grooveSubdivisionSelect">Display Subdivision</label>
+          <select id="grooveSubdivisionSelect">
+            <option value="1" selected>None</option>
+            <option value="2">8th Notes</option>
+            <option value="4">16th Notes</option>
+          </select>
         </div>
 
         <div class="sound-section">
@@ -501,7 +740,7 @@ Funk
         </div>
       </div>
 
-      <div class="row">
+      <div class="row advanced-only">
         <div class="col">
           <label>Time per cycle</label>
           <div class="row" style="gap: 6px">
@@ -529,7 +768,7 @@ Funk
         </div>
       </div>
 
-      <div class="row" style="margin-top: 8px">
+      <div class="row advanced-only" style="margin-top: 8px">
         <div class="col">
           <label id="cyclesLabel">Total cycles</label>
           <input
@@ -561,6 +800,7 @@ Funk
         </div>
       </div>
 
+      <div id="groove-settings-chip" class="advanced-settings-chip"></div>
       <div class="controls">
         <button id="startBtn">Start</button>
         <button id="pauseBtn" disabled>Pause</button>
@@ -568,8 +808,17 @@ Funk
       </div>
 
       <div class="status" aria-live="polite">
-        <div class="big" id="displayBpm">BPM: —</div>
-        <div class="big" id="displayGroove">Groove: —</div>
+        <div class="big" id="displayBpm" aria-live="polite" aria-atomic="true">
+          BPM: —
+        </div>
+        <div
+          class="big"
+          id="displayGroove"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          Groove: —
+        </div>
         <div style="margin-top: 8px">
           Cycle remaining time: <span id="countdown">—</span>
         </div>
@@ -583,84 +832,152 @@ Funk
         </div>
 
         <div style="margin-top: 8px">
-          <span id="finishingBadge" class="finishing-badge"
+          <span id="finishingBadge" class="finishing-badge" aria-live="polite"
             >Finishing bar…</span
           >
         </div>
         <div id="metronomeVisuals">
-          <div id="countdownBadge" class="countdown-badge"></div>
-          <div id="beat-indicator-container"></div>
+          <button
+            class="mute-toggle-btn"
+            aria-label="Mute audio"
+            aria-pressed="false"
+          >
+            <svg
+              class="unmuted-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+              <path
+                d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 10 0 0 1 0 7.07"
+              ></path>
+            </svg>
+            <svg
+              class="muted-icon hidden"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+          <div
+            id="countdownBadge"
+            class="countdown-badge"
+            aria-live="assertive"
+            aria-atomic="true"
+          ></div>
+          <div
+            id="beat-indicator-container"
+            role="img"
+            aria-label="Beat indicator"
+          ></div>
         </div>
       </div>
       <!-- END existing Groove UI -->
     </div>
 
     <!-- Simple Metronome panel (initially hidden) -->
-    <div id="panel-metronome" class="panel hidden">
+    <div
+      id="panel-metronome"
+      class="panel hidden"
+      role="tabpanel"
+      aria-labelledby="tab-metronome"
+    >
       <!-- BEGIN Simple Metronome UI -->
-      <label>Metronome BPM</label>
-      <input
-        id="simpleBpm"
-        type="number"
-        inputmode="numeric"
-        min="30"
-        max="300"
-        value="120"
-        step="5"
-        data-dynamic-step="true"
-      />
-      <!-- NOTE: data-dynamic-step marks inputs for future JS-driven step updates
-     When user changes quantization preference, JS will update these step attributes -->
+      <label class="advanced-only">Metronome BPM</label>
+      <div class="bpm-stepper advanced-only">
+        <button
+          class="bpm-adjust-btn"
+          data-target="simple"
+          data-delta="-1"
+          aria-label="Decrease BPM"
+        >
+          −
+        </button>
+        <div class="bpm-input-wrap">
+          <input
+            id="simpleBpm"
+            type="number"
+            inputmode="numeric"
+            min="30"
+            max="300"
+            value="120"
+            aria-label="Metronome BPM"
+          />
+          <div class="bpm-flash-overlay"></div>
+        </div>
+        <button
+          class="bpm-adjust-btn"
+          data-target="simple"
+          data-delta="1"
+          aria-label="Increase BPM"
+        >
+          +
+        </button>
+      </div>
 
       <!-- Simple Slider -->
-      <div id="simple-slider-container" class="bpm-slider-box">
+      <div id="simple-slider-container" class="bpm-slider-box simple-only">
         <div id="simple-slider-wrapper">
           <div id="simpleMetronomeSlider"></div>
         </div>
       </div>
 
-      <div class="row beats-and-sound-row">
-        <div class="beats-section">
-          <!-- Time Signature Controls -->
-          <div class="time-signature-controls">
-            <label for="simplePresetSelect">Time Signature</label>
-            <select id="simplePresetSelect">
-              <option value="4/4" selected>4/4</option>
-              <option value="3/4">3/4</option>
-              <option value="2/4">2/4</option>
-              <option value="6/8">6/8</option>
-              <option value="7/8">7/8</option>
-              <option value="12/8">12/8</option>
-              <option value="custom">Custom</option>
-            </select>
-            <!-- Custom Inputs (hidden by default) -->
-            <div id="simpleCustomTimeSignature" class="hidden">
-              <input
-                type="number"
-                id="simpleCustomNumerator"
-                value="4"
-                min="1"
-                max="16"
-              />
-              <span>/</span>
-              <input
-                type="number"
-                id="simpleCustomDenominator"
-                value="4"
-                min="2"
-                max="16"
-              />
-            </div>
-          </div>
-          <!-- Subdivision Controls (conditionally visible) -->
-          <div id="simpleSubdivisionContainer">
-            <label for="simpleSubdivisionSelect">Display Subdivision</label>
-            <select id="simpleSubdivisionSelect">
-              <option value="1" selected>None</option>
-              <option value="2">8th Notes</option>
-              <option value="4">16th Notes</option>
-            </select>
-          </div>
+      <div class="beats-and-sound-row advanced-only">
+        <div class="time-signature-controls">
+          <label for="simplePresetSelect">Time Signature</label>
+          <select id="simplePresetSelect">
+            <option value="4/4" selected>4/4</option>
+            <option value="3/4">3/4</option>
+            <option value="2/4">2/4</option>
+            <option value="6/8">6/8</option>
+            <option value="7/8">7/8</option>
+            <option value="12/8">12/8</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <div id="simpleCustomTimeSignature">
+          <input
+            type="number"
+            id="simpleCustomNumerator"
+            value="4"
+            min="1"
+            max="16"
+          />
+          <span>/</span>
+          <input
+            type="number"
+            id="simpleCustomDenominator"
+            value="4"
+            min="2"
+            max="16"
+          />
+        </div>
+
+        <div id="simpleSubdivisionContainer">
+          <label for="simpleSubdivisionSelect">Display Subdivision</label>
+          <select id="simpleSubdivisionSelect">
+            <option value="1" selected>None</option>
+            <option value="2">8th Notes</option>
+            <option value="4">16th Notes</option>
+          </select>
         </div>
 
         <div class="sound-section">
@@ -669,10 +986,14 @@ Funk
         </div>
       </div>
 
+      <div id="simple-settings-chip" class="advanced-settings-chip"></div>
       <div class="controls">
         <button id="simpleStartBtn">Start</button>
         <button id="simplePauseBtn" disabled>Pause</button>
-        <button id="tapTempoBtn" title="Tap 4–6 times to set tempo">
+        <button
+          id="tapTempoBtn"
+          aria-label="Tap tempo. Tap 4 to 6 times to set BPM."
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -696,10 +1017,65 @@ Funk
       </div>
 
       <div class="status">
-        <div class="big" id="simpleDisplayBpm">BPM: —</div>
+        <div
+          class="big"
+          id="simpleDisplayBpm"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          BPM: —
+        </div>
         <div id="metronomeVisualsSimple" style="margin-top: 12px">
-          <div id="countdownBadgeSimple" class="countdown-badge"></div>
-          <div id="beat-indicator-container-simple"></div>
+          <button
+            class="mute-toggle-btn"
+            aria-label="Mute audio"
+            aria-pressed="false"
+          >
+            <svg
+              class="unmuted-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+              <path
+                d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 10 0 0 1 0 7.07"
+              ></path>
+            </svg>
+            <svg
+              class="muted-icon hidden"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+          <div
+            id="countdownBadgeSimple"
+            class="countdown-badge"
+            aria-live="assertive"
+            aria-atomic="true"
+          ></div>
+          <div
+            id="beat-indicator-container-simple"
+            role="img"
+            aria-label="Beat indicator"
+          ></div>
         </div>
       </div>
       <!-- END Simple Metronome UI -->

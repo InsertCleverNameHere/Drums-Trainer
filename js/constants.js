@@ -40,6 +40,16 @@ export const BPM_QUANTIZATION = {
  */
 export const TAP_TEMPO_QUANTIZATION = 5;
 
+/**
+ * User-configurable BPM step limits (Advanced Mode)
+ * Used by advancedMode.js and sanitizeQuantizationStep() as a shared source of truth.
+ */
+export const BPM_STEP_LIMITS = {
+  MIN: 1,
+  MAX: 150,
+  DEFAULT: 5,
+};
+
 // ===================================
 // Time Signature Limits
 // ===================================
@@ -172,7 +182,11 @@ export const INPUT_LIMITS = {
  * - Preserve tap tempo's fixed step=5
  */
 export function getUserQuantizationPreference() {
-  // Future implementation:
-  // return parseInt(localStorage.getItem('bpmQuantizationStep')) || 5;
+  try {
+    const stored = parseInt(localStorage.getItem("bpmQuantizationStep"), 10);
+    if (!isNaN(stored) && stored >= 1 && stored <= 150) return stored;
+  } catch {
+    // localStorage unavailable (SecurityError, private browsing restriction, etc.)
+  }
   return BPM_QUANTIZATION.STEP;
 }

@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Advanced Mode Tests</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+      }
+      .test {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .pass {
+        background: #d4edda;
+        color: #155724;
+      }
+      .fail {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .section {
+        margin-top: 20px;
+        padding: 10px;
+        background: #f0f0f0;
+        border-radius: 4px;
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 15px;
+        background: #e7f3ff;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      #mock-dom {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎛️ Advanced Mode Tests</h1>
+    <p>
+      Unit tests for <code>js/ui/advancedMode.js</code> public API.
+      <strong>Does not call <code>initAdvancedMode()</code></strong> — tests are
+      isolated to pure functions and state accessors only.
+    </p>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <!--
+      Minimal mock DOM — enough for snapToGrid and state accessor tests.
+      initAdvancedMode() is deliberately NOT called; DOM wiring is out of scope.
+    -->
+    <div id="mock-dom">
+      <input id="bpmMin" value="60" />
+      <input id="bpmMax" value="120" />
+      <input id="simpleBpm" value="120" />
+      <input id="advancedModeToggle" type="checkbox" />
+      <input id="bpmStepInput" type="number" value="5" />
+      <input id="grooveAnchorToggle" type="checkbox" />
+      <button id="restoreDefaultsBtn">Restore to Defaults</button>
+      <div id="groove-settings-chip"></div>
+      <div id="simple-settings-chip"></div>
+    </div>
+
+    <script type="module">
+      import {
+        isAdvancedMode,
+        getQuantizationStep,
+        getGrooveAnchor,
+        getSimpleBpmAnchor,
+        setSimpleBpmAnchor,
+        snapToGrid,
+      } from "../js/ui/advancedMode.js";
+
+      import { sanitizeQuantizationStep } from "../js/utils.js";
+
+      const results = document.getElementById("results");
+      const summary = document.getElementById("summary");
+      let passCount = 0;
+      let failCount = 0;
+
+      function addSection(title) {
+        const section = document.createElement("div");
+        section.className = "section";
+        section.innerHTML = `<h2>${title}</h2>`;
+        results.appendChild(section);
+        return section;
+      }
+
+      function addResult(name, passed, message = "", parentElement = results) {
+        const div = document.createElement("div");
+        div.className = `test ${passed ? "pass" : "fail"}`;
+        div.innerHTML = `
+          <strong>${passed ? "✅" : "❌"} ${name}</strong>
+          ${message ? `<br><small>${message}</small>` : ""}
+        `;
+        parentElement.appendChild(div);
+        if (passed) passCount++;
+        else failCount++;
+      }
+
+      function updateSummary() {
+        const total = passCount + failCount;
+        const percentage =
+          total > 0 ? ((passCount / total) * 100).toFixed(1) : "0.0";
+        summary.innerHTML = `
+          <strong>Test Results:</strong>
+          ${passCount} passed, ${failCount} failed
+          (${percentage}% success rate)
+        `;
+      }
+
+      // =====================================================
+      // SECTION 1: Public API shape
+      // =====================================================
+      const section1 = addSection("1️⃣ Public API Shape");
+
+      addResult(
+        "isAdvancedMode is a function",
+        typeof isAdvancedMode === "function",
+        "",
+        section1
+      );
+      addResult(
+        "getQuantizationStep is a function",
+        typeof getQuantizationStep === "function",
+        "",
+        section1
+      );
+      addResult(
+        "getGrooveAnchor is a function",
+        typeof getGrooveAnchor === "function",
+        "",
+        section1
+      );
+      addResult(
+        "getSimpleBpmAnchor is a function",
+        typeof getSimpleBpmAnchor === "function",
+        "",
+        section1
+      );
+      addResult(
+        "setSimpleBpmAnchor is a function",
+        typeof setSimpleBpmAnchor === "function",
+        "",
+        section1
+      );
+      addResult(
+        "snapToGrid is a function",
+        typeof snapToGrid === "function",
+        "",
+        section1
+      );
+      // isSnapEnabled must NOT be exported (removed from API during design)
+      addResult(
+        "isSnapEnabled is NOT exported (by design)",
+        typeof window.isSnapEnabled === "undefined",
+        "This export was intentionally omitted from the public API",
+        section1
+      );
+
+      // =====================================================
+      // SECTION 2: Default state (before initAdvancedMode)
+      // =====================================================
+      const section2 = addSection("2️⃣ Default State (before initAdvancedMode)");
+
+      // The module initialises _advanced=false, _step=5, _grooveAnchor="min",
+      // _simpleBpmAnchor=120 at module load time — before any initAdvancedMode call.
+      addResult(
+        "isAdvancedMode() returns false before init",
+        isAdvancedMode() === false,
+        `Got: ${isAdvancedMode()}`,
+        section2
+      );
+      addResult(
+        "getQuantizationStep() returns 5 before init",
+        getQuantizationStep() === 5,
+        `Got: ${getQuantizationStep()}`,
+        section2
+      );
+      addResult(
+        "getGrooveAnchor() returns 'min' before init",
+        getGrooveAnchor() === "min",
+        `Got: ${getGrooveAnchor()}`,
+        section2
+      );
+      addResult(
+        "getSimpleBpmAnchor() returns 120 before init",
+        getSimpleBpmAnchor() === 120,
+        `Got: ${getSimpleBpmAnchor()}`,
+        section2
+      );
+
+      // =====================================================
+      // SECTION 3: setSimpleBpmAnchor
+      // =====================================================
+      const section3 = addSection("3️⃣ setSimpleBpmAnchor");
+
+      setSimpleBpmAnchor(140);
+      addResult(
+        "setSimpleBpmAnchor(140) updates anchor",
+        getSimpleBpmAnchor() === 140,
+        `Got: ${getSimpleBpmAnchor()}`,
+        section3
+      );
+
+      setSimpleBpmAnchor(NaN);
+      addResult(
+        "setSimpleBpmAnchor(NaN) is ignored — anchor unchanged",
+        getSimpleBpmAnchor() === 140,
+        `Got: ${getSimpleBpmAnchor()} (should still be 140)`,
+        section3
+      );
+
+      setSimpleBpmAnchor(0);
+      addResult(
+        "setSimpleBpmAnchor(0) is accepted (0 is not NaN)",
+        getSimpleBpmAnchor() === 0,
+        `Got: ${getSimpleBpmAnchor()}`,
+        section3
+      );
+
+      // Reset to a sensible value for subsequent tests
+      setSimpleBpmAnchor(120);
+
+      // =====================================================
+      // SECTION 4: snapToGrid — basic cases
+      // =====================================================
+      const section4 = addSection("4️⃣ snapToGrid — Basic Cases");
+
+      addResult(
+        "Exact grid point: snapToGrid(120, 5, 120, 30, 300) = 120",
+        snapToGrid(120, 5, 120, 30, 300) === 120,
+        `Got: ${snapToGrid(120, 5, 120, 30, 300)}`,
+        section4
+      );
+      addResult(
+        "Round down: snapToGrid(121, 5, 120, 30, 300) = 120",
+        snapToGrid(121, 5, 120, 30, 300) === 120,
+        `Got: ${snapToGrid(121, 5, 120, 30, 300)}`,
+        section4
+      );
+      addResult(
+        "Round up: snapToGrid(123, 5, 120, 30, 300) = 125",
+        snapToGrid(123, 5, 120, 30, 300) === 125,
+        `Got: ${snapToGrid(123, 5, 120, 30, 300)}`,
+        section4
+      );
+      addResult(
+        "Midpoint tie: snapToGrid(122.5, 5, 120, 30, 300) = 125",
+        snapToGrid(122.5, 5, 120, 30, 300) === 125,
+        `Got: ${snapToGrid(122.5, 5, 120, 30, 300)}`,
+        section4
+      );
+
+      // Non-zero anchor: anchor=100, step=7 -> grid: ..., 100, 107, 114, 121 ...
+      addResult(
+        "Non-zero anchor: snapToGrid(119, 7, 100, 30, 300) = 121",
+        snapToGrid(119, 7, 100, 30, 300) === 121,
+        `Got: ${snapToGrid(119, 7, 100, 30, 300)}`,
+        section4
+      );
+      addResult(
+        "Non-zero anchor: snapToGrid(114, 7, 100, 30, 300) = 114",
+        snapToGrid(114, 7, 100, 30, 300) === 114,
+        `Got: ${snapToGrid(114, 7, 100, 30, 300)}`,
+        section4
+      );
+
+      // Step = 1: every integer is on the grid
+      addResult(
+        "Step 1: snapToGrid(157, 1, 120, 30, 300) = 157",
+        snapToGrid(157, 1, 120, 30, 300) === 157,
+        `Got: ${snapToGrid(157, 1, 120, 30, 300)}`,
+        section4
+      );
+
+      // Large step: anchor=50, step=50 -> grid: ..., 0, 50, 100, 150 ...
+      addResult(
+        "Large step: snapToGrid(74, 50, 50, 30, 300) = 50",
+        snapToGrid(74, 50, 50, 30, 300) === 50,
+        `Got: ${snapToGrid(74, 50, 50, 30, 300)}`,
+        section4
+      );
+      addResult(
+        "Large step: snapToGrid(76, 50, 50, 30, 300) = 100",
+        snapToGrid(76, 50, 50, 30, 300) === 100,
+        `Got: ${snapToGrid(76, 50, 50, 30, 300)}`,
+        section4
+      );
+
+      // =====================================================
+      // SECTION 5: snapToGrid — hard limit boundary behaviour
+      // =====================================================
+      const section5 = addSection(
+        "5️⃣ snapToGrid — Hard Limit Boundary Behaviour"
+      );
+
+      // anchor=120, step=100 -> grid: 20, 120, 220 — 20 < 30, so steps inward to 120
+      addResult(
+        "Below min: snapToGrid(25, 100, 120, 30, 300) = 120 (steps inward)",
+        snapToGrid(25, 100, 120, 30, 300) === 120,
+        `Got: ${snapToGrid(25, 100, 120, 30, 300)}`,
+        section5
+      );
+
+      // anchor=120, step=100 -> grid: ..., 120, 220, 320 — 320 > 300, so steps inward to 220
+      addResult(
+        "Above max: snapToGrid(310, 100, 120, 30, 300) = 220 (steps inward)",
+        snapToGrid(310, 100, 120, 30, 300) === 220,
+        `Got: ${snapToGrid(310, 100, 120, 30, 300)}`,
+        section5
+      );
+
+      addResult(
+        "At min boundary: snapToGrid(30, 5, 30, 30, 300) = 30",
+        snapToGrid(30, 5, 30, 30, 300) === 30,
+        `Got: ${snapToGrid(30, 5, 30, 30, 300)}`,
+        section5
+      );
+      addResult(
+        "At max boundary: snapToGrid(300, 5, 300, 30, 300) = 300",
+        snapToGrid(300, 5, 300, 30, 300) === 300,
+        `Got: ${snapToGrid(300, 5, 300, 30, 300)}`,
+        section5
+      );
+
+      // anchor=10 (below min), step=5 -> grid: ..., 10, 15, 20, 25, 30, 35 ... value=32 -> 30
+      addResult(
+        "Anchor below min: snapToGrid(32, 5, 10, 30, 300) = 30",
+        snapToGrid(32, 5, 10, 30, 300) === 30,
+        `Got: ${snapToGrid(32, 5, 10, 30, 300)}`,
+        section5
+      );
+
+      // =====================================================
+      // SECTION 6: sanitizeQuantizationStep — BPM_STEP_LIMITS enforcement
+      // Tested here because advancedMode.js delegates all step sanitisation
+      // to this function; its output directly drives the internal _step state.
+      // =====================================================
+      const section6 = addSection(
+        "6️⃣ sanitizeQuantizationStep — BPM_STEP_LIMITS Enforcement (1–150)"
+      );
+
+      addResult(
+        "sanitizeQuantizationStep(5) = 5 (default, in range)",
+        sanitizeQuantizationStep(5) === 5,
+        `Got: ${sanitizeQuantizationStep(5)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(1) = 1 (minimum)",
+        sanitizeQuantizationStep(1) === 1,
+        `Got: ${sanitizeQuantizationStep(1)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(150) = 150 (maximum)",
+        sanitizeQuantizationStep(150) === 150,
+        `Got: ${sanitizeQuantizationStep(150)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(0) = 1 (clamps to min)",
+        sanitizeQuantizationStep(0) === 1,
+        `Got: ${sanitizeQuantizationStep(0)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(-10) = 1 (negative -> min)",
+        sanitizeQuantizationStep(-10) === 1,
+        `Got: ${sanitizeQuantizationStep(-10)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(151) = 150 (clamps to max)",
+        sanitizeQuantizationStep(151) === 150,
+        `Got: ${sanitizeQuantizationStep(151)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(NaN) = 5 (default)",
+        sanitizeQuantizationStep(NaN) === 5,
+        `Got: ${sanitizeQuantizationStep(NaN)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep(7.8) = 8 (rounds to integer)",
+        sanitizeQuantizationStep(7.8) === 8,
+        `Got: ${sanitizeQuantizationStep(7.8)}`,
+        section6
+      );
+      addResult(
+        "sanitizeQuantizationStep('10') = 10 (numeric string coerced)",
+        sanitizeQuantizationStep("10") === 10,
+        `Got: ${sanitizeQuantizationStep("10")}`,
+        section6
+      );
+
+      // =====================================================
+      // SECTION 7: snapToGrid — across the full step range (1–150)
+      // =====================================================
+      const section7 = addSection(
+        "7️⃣ snapToGrid — Across the Full Step Range (1–150)"
+      );
+
+      addResult(
+        "step=1: snapToGrid(47, 1, 0, 30, 300) = 47",
+        snapToGrid(47, 1, 0, 30, 300) === 47,
+        `Got: ${snapToGrid(47, 1, 0, 30, 300)}`,
+        section7
+      );
+      // step=10, anchor=30 -> grid: 30, 40, 50 ...
+      addResult(
+        "step=10: snapToGrid(44, 10, 30, 30, 300) = 40",
+        snapToGrid(44, 10, 30, 30, 300) === 40,
+        `Got: ${snapToGrid(44, 10, 30, 30, 300)}`,
+        section7
+      );
+      addResult(
+        "step=10: snapToGrid(46, 10, 30, 30, 300) = 50",
+        snapToGrid(46, 10, 30, 30, 300) === 50,
+        `Got: ${snapToGrid(46, 10, 30, 30, 300)}`,
+        section7
+      );
+      // step=150 (max), anchor=30 -> grid: 30, 180 (300-30=270 > 150, both reachable)
+      addResult(
+        "step=150: snapToGrid(30, 150, 30, 30, 300) = 30",
+        snapToGrid(30, 150, 30, 30, 300) === 30,
+        `Got: ${snapToGrid(30, 150, 30, 30, 300)}`,
+        section7
+      );
+      addResult(
+        "step=150: snapToGrid(180, 150, 30, 30, 300) = 180",
+        snapToGrid(180, 150, 30, 30, 300) === 180,
+        `Got: ${snapToGrid(180, 150, 30, 30, 300)}`,
+        section7
+      );
+      // 30+150*2=330 > 300, must step inward to 180
+      addResult(
+        "step=150: snapToGrid(290, 150, 30, 30, 300) = 180 (steps inward from 330)",
+        snapToGrid(290, 150, 30, 30, 300) === 180,
+        `Got: ${snapToGrid(290, 150, 30, 30, 300)}`,
+        section7
+      );
+
+      // =====================================================
+      // SECTION 8: snapToGrid — anchor at boundaries
+      // =====================================================
+      const section8 = addSection("8️⃣ snapToGrid — Anchor at Boundaries");
+
+      // anchor=30 (at min): grid: 30, 35, 40 ...
+      addResult(
+        "anchor=30: snapToGrid(33, 5, 30, 30, 300) = 35",
+        snapToGrid(33, 5, 30, 30, 300) === 35,
+        `Got: ${snapToGrid(33, 5, 30, 30, 300)}`,
+        section8
+      );
+      addResult(
+        "anchor=30: snapToGrid(32, 5, 30, 30, 300) = 30",
+        snapToGrid(32, 5, 30, 30, 300) === 30,
+        `Got: ${snapToGrid(32, 5, 30, 30, 300)}`,
+        section8
+      );
+
+      // anchor=300 (at max): grid: ..., 290, 295, 300
+      addResult(
+        "anchor=300: snapToGrid(298, 5, 300, 30, 300) = 300",
+        snapToGrid(298, 5, 300, 30, 300) === 300,
+        `Got: ${snapToGrid(298, 5, 300, 30, 300)}`,
+        section8
+      );
+      addResult(
+        "anchor=300: snapToGrid(297, 5, 300, 30, 300) = 295",
+        snapToGrid(297, 5, 300, 30, 300) === 295,
+        `Got: ${snapToGrid(297, 5, 300, 30, 300)}`,
+        section8
+      );
+
+      // =====================================================
+      // SECTION 9: snapToGrid — idempotency
+      // Snapping an already-snapped value must not move it.
+      // =====================================================
+      const section9 = addSection("9️⃣ snapToGrid — Idempotency");
+
+      const cases = [
+        { v: 120, step: 5, anchor: 120 },
+        { v: 125, step: 5, anchor: 120 },
+        { v: 114, step: 7, anchor: 100 },
+        { v: 180, step: 150, anchor: 30 },
+        { v: 30, step: 10, anchor: 30 },
+        { v: 300, step: 5, anchor: 300 },
+      ];
+
+      cases.forEach(({ v, step, anchor }) => {
+        const once = snapToGrid(v, step, anchor, 30, 300);
+        const twice = snapToGrid(once, step, anchor, 30, 300);
+        addResult(
+          `Idempotent: snapToGrid(${v}, ${step}, ${anchor}) -> ${once} -> ${twice}`,
+          once === twice,
+          once !== twice
+            ? `Second snap moved value from ${once} to ${twice}`
+            : "",
+          section9
+        );
+      });
+
+      // =====================================================
+      // SUMMARY
+      // =====================================================
+      updateSummary();
+      console.log(`Passed: ${passCount}`);
+      console.log(`Failed: ${failCount}`);
+    </script>
+  </body>
+</html>
