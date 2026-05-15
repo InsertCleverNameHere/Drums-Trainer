@@ -1,5 +1,21 @@
 # Changelog
 
+## [v11.1.0] - 2026-05-15
+
+### ✨ Features
+
+- minor: various bugfixes here and there
+
+### 🧹 Chores
+
+- NONE: change html and css to flexbox install and theme buttons and integrate onto fuoc in phase 5.1
+- NONE: dispatch event change on tap tempo button to update slider as well
+- NONE: update meta tags and css to eliminate install/theme conflict in all resolutions
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v11.0.0] - 2026-05-15
 
 ### 💥 Breaking Changes
