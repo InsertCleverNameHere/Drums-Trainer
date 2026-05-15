@@ -4,6 +4,16 @@
 
 ### 🧹 Chores
 
+- none: fix loading the default grooves
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
+## [v11.1.2] - 2026-05-15
+
+### 🧹 Chores
+
 - chore: Bump version to v11.1.1
 - none: remove nojekyll and test deployment again
 
