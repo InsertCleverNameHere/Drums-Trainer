@@ -116,14 +116,14 @@ export function initPanningModeUI() {
     updateMotionState(motionToggle.checked)
   );
 
-  // RESTORED: Disable toggle during playback
+  // Disable toggle during playback
   document.addEventListener("metronome:ownerChanged", (e) => {
     const owner = e?.detail?.owner;
     const isPlaying = owner !== null;
 
     motionToggle.disabled = isPlaying;
 
-    // Optional: Visual feedback for disabled state is handled by CSS (:disabled)
+    // Visual feedback for disabled state is handled by CSS (:disabled)
     if (isPlaying) {
       const row = motionToggle.closest(".settings-row");
       if (row) {

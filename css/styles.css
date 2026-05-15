@@ -713,7 +713,7 @@ button svg,
   width: 100%; /* Ensures full width clickable area */
 }
 
-/* Optional: Tweaks the text weight to match the header better */
+/* Tweaks the text weight to match the header better */
 .settings-group .toggle span {
   font-weight: 600;
   font-size: 1rem;
@@ -1010,7 +1010,7 @@ button#installBtn.utility-button:active {
   transform: translateX(-50%) translateY(-10px);
 }
 
-/* Optional: shorter display window */
+/* Shorter display window */
 @keyframes autoFadeOut {
   0% {
     opacity: 0;
@@ -1336,98 +1336,6 @@ button#installBtn.utility-button:active {
   height: 36px;
 }
 
-#beat-indicator-container.pattern-mode {
-  flex-direction: column;
-  gap: 20px;
-  /* Reserved 70px on left for labels to prevent overlap */
-  padding: 20px 20px 50px 70px;
-  min-height: unset;
-  height: auto;
-}
-
-.pattern-row {
-  display: flex;
-  gap: 0 7 px;
-  align-items: center;
-  width: 100%;
-  justify-content: center;
-  position: relative;
-}
-
-.pattern-row-label {
-  position: absolute;
-  /* Shifted into the 70px gutter */
-  left: -60px;
-  width: 50px;
-  text-align: right;
-  font-size: 0.8rem;
-  font-weight: 900;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  user-select: none;
-  pointer-events: none;
-}
-
-.pattern-dot {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%; /* Mandatory: Circular design */
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  opacity: 0.3;
-  transition: all 0.1s ease;
-  box-shadow: 0 1px 3px var(--shadow);
-  flex-shrink: 0;
-}
-
-/* Active hit in the pattern */
-.pattern-dot.active {
-  opacity: 0.6;
-  background: var(--text-secondary);
-  border-color: var(--text-secondary);
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
-}
-
-/* The vertical playhead highlight */
-.pattern-dot.playing {
-  outline: 3px solid var(--text-primary);
-  outline-offset: 3px;
-  opacity: 0.9;
-  z-index: 2;
-}
-
-.pattern-dot.active.playing {
-  opacity: 1;
-  transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
-}
-
-/* Instrument-specific colors for active dots */
-.pattern-row[data-track="hihat"] .pattern-dot.active {
-  background: #46f0f0;
-  border-color: #46f0f0;
-}
-.pattern-row[data-track="kick"] .pattern-dot.active {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.pattern-row[data-track="snare"] .pattern-dot.active {
-  background: #4363d8; /* Blue — colour-blind safe, replaces green which clashed with kick red */
-  border-color: #4363d8;
-}
-.pattern-row[data-track="HHPed"] .pattern-dot.active {
-  background: #ffe119;
-  border-color: #ffe119;
-}
-
-/* Phonation labels in pattern mode */
-.pattern-labels-row {
-  margin-top: 4px;
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-
 /* --- Flashing & Accent Logic --- */
 .beat-dot {
   /* Keep the smooth transition */
@@ -1441,12 +1349,12 @@ button#installBtn.utility-button:active {
   outline: 1px solid transparent;
 }
 
-/* COLOR for Accent Beats (Downbeat) */
+/* COLOR for Accent Beats (Downbeat)*/
 .beat-dot.flashing.accent-flash {
   background-color: #b22222; /* Red */
 }
 
-/* COLOR for Normal Beats */
+/* COLOR for Normal Beats*/
 .beat-dot.flashing.normal-flash {
   background-color: #1565c0;
 }
