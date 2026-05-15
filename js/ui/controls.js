@@ -46,6 +46,7 @@ export function initSoundProfileUI() {
     simpleProfileEl.value = profileName;
     audioProfiles.setActiveProfile(profileName);
     localStorage.setItem("activeSoundProfile", profileName);
+    document.dispatchEvent(new Event("advancedSettings:changed"));
     debugLog("state", `🎚 Sound profile set to: ${profileName}`);
   }
 
@@ -276,25 +277,38 @@ export function initTimeSignatureUI() {
       const presetValue = presetSelect.value;
 
       if (presetValue === "custom") {
-        customContainer.classList.remove("hidden");
+        requestAnimationFrame(() => customContainer.classList.add("visible"));
         beats = parseInt(customNumerator.value, 10);
         value = parseInt(customDenominator.value, 10);
       } else {
-        customContainer.classList.add("hidden");
+        customContainer.classList.remove("visible");
         [beats, value] = presetValue.split("/").map(Number);
       }
 
       core.setTimeSignature(beats, value);
       const updatedSignature = core.getTimeSignature();
 
-      // Show/hide subdivision dropdown based on denominator
       if (updatedSignature.value === 4) {
-        subdivisionContainer.classList.remove("hidden");
+        requestAnimationFrame(() =>
+          subdivisionContainer.classList.add("visible")
+        );
       } else {
-        subdivisionContainer.classList.add("hidden");
+        subdivisionContainer.classList.remove("visible");
         subdivisionSelect.value = "1";
         core.setTicksPerBeat(1);
       }
+      document.dispatchEvent(new Event("advancedSettings:changed"));
+
+      // --- Dispatch for grid re-render ---
+      document.dispatchEvent(
+        new CustomEvent("metronome:timeSigChanged", {
+          detail: {
+            beats: updatedSignature.beats,
+            value: updatedSignature.value,
+            ticksPerBeat: core.getTicksPerBeat(),
+          },
+        })
+      );
     };
 
     /**
@@ -305,6 +319,19 @@ export function initTimeSignatureUI() {
     const updateSubdivision = () => {
       const multiplier = parseInt(subdivisionSelect.value, 10);
       core.setTicksPerBeat(multiplier);
+      document.dispatchEvent(new Event("advancedSettings:changed"));
+
+      // --- Dispatch for grid re-render ---
+      const sig = core.getTimeSignature();
+      document.dispatchEvent(
+        new CustomEvent("metronome:timeSigChanged", {
+          detail: {
+            beats: sig.beats,
+            value: sig.value,
+            ticksPerBeat: multiplier,
+          },
+        })
+      );
     };
 
     // Attach event listeners

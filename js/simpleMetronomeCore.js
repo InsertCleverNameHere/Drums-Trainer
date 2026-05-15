@@ -70,7 +70,6 @@ function scheduleNote() {
     `Scheduling tick ${tickIndex} (measure tick ${tickInMeasure})`
   );
 
-  // --- CORRECTED LOGIC ---
   // We play a sound for EVERY tick.
   // The accent is only passed if it's a main beat.
   // This produces a strong DOWNBEAT, weaker main beats, and quietest subdivisions.

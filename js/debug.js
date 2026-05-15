@@ -13,6 +13,7 @@ export const DEBUG = {
   hotkeys: false, // Keyboard input handling
   timing: false, // Performance measurements (> 16.67ms warnings)
   state: false, // UI state transitions (buttons, inputs)
+  advancedMode: false, // Advanced Mode state, chip rendering, step changes
   all: false, // Master override (enables everything)
 };
 

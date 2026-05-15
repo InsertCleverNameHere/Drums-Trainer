@@ -62,8 +62,8 @@
           "startBtn",
           "pauseBtn",
           "nextBtn",
-          "tooltipTrigger",
-          "tooltipDialog",
+          "settingsTrigger",
+          "settingsDialog",
           "VersionNumber",
           "checkUpdatesBtn",
         ];
@@ -120,15 +120,15 @@
       // Group 2: Submodule Re-exports
       addHeader("Submodule Re-exports (Modularization Check)");
 
-      const subModuleExports = [
-        { name: "initDarkMode", origin: "theme.js" },
-        { name: "getSafeQuantization", origin: "theme.js" },
-        { name: "showNotice", origin: "sliders.js" },
-        { name: "initSoundProfileUI", origin: "controls.js" },
+      // Phase 4 re-exports — still present
+      const phase4Exports = [
+        { name: "initDarkMode",            origin: "theme.js" },
+        { name: "showNotice",              origin: "sliders.js" },
+        { name: "initSoundProfileUI",      origin: "controls.js" },
         { name: "initSimplePanelControls", origin: "panels.js" },
       ];
 
-      subModuleExports.forEach((item) => {
+      phase4Exports.forEach((item) => {
         const exists = typeof UI[item.name] === "function";
         addResult(
           `Re-export: ${item.name}`,
@@ -139,7 +139,55 @@
         );
       });
 
-      // Group 3: Scope Safety
+      // Phase 5.1 (Phase E) re-exports — added when advancedMode.js was wired in
+      const phase51Exports = [
+        { name: "initAdvancedMode",    origin: "advancedMode.js" },
+        { name: "restoreDefaults",     origin: "advancedMode.js" },
+        { name: "isAdvancedMode",      origin: "advancedMode.js" },
+        { name: "getQuantizationStep", origin: "advancedMode.js" },
+      ];
+
+      phase51Exports.forEach((item) => {
+        const exists = typeof UI[item.name] === "function";
+        addResult(
+          `Re-export: ${item.name}`,
+          exists,
+          exists
+            ? `Correctly bridged from ${item.origin}`
+            : `Failed to re-export from ${item.origin}`
+        );
+      });
+
+      // Group 3: Removed re-exports (Phase D cleanup)
+      // getSafeQuantization and initQuantization were removed from theme.js
+      // when quantization moved to advancedMode.js. Verify they are gone.
+      addHeader("Removed Re-exports (Phase D Cleanup — must be absent)");
+
+      addResult(
+        "getSafeQuantization is NOT re-exported (removed in Phase D)",
+        typeof UI["getSafeQuantization"] === "undefined",
+        typeof UI["getSafeQuantization"] !== "undefined"
+          ? "Still present — should have been removed"
+          : "Correctly absent"
+      );
+
+      addResult(
+        "initQuantization is NOT re-exported (removed in Phase D)",
+        typeof UI["initQuantization"] === "undefined",
+        typeof UI["initQuantization"] !== "undefined"
+          ? "Still present — should have been removed"
+          : "Correctly absent"
+      );
+
+      addResult(
+        "getQuantizationLevel is NOT re-exported (removed in Phase D)",
+        typeof UI["getQuantizationLevel"] === "undefined",
+        typeof UI["getQuantizationLevel"] !== "undefined"
+          ? "Still present — should have been removed"
+          : "Correctly absent"
+      );
+
+      // Group 4: Scope Safety
       addHeader("Scope & Safety Checks");
 
       // Check if global scope is clean
@@ -153,19 +201,23 @@
           : "Great! No functions leaking into global window"
       );
 
-      // Runtime Check
+      // Runtime check — initUI() returns void; test it doesn't throw
       try {
-        // We pass empty mocks to see if it initializes without crashing
         const deps = {
           startMetronome: () => {},
           stopMetronome: () => {},
-          // ... other deps mocked
+          pauseMetronome: () => {},
+          resumeMetronome: () => {},
+          getPauseState: () => false,
+          getBpm: () => 120,
+          requestEndOfCycle: () => {},
+          performCountIn: async () => {},
         };
-        const session = UI.initUI(deps);
+        UI.initUI(deps);
         addResult(
           "Runtime: initUI() runs without errors",
-          typeof session === "object",
-          "Successfully initialized with mock DOM elements"
+          true,
+          "No exception thrown with mock DOM elements"
         );
       } catch (e) {
         addResult("Runtime: initUI()", false, `Crashed: ${e.message}`);

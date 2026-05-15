@@ -1,13 +1,14 @@
 /**
  * @fileoverview noUiSlider setup, input validation, and BPM range management.
  * Handles both dual-handle (groove) and single-handle (simple) sliders.
- * 
+ *
  * @module ui/sliders
  */
 
 import { debugLog } from "../debug.js";
-import { INPUT_LIMITS, getUserQuantizationPreference, VISUAL_TIMING } from "../constants.js";
+import { INPUT_LIMITS, VISUAL_TIMING } from "../constants.js";
 import * as utils from "../utils.js";
+import * as advancedMode from "./advancedMode.js";
 
 // Slider instances
 let grooveSliderInstance = null;
@@ -15,11 +16,11 @@ let simpleSliderInstance = null;
 
 /**
  * Shows floating UI notice message.
- * 
+ *
  * @param {string} message - Notice text
  * @param {number} [duration=2000] - Display duration in ms
  * @returns {void}
- * 
+ *
  * @example
  * showNotice('⚠️ BPM range must be at least 5 apart');
  */
@@ -49,10 +50,10 @@ export function showNotice(message, duration = 2000) {
 
 /**
  * Validates and sanitizes numeric input against defined limits.
- * 
+ *
  * @param {HTMLInputElement} input - Input element to validate
  * @returns {void}
- * 
+ *
  * @example
  * const input = document.getElementById('bpmMin');
  * validateNumericInput(input); // Clamps to 30-300 range
@@ -75,16 +76,29 @@ function validateNumericInput(input) {
     showNotice(`Beat unit must be 2, 4, 8, or 16. Corrected to ${sanitized}.`);
   }
 
+  // In Advanced Mode, simpleBpm accepts any value in [30, 300] — no snap.
+  // The clamped value becomes the new anchor so subsequent arrow key presses
+  // step relative to whatever the user last typed.
+  // bpmMin and bpmMax are also never snapped — quantization deferred to play time.
+  if (id === "simpleBpm" && advancedMode.isAdvancedMode()) {
+    advancedMode.setSimpleBpmAnchor(sanitized);
+  }
+
   input.value = sanitized;
-  input.dataset.lastValidValue = sanitized;
+  // bpmMin/bpmMax: checkGrooveMargin is the sole owner of lastValidValue for
+  // these two fields — it writes only after the margin cross-check passes.
+  // Writing here would corrupt the revert target before the deferred check fires.
+  if (id !== "bpmMin" && id !== "bpmMax") {
+    input.dataset.lastValidValue = sanitized;
+  }
 }
 
 /**
  * Attaches validation listeners to all numeric inputs.
  * Enforces INPUT_LIMITS constraints on keydown, paste, and blur.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * attachInputValidation(); // Sets up validation for all inputs
  */
@@ -116,7 +130,7 @@ function attachInputValidation() {
       const text = (e.clipboardData || window.clipboardData).getData("text");
       const limits = INPUT_LIMITS[id];
       const cleaned = utils.sanitizePositiveInteger(text, limits);
-      
+
       if (cleaned === limits.defaultValue && !/^[1-9]\\d*$/.test(text)) {
         e.preventDefault();
         input.classList.add("invalid-flash");
@@ -127,7 +141,13 @@ function attachInputValidation() {
       } else {
         e.preventDefault();
         input.value = cleaned;
-        input.dataset.lastValidValue = cleaned;
+        // bpmMin/bpmMax: checkGrooveMargin is the sole owner of lastValidValue.
+        // Writing here bypasses the margin cross-check and corrupts the revert
+        // target. Let blur fire checkGrooveMargin to advance lastValidValue only
+        // after the margin is confirmed safe — identical to the keyboard path.
+        if (id !== "bpmMin" && id !== "bpmMax") {
+          input.dataset.lastValidValue = cleaned;
+        }
       }
     });
 
@@ -149,43 +169,74 @@ function attachInputValidation() {
   // Groove BPM cross-check (enforce 5 BPM minimum margin)
   const minInput = document.getElementById("bpmMin");
   const maxInput = document.getElementById("bpmMax");
-  
+
   if (minInput && maxInput) {
-    const adjustGrooveBpm = () => {
-      const minVal = Number(minInput.value);
-      const maxVal = Number(maxInput.value);
-      const margin = 5;
+    /**
+     * Checks the groove BPM margin after a blur on one of the two fields.
+     * Deferred via setTimeout(0) so that if focus moves directly to the other
+     * BPM field (blur-pair deferral), the check is skipped for that edit.
+     *
+     * On violation, BOTH fields are reverted to their lastValidValue. Reverting
+     * only the edited field is unsafe: the other field may have drifted from its
+     * own lastValidValue since the last confirmed-safe state (e.g. the user typed
+     * into it without blurring, or _correctMarginIfViolated moved it). The LVV
+     * pair is always written together and is guaranteed margin-safe, so reverting
+     * both is the only operation that reliably restores a safe state.
+     *
+     * @param {HTMLInputElement} editedEl  - The field that just lost focus.
+     * @param {HTMLInputElement} otherEl   - The complementary BPM field.
+     */
+    const checkGrooveMargin = (editedEl, otherEl) => {
+      setTimeout(() => {
+        // If focus moved directly to the other BPM field, the user is still
+        // editing the pair — defer until they leave both fields entirely.
+        if (document.activeElement === otherEl) return;
 
-      if (minVal >= maxVal - margin + 1) {
-        // Values violate margin - revert to last valid values
-        minInput.value =
-          minInput.dataset.lastValidValue || INPUT_LIMITS.bpmMin.defaultValue;
-        maxInput.value =
-          maxInput.dataset.lastValidValue || INPUT_LIMITS.bpmMax.defaultValue;
+        const editedVal = Number(editedEl.value);
+        const otherVal  = Number(otherEl.value);
+        const margin = advancedMode.isAdvancedMode()
+          ? advancedMode.getQuantizationStep()
+          : 5;
 
-        showNotice("BPM range must be at least 5 apart");
-      } else {
-        // Values are valid - update last valid values
-        minInput.dataset.lastValidValue = minVal;
-        maxInput.dataset.lastValidValue = maxVal;
-      }
+        const violated = editedEl === minInput
+          ? editedVal >= otherVal - margin + 1
+          : editedVal <= otherVal + margin - 1;
+
+        if (violated) {
+          // Revert both fields to their last confirmed-safe pair.
+          // The LVV pair is always written together (by checkGrooveMargin's pass
+          // branch and by _correctMarginIfViolated), so it is guaranteed to be
+          // margin-safe. Reverting only editedEl would leave the pair in an
+          // unsafe state if otherEl has drifted from its own LVV.
+          minInput.value = minInput.dataset.lastValidValue
+            || String(INPUT_LIMITS.bpmMin.defaultValue);
+          maxInput.value = maxInput.dataset.lastValidValue
+            || String(INPUT_LIMITS.bpmMax.defaultValue);
+          showNotice(`BPM range must be at least ${margin} apart`);
+        } else {
+          // Both values are margin-safe — this is the only place that advances
+          // lastValidValue for these two fields.
+          editedEl.dataset.lastValidValue = String(editedVal);
+          otherEl.dataset.lastValidValue  = String(otherVal);
+        }
+      }, 0);
     };
-    
-    minInput.addEventListener("change", adjustGrooveBpm);
-    maxInput.addEventListener("change", adjustGrooveBpm);
+
+    minInput.addEventListener("blur", () => checkGrooveMargin(minInput, maxInput));
+    maxInput.addEventListener("blur", () => checkGrooveMargin(maxInput, minInput));
   }
 }
 
 /**
  * Creates noUiSlider instance with native pips and click handling.
- * 
+ *
  * @param {string} elementId - Slider element ID
  * @param {Object} config - Slider configuration
  * @param {number[]} config.start - Initial value(s)
  * @param {boolean|string} config.connect - Connect bar style
  * @param {Function} [config.onUpdate] - Update callback
  * @returns {HTMLElement|null} Slider element
- * 
+ *
  * @example
  * createMetronomeSlider('groove-slider', {
  *   start: [60, 120],
@@ -204,8 +255,8 @@ function createMetronomeSlider(elementId, config) {
     start: config.start,
     connect: config.connect,
     range: { min: 30, max: 300 },
-    step: 5,
-    margin: 5, // Safety margin (ignored if single handle)
+    step: config.step ?? 5,
+    margin: config.margin ?? 5, // Safety margin (ignored if single handle)
     animate: true,
     animationDuration: 300,
     tooltips: false,
@@ -291,10 +342,10 @@ function createMetronomeSlider(elementId, config) {
 
 /**
  * Toggles groove slider enabled/disabled state.
- * 
+ *
  * @param {boolean} disabled - True to disable, false to enable
  * @returns {void}
- * 
+ *
  * @example
  * window.toggleGrooveSliderDisabled(true); // Disable during playback
  */
@@ -313,10 +364,10 @@ window.toggleGrooveSliderDisabled = (disabled) => {
 
 /**
  * Toggles simple slider enabled/disabled state.
- * 
+ *
  * @param {boolean} disabled - True to disable, false to enable
  * @returns {void}
- * 
+ *
  * @example
  * window.toggleSimpleSliderDisabled(true); // Disable during playback
  */
@@ -336,9 +387,9 @@ window.toggleSimpleSliderDisabled = (disabled) => {
 /**
  * Initializes both groove and simple sliders with input sync.
  * Attaches validation and sets up DOMContentLoaded listener.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * initSliders(); // Sets up both sliders
  */
@@ -353,8 +404,11 @@ export function initSliders() {
         start: [parseInt(minInput.value) || 30, parseInt(maxInput.value) || 60],
         connect: true,
         onUpdate: (values) => {
-          minInput.value = Math.round(values[0]);
-          maxInput.value = Math.round(values[1]);
+          if (!advancedMode.isAdvancedMode()) {
+            minInput.value = Math.round(values[0]);
+            maxInput.value = Math.round(values[1]);
+          }
+          // pip highlighting always runs regardless of mode
         },
       });
 
@@ -375,7 +429,11 @@ export function initSliders() {
         start: [parseInt(simpleInput.value) || 120],
         connect: "lower",
         onUpdate: (values) => {
-          simpleInput.value = Math.round(values[0]);
+          // In Advanced Mode the numeric input is source of truth;
+          // silence writeback (same pattern as groove slider, C.3).
+          if (!advancedMode.isAdvancedMode()) {
+            simpleInput.value = Math.round(values[0]);
+          }
         },
       });
 
@@ -397,26 +455,31 @@ export function initSliders() {
 
 /**
  * Updates BPM input step attributes based on user preference.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * updateBpmInputSteps(); // Syncs step attribute with user preference
  */
 export function updateBpmInputSteps() {
-  const step = getUserQuantizationPreference();
+  // NOTE: HTML step attributes and data-dynamic-step removed from BPM inputs.
+  // Native spinners are hidden via CSS; custom ± buttons are a planned replacement.
+  // This function now only updates the noUiSlider instances.
 
-  const inputs = [
-    document.getElementById("bpmMin"),
-    document.getElementById("bpmMax"),
-    document.getElementById("simpleBpm"),
-  ];
+  const sliderStep = advancedMode.isAdvancedMode()
+    ? advancedMode.getQuantizationStep()
+    : 5;
 
-  inputs.forEach((input) => {
-    if (input?.hasAttribute("data-dynamic-step")) {
-      input.setAttribute("step", step);
-    }
-  });
+  if (grooveSliderInstance) {
+    grooveSliderInstance.updateOptions(
+      { step: sliderStep, margin: sliderStep },
+      false
+    );
+  }
 
-  debugLog("state", `Updated BPM input steps to ${step}`);
+  if (simpleSliderInstance) {
+    simpleSliderInstance.updateOptions({ step: sliderStep }, false);
+  }
+
+  debugLog("state", `Updated BPM slider steps to ${sliderStep}`);
 }

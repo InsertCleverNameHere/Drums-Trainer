@@ -10,6 +10,7 @@ import { VISUAL_TIMING, INPUT_LIMITS } from "../constants.js";
 import * as sessionEngine from "../sessionEngine.js";
 import * as simpleMetronome from "../simpleMetronome.js";
 import { showNotice } from "./sliders.js";
+import * as advancedMode from "./advancedMode.js";
 
 // Hotkey state
 let _hotkeyLock = false;
@@ -40,6 +41,25 @@ function validateNumericInput(input) {
 }
 
 /**
+ * Triggers the accent-coloured flash overlay on the input cell.
+ * Animates a sibling .bpm-flash-overlay div instead of the input itself,
+ * because Firefox does not run @keyframes animations on replaced form
+ * elements (input[type=number]).
+ *
+ * @private
+ * @param {HTMLInputElement} inputEl
+ */
+function _triggerFlashOverlay(inputEl) {
+  const overlay = inputEl.parentElement?.querySelector('.bpm-flash-overlay');
+  if (!overlay) return;
+  // Force a reflow so re-triggering the animation on rapid presses works.
+  overlay.classList.remove('animating');
+  void overlay.offsetWidth;
+  overlay.classList.add('animating');
+  overlay.addEventListener('animationend', () => overlay.classList.remove('animating'), { once: true });
+}
+
+/**
  * Adjusts groove BPM input (min or max) by delta.
  * Enforces 5 BPM minimum margin between min/max.
  *
@@ -55,13 +75,15 @@ function adjustGrooveInput(delta) {
 
   if (!adj || !other) return;
 
-  const step = 5; // Always 5, no fine-tuning
+  const step = advancedMode.isAdvancedMode()
+    ? advancedMode.getQuantizationStep()
+    : 5;
   const cur = parseInt(adj.value, 10) || 0;
   const otherVal = parseInt(other.value, 10) || 0;
   const next = Math.max(30, Math.min(300, cur + delta * step));
 
-  // Check if this change would violate the margin (5 BPM minimum)
-  const margin = 5;
+  // Check if this change would violate the margin constraint
+  const margin = step; // margin always equals step
   if (window.__adjustingTarget === "min" && next >= otherVal - margin + 1) {
     return;
   }
@@ -76,11 +98,7 @@ function adjustGrooveInput(delta) {
   // Trigger a change event to update the slider
   adj.dispatchEvent(new Event("change", { bubbles: true }));
 
-  adj.classList.add("bpm-flash");
-  setTimeout(
-    () => adj.classList.remove("bpm-flash"),
-    VISUAL_TIMING.FLASH_DURATION_MS
-  );
+  _triggerFlashOverlay(adj);
 }
 
 /**
@@ -94,9 +112,24 @@ function adjustSimpleBpm(delta) {
   const el = document.getElementById("simpleBpm");
   if (!el) return;
   const cur = parseInt(el.value || el.getAttribute("value") || 120, 10) || 120;
-  const step = 5; // Always 5, no fine-tuning
+  const step = advancedMode.isAdvancedMode()
+    ? advancedMode.getQuantizationStep()
+    : 5;
   const limits = INPUT_LIMITS[el.id];
-  const next = Math.max(limits.min, Math.min(limits.max, cur + delta * step));
+
+  // In Advanced Mode clamp to the anchor-relative grid floor/ceiling so arrow
+  // keys cannot overshoot into values that would be silently un-snapped on blur.
+  // In Simple Mode use the hard limits unchanged.
+  let effectiveMin = limits.min;
+  let effectiveMax = limits.max;
+  if (advancedMode.isAdvancedMode()) {
+    const anchor = advancedMode.getSimpleBpmAnchor();
+    effectiveMin = anchor + Math.ceil((limits.min - anchor) / step) * step;
+    effectiveMax = anchor + Math.floor((limits.max - anchor) / step) * step;
+  }
+
+  const next = Math.max(effectiveMin, Math.min(effectiveMax, cur + delta * step));
+  if (next === cur) return; // already at grid boundary — do nothing
   el.value = next;
 
   if (
@@ -111,11 +144,7 @@ function adjustSimpleBpm(delta) {
     simpleMetronome.setBpm(next);
   }
 
-  el.classList.add("bpm-flash");
-  setTimeout(
-    () => el.classList.remove("bpm-flash"),
-    VISUAL_TIMING.BPM_CHANGE_FLASH_MS
-  );
+  _triggerFlashOverlay(el);
   el.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
@@ -282,6 +311,9 @@ export function setupHotkeys() {
 
       case "ArrowRight":
       case "ArrowLeft": {
+        // ✅ GUARD: If focus is on a tab, let the tablist keydown handler take over
+        if (document.activeElement?.getAttribute("role") === "tab") return;
+
         // ✅ GUARD: Only allow target switching in Groove mode
         const groovePanel = document.getElementById("panel-groove");
         const isGrooveVisible =

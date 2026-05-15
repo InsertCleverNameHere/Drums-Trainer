@@ -2,23 +2,33 @@
 
 ## Overview
 
-The metronome uses a phrase-based rendering system that displays up to 4 dots at a time, creating a consistent, readable viewport across all time signatures and tempos.
+The metronome uses a phrase-based rendering system that displays up to 4 dots at a time, creating a consistent, readable viewport across all time signatures and tempos. It supports two distinct visual modes: **Standard Mode** (single-row Big Dots) and **Pattern Dashboard Mode** (4-row multi-track acoustic view).
 
 ## Key Concepts
 
 ### Phrases
 
 - **Definition**: Groups of up to 4 ticks that represent a logical musical unit
+- **Consistency**: In Dashboard mode, all 4 rows (tracks) are synchronized to the same phrase window.
 - **Example**: 4/4 with 16ths = 4 phrases of 4 ticks each
 - **Example**: 7/8 = 2 phrases (4 ticks + 3 ticks)
+
+### Pattern Dashboard
+
+- **Purpose**: Direct-visual feedback for programmed drum grooves.
+- **Tracks**: Fixed rows for Hi-Hat (HH), Kick (KI), Snare (SN), and Pedal (PD).
+- **Playhead**: A vertical column-based highlight that sweeps through all tracks simultaneously.
 
 ### Intelligent Panning Mode (Default)
 
 - **Goal**: Minimize visual disruption by only updating when necessary
 - **Logic**:
+- Standard metronome:
   - If phrase patterns match completely → No update
   - If hierarchy matches but labels differ → Fade labels only
   - If structure differs → Full pan animation
+- Pattern Mode: Automatically forces a Full Pan at every phrase boundary. This ensures that even if phonation labels are identical, the unique drum hits of the pattern are rendered correctly.
+- Sovereignty: Rendering is branched via patternScheduler.isActive() && advancedMode.isDashboardEnabled()
 
 ### Forced Panning Mode
 
@@ -33,15 +43,32 @@ Compares two phrases on three levels:
 2. **Hierarchy Match**: Same size pattern (primary/secondary/tertiary)?
 3. **Label Match**: Same phonation labels?
 
+## 🥁 Pattern Dashboard Architecture
+
+### Multi-Track Rendering
+
+When a pattern is active, `visuals.js` transforms the `#beat-indicator-container` into a vertical stack of rows.
+
+- **Fixed Sidebar**: Instrument labels (HH, KI, etc.) are absolute-positioned in a 70px left gutter.
+- **Centered Grid**: Instrument dots use `justify-content: center` to align with the same center-point as the standard metronome dots.
+- **Acoustic Colors**: Active hits use specific color-coding (Cyan, Red, Green, Yellow) for high-speed readability.
+
+### Vertical Playhead
+
+The dashboard uses an `:nth-child` selection strategy to drive the playhead.
+
+- **Logic**: `tickInPhrase + 2` (Accounting for the sidebar label as the first child).
+- **Sync**: Applies the `.playing` class to every track at once, creating a unified vertical bar.
+
 ## Performance Characteristics
 
 ### Memory Usage
 
-- **60-120 BPM**: < 2 MB growth per 5 minutes ✅
-- **180-240 BPM**: 3-4 MB growth per 5 minutes ✅
-- **300 BPM with 16ths**: ~6 MB per 3 minutes (edge case) ⚠️
-
-Memory stabilizes after stopping (GSAP cleanup working correctly).
+- **Initial Baseline (with samples)**: ~14.7 MB 🟢
+- **Standard Mode (Running)**: ~15.5 MB 🟢
+- **Pattern Dashboard (Running)**: ~16.7 MB 🟢
+- **DOM Stability**: Fixed at ~45 nodes during pattern playback (zero leak) ✅
+- **Working Set Churn**: < 0.5 MB variation per cycle (GC-stable) ✅
 
 ### Animation Performance
 

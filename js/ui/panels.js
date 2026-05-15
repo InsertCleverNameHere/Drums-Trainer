@@ -1,7 +1,7 @@
 /**
  * @fileoverview Mode tabs and simple metronome panel controls.
  * Manages groove/simple panel switching and simple metronome UI state.
- * 
+ *
  * @module ui/panels
  */
 
@@ -12,7 +12,7 @@ import * as utils from "../utils.js";
 
 /**
  * Enables/disables a mode tab.
- * 
+ *
  * @private
  * @param {HTMLElement} tabEl - Tab element
  * @param {boolean} enabled - True to enable, false to disable
@@ -25,8 +25,59 @@ function setTabEnabled(tabEl, enabled) {
 }
 
 /**
+ * Internal helper to sync accessibility attributes with the visual state.
+ */
+function _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet) {
+  const isGroove = tabGroove.classList.contains("active");
+
+  tabGroove.setAttribute("aria-selected", isGroove ? "true" : "false");
+  tabMet.setAttribute("aria-selected", isGroove ? "false" : "true");
+
+  tabGroove.setAttribute("tabindex", isGroove ? "0" : "-1");
+  tabMet.setAttribute("tabindex", isGroove ? "-1" : "0");
+
+  panelGroove.hidden = !isGroove;
+  panelMet.hidden = isGroove;
+}
+
+/**
+ * Internal helper to animate the transition between panels.
+ * Ensures the outgoing panel fades out before the incoming panel fades in.
+ */
+function _animateSwap(toShow, toHide, onComplete) {
+  if (!toShow.classList.contains("hidden")) return;
+
+  gsap.killTweensOf([toShow, toHide]);
+
+  gsap.to(toHide, {
+    opacity: 0,
+    y: -30,
+    duration: 0.45,
+    ease: "power2.in",
+    onComplete: () => {
+      toHide.classList.add("hidden");
+      gsap.set(toHide, { y: 0 }); // Reset for next time
+
+      toShow.classList.remove("hidden");
+      gsap.fromTo(
+        toShow,
+        { opacity: 0, y: 10 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: "expo.out",
+          clearProps: "transform",
+          onComplete: onComplete,
+        }
+      );
+    },
+  });
+}
+
+/**
  * Sets active mode and updates panel visibility.
- * 
+ *
  * @private
  * @param {string} mode - 'groove' or 'metronome'
  * @param {HTMLElement} tabGroove - Groove tab element
@@ -45,20 +96,20 @@ function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
   if (owner === "groove") {
     tabGroove.classList.add("active");
     tabMet.classList.remove("active");
-    panelGroove.classList.remove("hidden");
-    panelMet.classList.add("hidden");
+    _animateSwap(panelGroove, panelMet); // Animate panel transition
     setTabEnabled(tabGroove, true);
     setTabEnabled(tabMet, false);
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
     return;
   }
 
   if (owner === "simple") {
     tabMet.classList.add("active");
     tabGroove.classList.remove("active");
-    panelMet.classList.remove("hidden");
-    panelGroove.classList.add("hidden");
+    _animateSwap(panelMet, panelGroove); // Animate panel transition
     setTabEnabled(tabMet, true);
     setTabEnabled(tabGroove, false);
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
     return;
   }
 
@@ -73,39 +124,44 @@ function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
   if (grooveRunning || simpleRunning) {
     if (grooveRunning) {
       tabGroove.classList.add("active");
-      panelGroove.classList.remove("hidden");
       tabMet.classList.remove("active");
-      panelMet.classList.add("hidden");
+      _animateSwap(panelGroove, panelMet); // Animate panel transition
       setTabEnabled(tabGroove, true);
       setTabEnabled(tabMet, false);
     } else {
       tabMet.classList.add("active");
-      panelMet.classList.remove("hidden");
       tabGroove.classList.remove("active");
-      panelGroove.classList.add("hidden");
+      _animateSwap(panelMet, panelGroove); // Animate panel transition
       setTabEnabled(tabMet, true);
       setTabEnabled(tabGroove, false);
     }
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
     return;
   }
 
   // Normal switching when idle
   tabGroove.classList.toggle("active", mode === "groove");
   tabMet.classList.toggle("active", mode === "metronome");
-  panelGroove.classList.toggle("hidden", mode !== "groove");
-  panelMet.classList.toggle("hidden", mode !== "metronome");
+
+  if (mode === "groove") {
+    _animateSwap(panelGroove, panelMet); // Animate panel transition
+  } else {
+    _animateSwap(panelMet, panelGroove); // Animate panel transition
+  }
+
   setTabEnabled(tabGroove, true);
   setTabEnabled(tabMet, true);
+  _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
 }
 
 /**
  * Initializes mode tabs (Groove vs Metronome).
  * Handles tab switching and ownership-based tab disabling.
- * 
+ *
  * @param {Object} sessionEngine - Session engine module
  * @param {Object} simpleMetronome - Simple metronome module
  * @returns {void}
- * 
+ *
  * @example
  * initModeTabs(sessionEngine, simpleMetronome);
  */
@@ -125,7 +181,7 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
     if (tabGroove.classList.contains("disabled")) return;
     setActiveMode("groove", tabGroove, tabMet, panelGroove, panelMet);
   });
-  
+
   tabMet.addEventListener("click", (e) => {
     if (tabMet.classList.contains("disabled")) return;
     setActiveMode("metronome", tabGroove, tabMet, panelGroove, panelMet);
@@ -155,12 +211,42 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
       setTabEnabled(tabGroove, true);
       setTabEnabled(tabMet, true);
     }
+
+    // Sync ARIA attributes after state change
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
+  });
+
+  // Tab Arrow Key Navigation
+  const tabList = document.querySelector(".mode-tabs");
+  tabList.addEventListener("keydown", (e) => {
+    const tabs = [tabGroove, tabMet];
+    const currentIndex = tabs.indexOf(document.activeElement);
+
+    // Only intercept if focus is actually on one of the tabs
+    if (currentIndex === -1) return;
+
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      const nextIndex =
+        e.key === "ArrowRight"
+          ? (currentIndex + 1) % tabs.length
+          : (currentIndex - 1 + tabs.length) % tabs.length;
+
+      const target = tabs[nextIndex];
+      // Move focus and activate (Standard ARIA tab pattern)
+      if (!target.classList.contains("disabled")) {
+        target.focus();
+        target.click();
+      } else {
+        target.focus(); // Move focus even if disabled, but don't click
+      }
+    }
   });
 }
 
 /**
  * Updates simple metronome UI state.
- * 
+ *
  * @private
  * @returns {void}
  */
@@ -180,7 +266,7 @@ function updateSimpleUI() {
     startBtn.textContent = running ? "Stop" : "Start";
     startBtn.disabled = false;
   }
-  
+
   if (pauseBtn) {
     pauseBtn.disabled = !running;
     pauseBtn.textContent = paused ? "Resume" : "Pause";
@@ -197,9 +283,9 @@ function updateSimpleUI() {
 /**
  * Initializes simple metronome panel controls.
  * Handles start/stop/pause buttons and tap tempo.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * initSimplePanelControls(); // Sets up simple metronome UI
  */
@@ -224,7 +310,7 @@ export function initSimplePanelControls() {
       typeof sessionEngine.getActiveModeOwner === "function"
         ? sessionEngine.getActiveModeOwner()
         : null;
-    
+
     if (owner && owner !== "simple") {
       debugLog(
         "state",
@@ -278,7 +364,7 @@ export function initSimplePanelControls() {
     tapBtn.addEventListener("click", () => {
       const isRunning = simpleMetronome.isRunning?.();
       const isPaused = simpleMetronome.isPaused?.();
-      
+
       if (isRunning && !isPaused) {
         debugLog("hotkeys", "⚠️ Tap tempo only works when stopped or paused");
         return;

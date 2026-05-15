@@ -1,93 +1,18 @@
 /**
- * @fileoverview Theme and quantization initialization module.
- * Handles dark mode toggle, system preference detection, and quantization setup.
- * 
+ * @fileoverview Theme initialization module.
+ * Handles dark mode toggle and system preference detection.
+ *
  * @module ui/theme
  */
 
 import { debugLog } from "../debug.js";
-import { getUserQuantizationPreference } from "../constants.js";
-import * as utils from "../utils.js";
-
-/**
- * Gets the current quantization level with safety fallback.
- * 
- * @returns {number} Quantization level (default: 5)
- * 
- * @example
- * const level = getQuantizationLevel(); // 5
- */
-export function getQuantizationLevel() {
-  const q = window?.utils?.QUANTIZATION;
-  if (!q || typeof q.groove !== "number" || q.groove <= 0) return 5;
-  return q.groove;
-}
-
-/**
- * Initializes quantization with safety checks and auto-correction.
- * Creates global QUANTIZATION object if missing.
- * 
- * @returns {void}
- * 
- * @example
- * initQuantization(); // Sets up QUANTIZATION.groove
- */
-export function initQuantization() {
-  // Ensure QUANTIZATION object exists globally
-  if (typeof window.QUANTIZATION === "undefined") {
-    window.QUANTIZATION = { groove: 5 }; // default to a safe mid value
-  }
-
-  if (!window.QUANTIZATION)
-    window.QUANTIZATION = { groove: getUserQuantizationPreference() };
-
-  // Auto-correct using utils.sanitizeQuantizationStep
-  const safeGroove = utils.sanitizeQuantizationStep(window.QUANTIZATION.groove);
-  if (safeGroove !== window.QUANTIZATION.groove) {
-    debugLog(
-      "state",
-      `⚠️ Corrected invalid QUANTIZATION.groove from ${window.QUANTIZATION.groove} → ${safeGroove}`
-    );
-    window.QUANTIZATION.groove = safeGroove;
-  }
-}
-
-/**
- * Gets safe quantization settings with re-initialization fallback.
- * 
- * @returns {{groove: number}} Quantization settings object
- * 
- * @example
- * const settings = getSafeQuantization();
- * console.log(settings.groove); // 5
- */
-export function getSafeQuantization() {
-  // Re-initialize if the global object doesn't exist
-  if (!window.QUANTIZATION) initQuantization();
-
-  // Always sanitize and enforce the valid range
-  const safeGroove = utils.sanitizeQuantizationStep(window.QUANTIZATION.groove);
-
-  // If the sanitized value differs, fix it in place
-  if (safeGroove !== window.QUANTIZATION.groove) {
-    window.QUANTIZATION.groove = safeGroove;
-    debugLog(
-      "state",
-      `⚠️ Quantization groove corrected to safe value: ${safeGroove}`
-    );
-  }
-
-  return {
-    groove: getUserQuantizationPreference(),
-  };
-}
 
 /**
  * Initializes dark mode toggle with system preference detection and persistence.
  * Handles theme switching, localStorage sync, and system preference changes.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * initDarkMode(); // Sets up theme toggle button
  */
@@ -123,6 +48,11 @@ export function initDarkMode() {
     isDark ? "dark" : "light"
   );
 
+  btn.setAttribute(
+    "aria-label",
+    isDark ? "Switch to light mode" : "Switch to dark mode"
+  );
+
   debugLog(
     "state",
     `🌙 Dark mode initialized: ${isDark ? "ON" : "OFF"} (${
@@ -145,6 +75,11 @@ export function initDarkMode() {
       newIsDark ? "dark" : "light"
     );
     localStorage.setItem("darkMode", newIsDark ? "true" : "false");
+
+    btn.setAttribute(
+      "aria-label",
+      newIsDark ? "Switch to light mode" : "Switch to dark mode"
+    );
 
     debugLog("state", `🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
 
@@ -173,11 +108,4 @@ export function initDarkMode() {
         );
       }
     });
-}
-
-// Auto-run quantization after DOM is ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initQuantization);
-} else {
-  initQuantization();
 }

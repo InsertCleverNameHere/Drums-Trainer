@@ -20,9 +20,12 @@
 └── styles.css 🎨 Main stylesheet (layout, theme, dropdowns)
 
 📁 js/
-├── audioProfiles.js 🎧 Procedural sound profiles (Digital, Soft, Ping, Bubble, Clave)
+├── audioProfiles.js 🎧 Sound profile manager (Oscillator & Sample support)
+├── grooveStorage.js 💾 LocalStorage layer for patterns and name lists
 ├── metronomeCore.js 🧠 Groove metronome core logic
-├── sessionEngine.js 🎛 Session lifecycle, timing, and ownership
+├── patternScheduler.js 🥁 Rhythmic engine for programmed grooves
+├── sampleLoader.js 📦 WAV asset fetcher and buffer cache
+├── sessionEngine.js 🎛 Session lifecycle, timing, and pattern automation
 ├── simpleMetronome.js 🎚 Simple metronome UI controller
 ├── simpleMetronomeCore.js 🪘 Lightweight simple metronome audio core
 ├── uiController.js 🧩 Global UI binding and event management
@@ -30,7 +33,16 @@
 ├── visuals.js 💡 Beat indicators and visual feedback
 ├── debug.js 🐛 Runtime debug system with category flags
 ├── constants.js 📦 Single source of truth for all constants
-└── main.js 🚀 Entry point — initializes modules, handles profile sync
+├── main.js 🚀 Entry point — initializes modules, handles profile sync
+└── 📁 ui/
+    ├── advancedMode.js 🔬 Simple/Advanced toggle, BPM step, chip row, stepper buttons
+    ├── grooveEditor.js 🖋️ Pattern grid UI, State A/B logic, and chip list
+    ├── theme.js 🌙 Dark mode toggle
+    ├── hotkeys.js ⌨️ Keyboard shortcuts (dynamic step-aware)
+    ├── sliders.js 🎚️ noUiSlider instances, blur-pair validation
+    ├── controls.js 🎛️ Sound profiles, time signatures
+    ├── panels.js 📋 Mode tabs, simple metronome panel
+    └── wakeLock.js 🔒 Screen wake lock
 
 📄 index.html 🧱 App shell — includes both Simple & Groove metronome panels
 📄 manifest.json 📱 PWA metadata
@@ -197,72 +209,146 @@
 
 ---
 
-## 🔮 Phase 5 — Advanced Mode & Groove Editing (Future)
+## 🚧 Phase 5 — Simple / Advanced Mode & Groove Editor
 
-### 1. Simple vs Advanced Mode Toggle
+> **Branch:** `advancedmode`
+> Phases 5.1 through 5.5 are delivered incrementally. Each phase is a
+> self-contained, merge-ready unit. Phase 5.1 is the required foundation
+> for all subsequent phases.
 
-- **Simple Mode**:
-  - Dual tempo slider (values clamped to multiples of 5)
-  - Time-based sessions only (no cycles option)
-  - Minimal interface: BPM range, total time, start/stop
-- **Advanced Mode**:
-  - Manual BPM input (any integer value)
-  - Full time-signature and groove-definition options
-  - Optional enforcement toggle for grooves that differ from selected signature
-  - Four visual rows representing drum parts:
-    - Hi-Hat / Cymbal
-    - Kick
-    - Snare
-    - Hi-Hat Control (open/closed)
-  - Each row displayed as a sequence of unlit circles the user can **tap or click** to activate beats
-  - Active circles light up and play in sync with the metronome
-  - Grooves are **not tied to a fixed BPM**, allowing them to be reused across tempo changes
+---
 
-### 2. Groove Pattern Editor
+### ✅ Phase 5.1 — Simple / Advanced Mode Foundation — COMPLETED
 
-- Visual editor for defining patterns:
-  - Click / tap to toggle hits on or off per instrument row
-  - Optional preview playback for quick testing
-  - Supports grooves that span **multiple measures** (e.g. Bossa Nova = 2 bars)
-- Add a small note reminding users that some grooves naturally require more than one measure
+#### Simple Mode (default)
 
-### 3. User Groove Persistence
+- All existing behaviour is preserved exactly as-is
+- BPM controls use the noUiSlider with hardcoded quantization step of 5
+- Session controls (cycle duration, total cycles, total time) are **hidden**;
+  session always runs until stopped with a fixed 60-second cycle time
+- Sound profile, time signature, and subdivision controls are **hidden**
+- Rhythmic Count-in toggle remains visible in both modes
+- Groove names textarea remains visible in both modes (integral to the randomizer)
+- A **collapsed chip / badge row** is displayed above the Start button in
+  both the Groove Randomizer and Metronome tabs, showing the Advanced Mode
+  settings currently in effect (e.g. `7/8 · Clave · Sixteenths`). Placement
+  is consistent across both tabs. The row carries a tooltip: _"These settings
+  carry over from Advanced Mode. Switch to Advanced to change them."_
 
-- Users can **save, edit, rename, and delete** grooves
-- Saved to `localStorage` as JSON (lightweight, offline-ready)
-- Example stored structure:
+#### Advanced Mode
 
-  ```json
-  {
-    "userGrooves": {
-      "My Funk Groove": {
-        "timeSignature": "4/4",
-        "patterns": {
-          "hihat": [1, 0, 1, 0, 1, 0, 1, 0],
-          "snare": [0, 0, 1, 0, 0, 0, 1, 0],
-          "kick": [1, 0, 0, 0, 1, 0, 0, 1]
-        },
-        "measures": 1
-      }
-    }
-  }
-  ```
+- Toggle lives in the settings modal; persisted to `localStorage`
+- **No sliders** — all BPM inputs are plain numeric fields
+- Quantization is always enforced, but the step is user-defined:
+  - A free numeric input labelled **"BPM Step (snap interval)"** replaces
+    the hardcoded step of 5
+  - Valid range: 1–150 (positive integers only); defaults to 5
+  - Stored in `localStorage`; restored on page load
+  - Wires up the existing `getUserQuantizationPreference()` TODO in
+    `constants.js`
+- A **"Snap to step"** toggle enables / disables quantization snapping.
+  When off, any integer within 30–300 is accepted. When on, inputs and
+  arrow key adjustments snap to the nearest multiple of the defined step.
+  Applies to both the Groove Randomizer and Metronome tabs
+- Arrow key BPM adjustment (↑ / ↓) steps by the user-defined quantization
+  step instead of the hardcoded 5
+- Min / max BPM margin enforcement adapts: minimum margin equals one
+  quantization step (not hardcoded 5)
+- Session controls revealed: cycle duration, total cycles, total time,
+  and session limit mode selector
+- Sound profile selector revealed (persists when switching back to Simple)
+- Time signature and subdivision controls revealed (persist when switching
+  back to Simple)
+- **Restore to Defaults** button in the settings modal resets the entire
+  app to first-launch state: clears all `localStorage`, resets dark mode
+  to system preference, resets groove textarea, and resets all settings
 
-- Automatically reload last-used groove at startup
-- Optional _"Reset to Defaults"_ button
+#### Input validation overhaul (quantization-aware)
 
-### 4. Default Groove Library (Optional Reference)
+- All BPM inputs re-validate against the active quantization step whenever
+  the step changes
+- `sanitizeBpmRange()` already accepts a step parameter — this is wired to
+  the live user preference
+- Hard limits (30–300) remain enforced in all cases
+- Tap tempo retains its own isolated fixed quantization
+  (`TAP_TEMPO_QUANTIZATION = 5`); unaffected by user step setting
 
-- Provide a small built-in JSON file (`defaultGrooves.json`) bundled with the PWA
-- Contains several well-known starter patterns (e.g. Rock 4/4, Bossa Nova, Funk Groove)
-- Users can enable or import these as reference templates
+#### New module: `js/ui/advancedMode.js`
 
-### 5. Accessibility Layer (Lightweight)
+- Owns the Simple / Advanced toggle lifecycle
+- Handles show / hide of all mode-gated DOM sections
+- Manages the persistent-settings chip row (read, render, update)
+- Exposes `isAdvancedMode()` for use by other modules
 
-- Keyboard-navigable controls (`Tab`, `Enter`)
-- `aria-label` attributes for all buttons and sliders
-- Visuals (beat circles) include accessible text descriptions for screen readers
-- Accent vs. normal beat colors chosen for **high contrast** and **color-blind safety**
+#### Delivered
+
+- ✅ `js/ui/advancedMode.js` — new module, full implementation
+- ✅ FUOC prevention — inline `<head>` script sets `data-theme` and `html.advanced-mode` synchronously
+- ✅ Simple Mode: sliders, step=5, session/sound/timesig hidden, chip row visible
+- ✅ Advanced Mode: steppers, user-defined step, all controls revealed, chip row populated
+- ✅ Anchor-relative BPM grid — `simpleBpm` snaps on blur; `bpmMin`/`bpmMax` defer to play time
+- ✅ Blur-pair deferral — margin correction only after both bpmMin/bpmMax blur
+- ✅ `restoreDefaults()` — localStorage cleared, dark mode follows system preference on reload
+- ✅ All settings persist across reload
+- ✅ Tap tempo unaffected by custom step
+- ✅ Arrow keys use dynamic step; margin guard uses step not hardcoded 5
+- ✅ Tests: `advanced-mode.test.html`, `dark-mode.test.html`, updated `hotkeys.test.html`, updated `system-verification.js`
+
+---
+
+### ✅ Phase 5.2 — Groove Pattern Editor & Persistence — COMPLETED
+
+#### The Sampler & Rhythmic Engine
+
+- **Acoustic Drum Kit**: High-fidelity WAV samples for Kick, Snare, Hi-Hat, and Pedal.
+- **Sample-Based Metronome**: New "Crossstick" profile using acoustic assets.
+- **Pattern Scheduler**: Sample-accurate triggering of drum hits synced to the metronome clock.
+- **Rhythmic Suppression**: Logic to silence the metronome "beep" when a pattern hit is active.
+
+#### The Pattern Editor (Advanced Mode Only)
+
+- **Two-State UI**: Seamless GSAP transition between raw Textarea (State A) and Interactive Chip List (State B).
+- **Multi-Track Grid**: Sovereign rhythmic grid (HH, Kick, Snare, Pedal) with local Time Signature, Subdivision, and Measure controls.
+- **Sovereign Overrides**: Patterns automatically override global metronome settings during playback and restore them on completion.
+- **Visual Dashboard**: 4-row visualizer display synced to the pattern, featuring a vertical playhead and rhythmic color-coding.
+- **User Preference**: A toggle to switch the visualizer between the 4-track Dashboard and the standard single-row view.
+
+#### Persistence & Security
+
+- **Smart Storage**: Persistent `localStorage` for both rhythmic patterns and the custom groove name list.
+- **Replacement Mode**: Intelligent handling of the 100-pattern storage limit with non-intrusive overwrite flow.
+- **Bidirectional Ownership**: Rigid mutual exclusivity between the Editor and the Metronome to prevent state corruption.
+- **Audio Privacy**: Floating Mute/Unmute toggle with zero-flicker reload state and cross-panel synchronization.
+
+#### Delivered
+
+- ✅ `js/sampleLoader.js` & `js/patternScheduler.js` — Sampler and Rhythmic logic.
+- ✅ `js/grooveStorage.js` — Data persistence layer.
+- ✅ `js/ui/grooveEditor.js` — Full Editor UI and state machine.
+- ✅ Overhauled `visuals.js` — Dual-mode rendering engine.
+- ✅ Global AudioContext Unlocker in `main.js`.
+- ✅ Integrated Mute logic with FUOC prevention.
+
+---
+
+### 🔮 Phase 5.3 — Default Groove Library
+
+- ✅ Small bundled `defaultGrooves.json` with starter patterns
+- ✅ Users can load these as reference templates
+- ✅ Read-only; cannot be overwritten, only copied to user grooves
+
+---
+
+### 🔮 Phase 5.4 — Accessibility Layer
+
+> **Estimated dev time: 1–2 days**
+> **Can run in parallel with 5.2 / 5.3**
+
+- Keyboard-navigable controls (`Tab`, `Enter`) across all panels
+- `aria-label` attributes on all interactive elements
+- Beat grid circles include screen-reader descriptions
+- Accent / normal beat colours verified for WCAG contrast and
+  colour-blind safety
 
 ---
 

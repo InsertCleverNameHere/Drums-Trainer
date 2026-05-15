@@ -14,8 +14,10 @@
 // - Extreme BPMs (300+ with 16ths): ~6 MB per 3 minutes (acceptable)
 // - No resize bugs due to transform-based positioning
 
-import { debugLog } from "./debug.js";
 import { VISUAL_TIMING } from "./constants.js";
+import { patternScheduler } from "./patternScheduler.js";
+import * as advancedMode from "./ui/advancedMode.js";
+import { debugLog } from "./debug.js";
 
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
 
@@ -99,7 +101,14 @@ function comparePhrasePatterns(layout, phrase1, phrase2) {
  * @param {Array} dotElements - Reference to dotElements array (will be updated)
  * @returns {Array} Updated dotElements array
  */
-function renderNewPhrase(container, measureLayout, phrase, core, dotElements) {
+function renderNewPhrase(
+  container,
+  measureLayout,
+  phrase,
+  core,
+  dotElements,
+  panelId
+) {
   // CRITICAL: Kill ALL GSAP animations in container, not just panning container
   const oldPanningContainer = container.querySelector(".panning-container");
   if (oldPanningContainer) {
@@ -117,6 +126,14 @@ function renderNewPhrase(container, measureLayout, phrase, core, dotElements) {
   const panningContainer = document.createElement("div");
   panningContainer.className = "panning-container";
   panningContainer.style.display = "flex";
+  // Determine if we're in pattern mode or standard mode (Respecting User Preference)
+  const isPatternMode =
+    panelId === "groove" &&
+    patternScheduler.isActive() &&
+    advancedMode.isDashboardEnabled();
+  if (isPatternMode) {
+    panningContainer.style.flexDirection = "column";
+  }
   container.appendChild(panningContainer);
 
   // Extract the slice of dots for this phrase
@@ -125,27 +142,64 @@ function renderNewPhrase(container, measureLayout, phrase, core, dotElements) {
   // Clear and rebuild dotElements cache
   dotElements.length = 0; // Clear array without losing reference
 
-  // Create DOM elements for each dot in the phrase
-  phraseSlice.forEach((dotInfo) => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "beat-wrapper";
+  const tracks = isPatternMode ? ["hihat", "kick", "snare", "HHPed"] : [null];
+  const showPed = document.getElementById("toggleHHPed")?.checked ?? true;
 
-    const dot = document.createElement("div");
-    dot.className = `beat-dot ${dotInfo.size}`;
-    if (dotInfo.isAccent) {
-      dot.classList.add("accent");
+  // Clear and rebuild dotElements cache (now a 2D array if in pattern mode)
+  dotElements.length = 0;
+
+  tracks.forEach((trackID) => {
+    if (trackID === "HHPed" && !showPed) return;
+
+    // Define dotParent outside the conditional to fix ReferenceError
+    let dotParent = panningContainer;
+
+    if (isPatternMode) {
+      const row = document.createElement("div");
+      row.className = "pattern-row";
+      if (trackID) row.dataset.track = trackID;
+
+      // Add Instrument Label
+      const label = document.createElement("div");
+      label.className = "pattern-row-label";
+      const labelMap = { hihat: "HH", kick: "KI", snare: "SN", HHPed: "PD" };
+      label.textContent = labelMap[trackID] || "";
+      row.appendChild(label);
+
+      panningContainer.appendChild(row);
+      dotParent = row;
     }
 
-    const text = document.createElement("div");
-    text.className = "phonation-text";
-    text.textContent = dotInfo.label;
+    phraseSlice.forEach((dotInfo, i) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "beat-wrapper";
 
-    wrapper.appendChild(dot);
-    wrapper.appendChild(text);
-    panningContainer.appendChild(wrapper);
+      const dot = document.createElement("div");
+      if (isPatternMode) {
+        dot.className = "pattern-dot";
+        const stepIndex = phrase.start + i;
+        if (patternScheduler.getStepData(trackID, stepIndex)) {
+          dot.classList.add("active");
+        }
+      } else {
+        dot.className = `beat-dot ${dotInfo.size}`;
+        if (dotInfo.isAccent) dot.classList.add("accent");
+      }
 
-    // Cache the wrapper for later access
-    dotElements.push(wrapper);
+      wrapper.appendChild(dot);
+
+      if (!isPatternMode || trackID === (showPed ? "HHPed" : "snare")) {
+        const text = document.createElement("div");
+        text.className = isPatternMode
+          ? "phonation-text pattern-label"
+          : "phonation-text";
+        text.textContent = dotInfo.label;
+        wrapper.appendChild(text);
+      }
+
+      dotParent.appendChild(wrapper);
+      dotElements.push(wrapper);
+    });
   });
 
   // GSAP animation: slide in from right
@@ -240,66 +294,83 @@ function flashActiveDot(
   measureLayout,
   currentTickInMeasure,
   isPrimaryAccent,
-  flashTimeoutRef
+  flashTimeoutRef,
+  panelId
 ) {
-  // Clear any existing flash timeout
+  // Determine if we're in pattern mode or standard mode (Respecting User Preference)
+  const isPatternMode =
+    panelId === "groove" &&
+    patternScheduler.isActive() &&
+    advancedMode.isDashboardEnabled();
   clearTimeout(flashTimeoutRef);
 
-  // Remove flashing state from previously flashed elements
-  const prevFlashedDot = container.querySelector(".beat-dot.flashing");
-  const prevFlashedText = container.querySelector(
-    '.phonation-text[class*="flash-"]'
-  );
+  // 1. Unified cleanup of previous playhead and rhythmic color states
+  container
+    .querySelectorAll(".playing, .flashing, [class*='flash-']")
+    .forEach((el) => {
+      el.classList.remove(
+        "playing",
+        "flashing",
+        "accent-flash",
+        "normal-flash",
+        "flash-primary",
+        "flash-secondary",
+        "flash-tertiary"
+      );
+    });
 
-  if (prevFlashedDot) {
-    prevFlashedDot.classList.remove("flashing", "accent-flash", "normal-flash");
-  }
-
-  if (prevFlashedText) {
-    prevFlashedText.className = "phonation-text";
-  }
-
-  // Get the active dot wrapper for this tick
-  const activeWrapper = dotElements[tickInPhrase];
-  if (!activeWrapper) {
-    debugLog(
-      "visuals",
-      `[${panelId}] ⚠️ No wrapper found for tickInPhrase: ${tickInPhrase}`
+  if (isPatternMode) {
+    // 2. Pattern Mode: Vertical Playhead logic
+    // We add 2 because child(1) is the instrument label (HH, KI, etc.)
+    const domIndex = tickInPhrase + 2;
+    const dots = container.querySelectorAll(
+      `.pattern-row > div:nth-child(${domIndex}) .pattern-dot`
     );
-    return flashTimeoutRef;
-  }
-
-  const dot = activeWrapper.children[0];
-  const text = activeWrapper.children[1];
-  const dotInfo = measureLayout[currentTickInMeasure];
-
-  // Safety check: ensure all elements exist
-  if (!dot || !text || !dotInfo) {
-    debugLog(
-      "visuals",
-      `[${panelId}] ⚠️ Missing elements for flash: dot=${!!dot}, text=${!!text}, dotInfo=${!!dotInfo}`
+    const label = container.querySelector(
+      `.pattern-row:last-child > div:nth-child(${domIndex}) .phonation-text`
     );
-    return flashTimeoutRef;
-  }
 
-  // Apply flashing state
-  dot.classList.add("flashing");
+    dots.forEach((d) => d.classList.add("playing"));
 
-  if (isPrimaryAccent) {
-    dot.classList.add("accent-flash");
+    // Apply rhythmic colors to the bottom-row labels
+    if (label) {
+      label.classList.add(
+        `flash-${measureLayout[currentTickInMeasure].colorClass}`
+      );
+    }
   } else {
-    dot.classList.add("normal-flash");
+    // 3. Standard Mode: Single Dot logic
+    const activeWrapper = dotElements[tickInPhrase];
+    if (!activeWrapper) return flashTimeoutRef;
+
+    const dot = activeWrapper.children[0];
+    const text = activeWrapper.children[1];
+    const dotInfo = measureLayout[currentTickInMeasure];
+
+    if (dot)
+      dot.classList.add(
+        "flashing",
+        isPrimaryAccent ? "accent-flash" : "normal-flash"
+      );
+    if (text) text.classList.add(`flash-${dotInfo.colorClass}`);
   }
 
-  text.classList.add(`flash-${dotInfo.colorClass}`);
-
-  // Schedule flash removal after 120ms
-  const newTimeout = setTimeout(() => {
-    dot.classList.remove("flashing", "accent-flash", "normal-flash");
-    text.className = "phonation-text";
+  // 4. Schedule automatic state removal
+  return setTimeout(() => {
+    container
+      .querySelectorAll(".playing, .flashing, [class*='flash-']")
+      .forEach((el) => {
+        el.classList.remove(
+          "playing",
+          "flashing",
+          "accent-flash",
+          "normal-flash",
+          "flash-primary",
+          "flash-secondary",
+          "flash-tertiary"
+        );
+      });
   }, VISUAL_TIMING.FLASH_DURATION_MS);
-
-  return newTimeout;
 }
 
 /**
@@ -307,7 +378,7 @@ function flashActiveDot(
  * Takes the current time signature and subdivision and returns an array
  * of "virtual dot" objects representing the entire measure.
  */
-function generateMeasureLayout(timeSignature, ticksPerBeat) {
+export function generateMeasureLayout(timeSignature, ticksPerBeat) {
   const layout = [];
   const { beats } = timeSignature;
   const totalTicksInMeasure = beats * ticksPerBeat;
@@ -476,8 +547,21 @@ export function createVisualCallback(panelId = "groove") {
       if (totalTicksInMeasure === 0) return;
 
       const currentTickInMeasure = tickIndex % totalTicksInMeasure;
+      const isPatternActive =
+        panelId === "groove" && patternScheduler.isActive();
+      // Only show the 4-row dashboard if active AND enabled in settings
+      const showDashboard =
+        isPatternActive && advancedMode.isDashboardEnabled();
 
-      // === NEW: REBUILD LAYOUT ON SIGNATURE OR SUBDIVISION CHANGE ===
+      // Detect if we need to swap between Standard and Pattern mode
+      const targetMode = showDashboard ? "pattern" : "standard";
+      if (container.dataset.renderedMode !== targetMode) {
+        container.dataset.renderedMode = targetMode;
+        container.classList.toggle("pattern-mode", showDashboard);
+        lastRenderedSignature = ""; // Force a re-render
+      }
+
+      // === Rebuild layout on signature or subdivision change ===
       if (
         signatureKey !== lastRenderedSignature ||
         ticksPerBeat !== lastRenderedTicksPerBeat
@@ -583,7 +667,7 @@ export function createVisualCallback(panelId = "groove") {
           );
 
           // === DECISION LOGIC ===
-          if (intelligentPanning) {
+          if (intelligentPanning && !isPatternActive) {
             const comparison = comparePhrasePatterns(
               measureLayout,
               prevPhrase,
@@ -608,7 +692,8 @@ export function createVisualCallback(panelId = "groove") {
                   measureLayout,
                   currentPhrase,
                   core,
-                  dotElements
+                  dotElements,
+                  panelId
                 );
               } else {
                 debugLog(
@@ -634,14 +719,16 @@ export function createVisualCallback(panelId = "groove") {
                   measureLayout,
                   currentPhrase,
                   core,
-                  dotElements
+                  dotElements,
+                  panelId
                 );
               } else {
                 updatePhraseLabels(
                   container,
                   measureLayout,
                   currentPhrase,
-                  dotElements
+                  dotElements,
+                  panelId
                 );
               }
             } else {
@@ -654,7 +741,8 @@ export function createVisualCallback(panelId = "groove") {
                 measureLayout,
                 currentPhrase,
                 core,
-                dotElements
+                dotElements,
+                panelId
               );
             }
           } else {
@@ -668,7 +756,8 @@ export function createVisualCallback(panelId = "groove") {
               measureLayout,
               currentPhrase,
               core,
-              dotElements
+              dotElements,
+              panelId
             );
           }
         } else if (shouldForceRender) {
@@ -690,7 +779,8 @@ export function createVisualCallback(panelId = "groove") {
             measureLayout,
             currentPhrase,
             core,
-            dotElements
+            dotElements,
+            panelId
           );
         }
 
@@ -701,41 +791,44 @@ export function createVisualCallback(panelId = "groove") {
       }
 
       // === WITHIN-PHRASE: Ensure phrase is rendered and flash active dot ===
-      let panningContainer = container.querySelector(".panning-container");
-      if (!panningContainer || panningContainer.children.length === 0) {
-        // No phrase rendered yet - render current phrase without animation
-        container.innerHTML = "";
-        panningContainer = document.createElement("div");
-        panningContainer.className = "panning-container";
-        panningContainer.style.display = "flex";
-        container.appendChild(panningContainer);
+      // Skip fallback if pattern is active to prevent overwriting the 4-track grid
+      if (!isPatternActive) {
+        let panningContainer = container.querySelector(".panning-container");
+        if (!panningContainer || panningContainer.children.length === 0) {
+          // No phrase rendered yet - render current phrase without animation
+          container.innerHTML = "";
+          panningContainer = document.createElement("div");
+          panningContainer.className = "panning-container";
+          panningContainer.style.display = "flex";
+          container.appendChild(panningContainer);
 
-        const phraseSlice = measureLayout.slice(
-          currentPhrase.start,
-          currentPhrase.end + 1
-        );
-        dotElements.length = 0;
+          const phraseSlice = measureLayout.slice(
+            currentPhrase.start,
+            currentPhrase.end + 1
+          );
+          dotElements.length = 0;
 
-        phraseSlice.forEach((dotInfo) => {
-          const wrapper = document.createElement("div");
-          wrapper.className = "beat-wrapper";
+          phraseSlice.forEach((dotInfo) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "beat-wrapper";
 
-          const dot = document.createElement("div");
-          dot.className = `beat-dot ${dotInfo.size}`;
-          if (dotInfo.isAccent) dot.classList.add("accent");
+            const dot = document.createElement("div");
+            dot.className = `beat-dot ${dotInfo.size}`;
+            if (dotInfo.isAccent) dot.classList.add("accent");
 
-          const text = document.createElement("div");
-          text.className = "phonation-text";
-          text.textContent = dotInfo.label;
+            const text = document.createElement("div");
+            text.className = "phonation-text";
+            text.textContent = dotInfo.label;
 
-          wrapper.appendChild(dot);
-          wrapper.appendChild(text);
-          panningContainer.appendChild(wrapper);
-          dotElements.push(wrapper);
-        });
+            wrapper.appendChild(dot);
+            wrapper.appendChild(text);
+            panningContainer.appendChild(wrapper);
+            dotElements.push(wrapper);
+          });
 
-        // Center the container immediately (for NO UPDATE cases)
-        gsap.set(panningContainer, { x: 0 });
+          // Center the container immediately (for NO UPDATE cases)
+          gsap.set(panningContainer, { x: 0 });
+        }
       }
 
       // === FLASH ACTIVE DOT (using tickInPhrase) ===
@@ -746,7 +839,8 @@ export function createVisualCallback(panelId = "groove") {
         measureLayout,
         currentTickInMeasure,
         isPrimaryAccent,
-        flashTimeout
+        flashTimeout,
+        panelId
       );
     } catch (error) {
       console.error(`❌ Visual callback error [${panelId}]:`, error);

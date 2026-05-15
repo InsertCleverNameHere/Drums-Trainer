@@ -1,5 +1,6 @@
 // audioProfiles.js
 // Centralized WebAudio tick generator and sound profile manager
+import { getSampleBuffer } from "./sampleLoader.js";
 import { debugLog } from "./debug.js";
 
 let audioCtx;
@@ -45,10 +46,27 @@ const SOUND_PROFILES = {
     attack: 0.0005,
     decay: 0.04,
   },
+  Xstick: {
+    sample: "xstick", // Key to fetch from sampleLoader
+    duration: 0.1, // Not used for samples but can be a fallback
+  },
 };
 
 // Active profile state
 let activeProfileName = "digital";
+
+// --- Persisted Mute State ---
+let _isMuted = localStorage.getItem("audioMuted") === "true";
+
+export function isMuted() {
+  return _isMuted;
+}
+
+export function setMuted(val) {
+  _isMuted = !!val;
+  localStorage.setItem("audioMuted", _isMuted);
+  debugLog("audio", `🔇 Audio Mute: ${_isMuted}`);
+}
 
 // =========================
 // Public API
@@ -56,7 +74,7 @@ let activeProfileName = "digital";
 
 /**
  * Initializes the shared AudioContext if it doesn't exist.
- * 
+ *
  * @returns {AudioContext} Shared audio context instance
  */
 export function ensureAudio() {
@@ -68,7 +86,7 @@ export function ensureAudio() {
 
 /**
  * Syncs the scheduling time with metronome cores.
- * 
+ *
  * @param {number} time - Audio context time for next tick
  * @returns {void}
  * @internal
@@ -79,7 +97,7 @@ export function setNextNoteTime(time) {
 
 /**
  * Sets the active sound profile.
- * 
+ *
  * @param {string} name - Profile name (digital, soft, ping, bubble, clave)
  * @returns {void}
  * @example
@@ -95,7 +113,7 @@ export function setActiveProfile(name) {
 }
 /**
  * Returns the current active sound profile name.
- * 
+ *
  * @returns {string} Active profile name
  */
 export function getActiveProfile() {
@@ -104,7 +122,7 @@ export function getActiveProfile() {
 
 /**
  * Returns list of all available sound profiles.
- * 
+ *
  * @returns {string[]} Array of profile names
  * @example
  * const profiles = getAvailableProfiles();
@@ -116,13 +134,14 @@ export function getAvailableProfiles() {
 
 /**
  * Generates a procedural audio tick.
- * 
+ *
  * @param {boolean} isAccent - True for accent (downbeat), false for normal
  * @returns {void}
  * @internal
  */
 export function playTick(isAccent) {
-  if (!audioCtx) return;
+  // Check mute state and audio context availability
+  if (!audioCtx || isMuted()) return;
 
   const profileName = getActiveProfile();
   const profile = SOUND_PROFILES[profileName] || SOUND_PROFILES.digital;
@@ -132,11 +151,28 @@ export function playTick(isAccent) {
   const baseFreq = profile.freq * (isAccent ? 2.0 : 1.0);
   const baseGain = isAccent ? 0.4 : 0.25;
 
-  osc.type = profile.waveform;
-  osc.frequency.setValueAtTime(baseFreq, nextNoteTime);
+  // --- Check if profile uses a sample or an oscillator ---
+  if (profile.sample) {
+    const buffer = getSampleBuffer(profile.sample);
+    if (!buffer) return; // Fallback to silence if not loaded
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
 
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
+    // Loudness logic (1.0 for accent, 0.8 for normal)
+    gain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, nextNoteTime);
+
+    source.connect(gain);
+    gain.connect(audioCtx.destination);
+    source.start(nextNoteTime);
+  } else {
+    // Standard procedural logic
+    osc.type = profile.waveform;
+    osc.frequency.setValueAtTime(baseFreq, nextNoteTime);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(nextNoteTime);
+    osc.stop(nextNoteTime + profile.duration);
+  }
 
   const now = nextNoteTime;
 
@@ -154,9 +190,6 @@ export function playTick(isAccent) {
       now + (profile.decay || profile.duration)
     );
   }
-
-  osc.start(now);
-  osc.stop(now + profile.duration);
 }
 
 // Re-expose useful state for debugging
