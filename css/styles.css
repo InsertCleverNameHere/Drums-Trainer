@@ -127,9 +127,28 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  outline: none;
+  outline: none; /* Keyboard ring handled by :focus-visible below */
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1);
+}
+
+/* ====================
+♿ Focus-visible rings
+======================= */
+button:focus-visible,
+.tab:focus-visible,
+.groove-cell:focus-visible,
+.theme-btn:focus-visible,
+.mute-toggle-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 input:disabled,
@@ -655,13 +674,17 @@ button svg,
   box-shadow: 0 4px 12px var(--shadow-hover);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.5s ease;
+  visibility: hidden;
+  transition:
+    opacity 0.5s ease,
+    visibility 0.5s ease;
   z-index: 9999;
 }
 
 #settingsDialog.visible {
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
 }
 
 .settings-section {
@@ -1389,8 +1412,8 @@ button#installBtn.utility-button:active {
   border-color: var(--accent);
 }
 .pattern-row[data-track="snare"] .pattern-dot.active {
-  background: #3cb44b;
-  border-color: #3cb44b;
+  background: #4363d8; /* Blue — colour-blind safe, replaces green which clashed with kick red */
+  border-color: #4363d8;
 }
 .pattern-row[data-track="HHPed"] .pattern-dot.active {
   background: #ffe119;
@@ -1425,7 +1448,7 @@ button#installBtn.utility-button:active {
 
 /* COLOR for Normal Beats */
 .beat-dot.flashing.normal-flash {
-  background-color: #006400; /* Green */
+  background-color: #1565c0;
 }
 
 /* --- Flashing Text Colors --- */
@@ -1433,10 +1456,10 @@ button#installBtn.utility-button:active {
   color: #b22222;
 }
 .phonation-text.flash-secondary {
-  color: #1e90ff;
+  color: #1565c0;
 }
 .phonation-text.flash-tertiary {
-  color: #ff8c00;
+  color: #b45309;
 }
 
 /* ===============================================
@@ -1962,7 +1985,7 @@ button#installBtn.utility-button:active {
 #groove-editor-grid {
   overflow-x: auto;
   scrollbar-width: thin;
-  padding-bottom: 12px;
+  padding: 15px 5px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1988,62 +2011,68 @@ button#installBtn.utility-button:active {
 .groove-track {
   display: flex;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px; /* Vertical track spacing */
   width: max-content;
 }
 
 .groove-track-label {
   position: sticky;
   left: 0;
-  width: 40px;
+  width: 45px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: var(--bg-secondary);
-  z-index: 10;
-  padding-right: 8px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: var(--text-primary); /* Use primary text for better visibility */
+  background: transparent; /* Removed the blocky background */
+  z-index: 20;
+  padding-right: 12px;
   flex-shrink: 0;
   text-align: right;
+  text-transform: uppercase;
+  /* Text protection: ensure labels are readable when overlapping squares */
+  text-shadow:
+    1px 1px 2px var(--bg-primary),
+    -1px -1px 2px var(--bg-primary),
+    0 0 8px var(--bg-primary);
 }
 
-.groove-track-label::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--border);
-  opacity: 0.5;
-}
-
-.groove-track-cells {
+.groove-track-cells,
+.labels-container {
   display: flex;
-  gap: 3px;
-  overflow-x: visible;
-  padding-left: 6px;
-  padding-right: 20px;
+  gap: 12px;
+  margin-left: -40px; /* Pulls the mask start point to the left */
+  padding-left: 46px; /* Pushes content back to align with labels */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 10px,
+    black 40px
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 10px,
+    black 40px
+  );
 }
 
 .groove-cell {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   min-height: unset;
   margin: 0;
   padding: 0;
-  border-radius: 4px;
-  background: var(--bg-primary);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border);
-  box-shadow: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   flex-shrink: 0;
-  transition:
-    background 0.1s ease,
-    border-color 0.1s ease;
+  transition: background 0.1s ease;
+  position: relative;
 }
 
 .groove-cell:hover:not(:disabled) {
@@ -2052,7 +2081,10 @@ button#installBtn.utility-button:active {
 
 .groove-cell.active {
   background: var(--accent);
-  border-color: var(--accent);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 0 10px rgba(178, 34, 34, 0.3);
 }
 
 /* Playhead highlight */
@@ -2062,33 +2094,28 @@ button#installBtn.utility-button:active {
   z-index: 1;
 }
 
-/* Beat group grouping */
+/* --- Rhythmic Grouping via Border Color (No Geometry Shifts) --- */
 .groove-cell.beat-start {
-  border-left: 2px solid var(--text-secondary);
+  border-color: var(--text-secondary);
 }
 
 .groove-cell.downbeat {
-  border-left: 2px solid var(--accent);
+  border-color: var(--accent);
 }
 
 .groove-cell-label {
-  width: 28px;
-  font-size: 0.7rem;
-  font-weight: 700;
+  width: 32px;
+  font-size: 0.75rem;
+  font-weight: 800;
   color: var(--text-secondary);
   text-align: center;
   flex-shrink: 0;
   user-select: none;
+  opacity: 0.6;
 }
 
-.labels-header {
-  margin-bottom: 4px;
-  pointer-events: none;
-}
-
-.labels-container {
-  gap: 3px; /* Must match .groove-track-cells gap */
-  padding-left: 6px; /* Must match fixed playhead gutter */
+.labels-header .groove-track-label {
+  visibility: hidden; /* Keep the space but hide the top-left text */
 }
 
 #trackToggles {

@@ -269,7 +269,14 @@
       <p class="tagline">Practice smarter. Land any groove.</p>
     </header>
     <!-- Settings Trigger Button -->
-    <div id="settingsTrigger" title="Settings & Help">
+    <div
+      id="settingsTrigger"
+      role="button"
+      tabindex="0"
+      aria-label="Settings and help"
+      aria-expanded="false"
+      aria-controls="settingsDialog"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="28"
@@ -284,7 +291,12 @@
     </div>
 
     <!-- Settings Dialog -->
-    <div id="settingsDialog">
+    <div
+      id="settingsDialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Settings and help"
+    >
       <div class="settings-content">
         <!-- Settings Section -->
         <section class="settings-section">
@@ -345,10 +357,14 @@
           </div>
           <!-- Restore Defaults — always visible -->
           <div class="settings-group">
-            <button id="restoreDefaultsBtn" class="danger-btn">
+            <button
+              id="restoreDefaultsBtn"
+              class="danger-btn"
+              aria-describedby="restore-desc"
+            >
               Restore to Defaults
             </button>
-            <p class="setting-description">
+            <p class="setting-description" id="restore-desc">
               Resets all settings, grooves, and preferences to factory state.
               Cannot be undone.
             </p>
@@ -457,7 +473,7 @@
     <button
       id="checkUpdatesBtn"
       class="update-button"
-      title="Check for updates"
+      aria-label="Check for updates"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -482,17 +498,31 @@
         class="tab active"
         role="tab"
         aria-selected="true"
+        aria-controls="panel-groove"
+        tabindex="0"
       >
         Groove Randomizer
       </button>
-      <button id="tab-metronome" class="tab" role="tab" aria-selected="false">
+      <button
+        id="tab-metronome"
+        class="tab"
+        role="tab"
+        aria-selected="false"
+        aria-controls="panel-metronome"
+        tabindex="-1"
+      >
         Metronome
       </button>
     </div>
 
     <!-- PANELS -->
     <!-- Groove panel -->
-    <div id="panel-groove" class="panel">
+    <div
+      id="panel-groove"
+      class="panel"
+      role="tabpanel"
+      aria-labelledby="tab-groove"
+    >
       <!-- BEGIN existing Groove UI -->
       <label class="advanced-only"> BPM range (min / max)</label>
       <div class="row advanced-only">
@@ -514,6 +544,7 @@
                 min="5"
                 max="300"
                 value="30"
+                aria-label="Minimum BPM"
               />
               <div class="bpm-flash-overlay"></div>
             </div>
@@ -545,6 +576,7 @@
                 min="5"
                 max="300"
                 value="60"
+                aria-label="Maximum BPM"
               />
               <div class="bpm-flash-overlay"></div>
             </div>
@@ -775,8 +807,17 @@ Funk
       </div>
 
       <div class="status" aria-live="polite">
-        <div class="big" id="displayBpm">BPM: —</div>
-        <div class="big" id="displayGroove">Groove: —</div>
+        <div class="big" id="displayBpm" aria-live="polite" aria-atomic="true">
+          BPM: —
+        </div>
+        <div
+          class="big"
+          id="displayGroove"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          Groove: —
+        </div>
         <div style="margin-top: 8px">
           Cycle remaining time: <span id="countdown">—</span>
         </div>
@@ -790,12 +831,16 @@ Funk
         </div>
 
         <div style="margin-top: 8px">
-          <span id="finishingBadge" class="finishing-badge"
+          <span id="finishingBadge" class="finishing-badge" aria-live="polite"
             >Finishing bar…</span
           >
         </div>
         <div id="metronomeVisuals">
-          <button class="mute-toggle-btn" title="Toggle Audio (Visuals Only)">
+          <button
+            class="mute-toggle-btn"
+            aria-label="Mute audio"
+            aria-pressed="false"
+          >
             <svg
               class="unmuted-icon"
               xmlns="http://www.w3.org/2000/svg"
@@ -830,15 +875,29 @@ Funk
               <line x1="17" y1="9" x2="23" y2="15"></line>
             </svg>
           </button>
-          <div id="countdownBadge" class="countdown-badge"></div>
-          <div id="beat-indicator-container"></div>
+          <div
+            id="countdownBadge"
+            class="countdown-badge"
+            aria-live="assertive"
+            aria-atomic="true"
+          ></div>
+          <div
+            id="beat-indicator-container"
+            role="img"
+            aria-label="Beat indicator"
+          ></div>
         </div>
       </div>
       <!-- END existing Groove UI -->
     </div>
 
     <!-- Simple Metronome panel (initially hidden) -->
-    <div id="panel-metronome" class="panel hidden">
+    <div
+      id="panel-metronome"
+      class="panel hidden"
+      role="tabpanel"
+      aria-labelledby="tab-metronome"
+    >
       <!-- BEGIN Simple Metronome UI -->
       <label class="advanced-only">Metronome BPM</label>
       <div class="bpm-stepper advanced-only">
@@ -858,6 +917,7 @@ Funk
             min="30"
             max="300"
             value="120"
+            aria-label="Metronome BPM"
           />
           <div class="bpm-flash-overlay"></div>
         </div>
@@ -929,7 +989,10 @@ Funk
       <div class="controls">
         <button id="simpleStartBtn">Start</button>
         <button id="simplePauseBtn" disabled>Pause</button>
-        <button id="tapTempoBtn" title="Tap 4–6 times to set tempo">
+        <button
+          id="tapTempoBtn"
+          aria-label="Tap tempo. Tap 4 to 6 times to set BPM."
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -953,9 +1016,20 @@ Funk
       </div>
 
       <div class="status">
-        <div class="big" id="simpleDisplayBpm">BPM: —</div>
+        <div
+          class="big"
+          id="simpleDisplayBpm"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          BPM: —
+        </div>
         <div id="metronomeVisualsSimple" style="margin-top: 12px">
-          <button class="mute-toggle-btn" title="Toggle Audio (Visuals Only)">
+          <button
+            class="mute-toggle-btn"
+            aria-label="Mute audio"
+            aria-pressed="false"
+          >
             <svg
               class="unmuted-icon"
               xmlns="http://www.w3.org/2000/svg"
@@ -990,8 +1064,17 @@ Funk
               <line x1="17" y1="9" x2="23" y2="15"></line>
             </svg>
           </button>
-          <div id="countdownBadgeSimple" class="countdown-badge"></div>
-          <div id="beat-indicator-container-simple"></div>
+          <div
+            id="countdownBadgeSimple"
+            class="countdown-badge"
+            aria-live="assertive"
+            aria-atomic="true"
+          ></div>
+          <div
+            id="beat-indicator-container-simple"
+            role="img"
+            aria-label="Beat indicator"
+          ></div>
         </div>
       </div>
       <!-- END Simple Metronome UI -->

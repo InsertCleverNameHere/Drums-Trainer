@@ -25,6 +25,22 @@ function setTabEnabled(tabEl, enabled) {
 }
 
 /**
+ * Internal helper to sync accessibility attributes with the visual state.
+ */
+function _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet) {
+  const isGroove = tabGroove.classList.contains("active");
+
+  tabGroove.setAttribute("aria-selected", isGroove ? "true" : "false");
+  tabMet.setAttribute("aria-selected", isGroove ? "false" : "true");
+
+  tabGroove.setAttribute("tabindex", isGroove ? "0" : "-1");
+  tabMet.setAttribute("tabindex", isGroove ? "-1" : "0");
+
+  panelGroove.hidden = !isGroove;
+  panelMet.hidden = isGroove;
+}
+
+/**
  * Internal helper to animate the transition between panels.
  * Ensures the outgoing panel fades out before the incoming panel fades in.
  */
@@ -83,6 +99,7 @@ function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
     _animateSwap(panelGroove, panelMet); // Animate panel transition
     setTabEnabled(tabGroove, true);
     setTabEnabled(tabMet, false);
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
     return;
   }
 
@@ -92,6 +109,7 @@ function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
     _animateSwap(panelMet, panelGroove); // Animate panel transition
     setTabEnabled(tabMet, true);
     setTabEnabled(tabGroove, false);
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
     return;
   }
 
@@ -117,6 +135,7 @@ function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
       setTabEnabled(tabMet, true);
       setTabEnabled(tabGroove, false);
     }
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
     return;
   }
 
@@ -132,6 +151,7 @@ function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
 
   setTabEnabled(tabGroove, true);
   setTabEnabled(tabMet, true);
+  _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
 }
 
 /**
@@ -190,6 +210,36 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
     } else {
       setTabEnabled(tabGroove, true);
       setTabEnabled(tabMet, true);
+    }
+
+    // Sync ARIA attributes after state change
+    _syncTabAttrs(tabGroove, tabMet, panelGroove, panelMet);
+  });
+
+  // Tab Arrow Key Navigation
+  const tabList = document.querySelector(".mode-tabs");
+  tabList.addEventListener("keydown", (e) => {
+    const tabs = [tabGroove, tabMet];
+    const currentIndex = tabs.indexOf(document.activeElement);
+
+    // Only intercept if focus is actually on one of the tabs
+    if (currentIndex === -1) return;
+
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      const nextIndex =
+        e.key === "ArrowRight"
+          ? (currentIndex + 1) % tabs.length
+          : (currentIndex - 1 + tabs.length) % tabs.length;
+
+      const target = tabs[nextIndex];
+      // Move focus and activate (Standard ARIA tab pattern)
+      if (!target.classList.contains("disabled")) {
+        target.focus();
+        target.click();
+      } else {
+        target.focus(); // Move focus even if disabled, but don't click
+      }
     }
   });
 }

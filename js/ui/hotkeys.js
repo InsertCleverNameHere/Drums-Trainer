@@ -311,6 +311,9 @@ export function setupHotkeys() {
 
       case "ArrowRight":
       case "ArrowLeft": {
+        // ✅ GUARD: If focus is on a tab, let the tablist keydown handler take over
+        if (document.activeElement?.getAttribute("role") === "tab") return;
+
         // ✅ GUARD: Only allow target switching in Groove mode
         const groovePanel = document.getElementById("panel-groove");
         const isGrooveVisible =

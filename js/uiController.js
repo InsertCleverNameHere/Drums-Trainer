@@ -127,16 +127,43 @@ export function initUI(deps) {
    * 10s auto-hide timer only starts when pointer leaves the dialog.
    */
 
+  // ── Focus trap helpers ─────────────────────────────────────────────────────
+  const FOCUSABLE_SELECTORS =
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]';
+
+  function _getFocusableInDialog() {
+    // Ensure we only find elements when the dialog is VISIBLE
+    if (!settingsDialog.classList.contains("visible")) return [];
+
+    return [...settingsDialog.querySelectorAll(FOCUSABLE_SELECTORS)].filter(
+      (el) => !el.closest(".hidden") && el.offsetWidth > 0 // Ensure element is rendered
+    );
+  }
+
+  function openSettings() {
+    settingsDialog.classList.add("visible");
+    settingsTrigger.setAttribute("aria-expanded", "true");
+    clearTimeout(settingsDialog._hideTimer);
+    startSettingsHideTimer();
+    // Move focus to first focusable element inside dialog
+    requestAnimationFrame(() => {
+      const first = _getFocusableInDialog()[0];
+      if (first) first.focus();
+    });
+  }
+
+  function closeSettings() {
+    settingsDialog.classList.remove("visible");
+    settingsTrigger.setAttribute("aria-expanded", "false");
+    clearTimeout(settingsDialog._hideTimer);
+    // Return focus to the trigger that opened the dialog
+    settingsTrigger.focus();
+  }
+
   function toggleSettings() {
-    const isVisible = settingsDialog.classList.contains("visible");
-    if (isVisible) {
-      settingsDialog.classList.remove("visible");
-      clearTimeout(settingsDialog._hideTimer);
-    } else {
-      settingsDialog.classList.add("visible");
-      clearTimeout(settingsDialog._hideTimer);
-      startSettingsHideTimer(); // Start timer immediately on open
-    }
+    settingsDialog.classList.contains("visible")
+      ? closeSettings()
+      : openSettings();
   }
 
   function startSettingsHideTimer() {
@@ -156,6 +183,14 @@ export function initUI(deps) {
     settingsTrigger.addEventListener("click", (ev) => {
       ev.stopPropagation();
       toggleSettings();
+    });
+    // Keyboard activation: the trigger is a <div> with role=button, so Enter
+    // and Space must be handled explicitly.
+    settingsTrigger.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        toggleSettings();
+      }
     });
   }
 
@@ -183,15 +218,44 @@ export function initUI(deps) {
 
   // Close settings on outside click
   document.addEventListener("click", (event) => {
+    // Only execute if the settings dialog is actually visible.
+    // This prevents focus theft from dropdowns and other inputs.
+    if (!settingsDialog.classList.contains("visible")) return;
+
     if (!settingsDialog || !settingsTrigger) return;
     if (
       settingsDialog.contains(event.target) ||
       settingsTrigger.contains(event.target)
     )
       return;
-    settingsDialog.classList.remove("visible");
-    clearTimeout(settingsDialog._hideTimer);
+    closeSettings();
   });
+
+  // Focus trap: Tab cycles within the dialog; Escape closes it.
+  if (settingsDialog) {
+    settingsDialog.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeSettings();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusable = _getFocusableInDialog();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+  }
 
   const helpAccordion = document.getElementById("helpAccordion");
   if (helpAccordion) {

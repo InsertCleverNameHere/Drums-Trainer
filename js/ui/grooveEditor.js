@@ -160,10 +160,17 @@ function _rebuildInteractiveList() {
     let btnLabel = exists ? "Edit Pattern" : "Add Pattern";
     if (_isReplacementMode) btnLabel = exists ? "Replace Pattern" : "Select";
 
+    // Descriptive list buttons
+    const fullAriaLabel = `${_isReplacementMode ? "Replace" : exists ? "Edit" : "Add"} pattern for ${name}`;
+
     li.innerHTML = `
       <span class="groove-name-label">${name}</span>
       <div class="groove-item-actions">
-        <button class="edit-pattern-btn" ${_isReplacementMode && !exists ? "disabled" : ""}>${btnLabel}</button>
+        <button class="edit-pattern-btn"
+                aria-label="${fullAriaLabel}"
+                ${_isReplacementMode && !exists ? "disabled" : ""}>
+          ${btnLabel}
+        </button>
         ${exists ? '<span class="saved-badge">✓</span>' : ""}
       </div>
     `;
@@ -296,10 +303,21 @@ function _renderGrid() {
   labelsRow.appendChild(labelsCont);
   grid.appendChild(labelsRow);
 
+  const ariaLabels = {
+    hihat: "Hi-hat",
+    kick: "Kick drum",
+    snare: "Snare drum",
+    HHPed: "Hi-hat pedal",
+  };
+
   tracks.forEach((trackID) => {
     const row = document.createElement("div");
     row.className = "groove-track";
     row.dataset.track = trackID;
+
+    // Identify rows as logical groups
+    row.setAttribute("role", "group");
+    row.setAttribute("aria-label", `${ariaLabels[trackID]} track`);
 
     const label = document.createElement("span");
     label.className = "groove-track-label";
@@ -313,6 +331,22 @@ function _renderGrid() {
       const btn = document.createElement("button");
       btn.className = "groove-cell";
       btn.dataset.step = i;
+      btn.tabIndex = i === 0 && trackID === "hihat" ? "0" : "-1"; // Only first cell is tabbable for screen readers
+
+      const beatNum = Math.floor(i / rhythm.ticksPerBeat) + 1;
+      const subIdx = (i % rhythm.ticksPerBeat) + 1;
+      const subLabel = rhythm.ticksPerBeat > 1 ? `, tick ${subIdx}` : "";
+      const state = _localPattern[trackID]?.[i] ? "on" : "off";
+
+      btn.setAttribute(
+        "aria-label",
+        `${ariaLabels[trackID]}, beat ${beatNum}${subLabel}, ${state}`
+      );
+      btn.setAttribute(
+        "aria-pressed",
+        _localPattern[trackID]?.[i] ? "true" : "false"
+      );
+
       if (i % _currentTicks === 0) btn.classList.add("beat-start");
       if (i === 0) btn.classList.add("downbeat");
 
@@ -327,7 +361,16 @@ function _renderGrid() {
           _localPattern[trackID].push(0);
         }
 
-        _localPattern[trackID][i] = btn.classList.contains("active") ? 1 : 0;
+        const isActive = btn.classList.contains("active");
+        _localPattern[trackID][i] = isActive ? 1 : 0;
+
+        // Sync state labels on click
+        btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+        const currentLabel = btn.getAttribute("aria-label");
+        btn.setAttribute(
+          "aria-label",
+          currentLabel.replace(/, (on|off)$/, `, ${isActive ? "on" : "off"}`)
+        );
       };
 
       cellsCont.appendChild(btn);
@@ -336,6 +379,42 @@ function _renderGrid() {
     row.appendChild(label);
     row.appendChild(cellsCont);
     grid.appendChild(row);
+  });
+
+  // 2D Grid Navigation
+  grid.addEventListener("keydown", (e) => {
+    const active = document.activeElement;
+    if (!active.classList.contains("groove-cell")) return;
+
+    const tracks = ["hihat", "kick", "snare", "HHPed"];
+    const step = parseInt(active.dataset.step);
+    const track = active.closest(".groove-track").dataset.track;
+    const trackIdx = tracks.indexOf(track);
+
+    let nextTrack = track;
+    let nextStep = step;
+
+    if (e.key === "ArrowRight") nextStep++;
+    else if (e.key === "ArrowLeft") nextStep--;
+    else if (e.key === "ArrowDown") nextTrack = tracks[trackIdx + 1];
+    else if (e.key === "ArrowUp") nextTrack = tracks[trackIdx - 1];
+    else if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      active.click();
+      return;
+    } else return;
+
+    const nextBtn = grid.querySelector(
+      `.groove-track[data-track="${nextTrack}"] .groove-cell[data-step="${nextStep}"]`
+    );
+
+    if (nextBtn) {
+      e.preventDefault();
+      e.stopPropagation(); // 🛑 Prevent BPM target switching
+      active.tabIndex = -1;
+      nextBtn.tabIndex = 0;
+      nextBtn.focus();
+    }
   });
 
   // Ensure HH Pedal visibility matches checkbox

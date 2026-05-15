@@ -10,9 +10,9 @@ import { debugLog } from "../debug.js";
 /**
  * Initializes dark mode toggle with system preference detection and persistence.
  * Handles theme switching, localStorage sync, and system preference changes.
- * 
+ *
  * @returns {void}
- * 
+ *
  * @example
  * initDarkMode(); // Sets up theme toggle button
  */
@@ -48,6 +48,11 @@ export function initDarkMode() {
     isDark ? "dark" : "light"
   );
 
+  btn.setAttribute(
+    "aria-label",
+    isDark ? "Switch to light mode" : "Switch to dark mode"
+  );
+
   debugLog(
     "state",
     `🌙 Dark mode initialized: ${isDark ? "ON" : "OFF"} (${
@@ -70,6 +75,11 @@ export function initDarkMode() {
       newIsDark ? "dark" : "light"
     );
     localStorage.setItem("darkMode", newIsDark ? "true" : "false");
+
+    btn.setAttribute(
+      "aria-label",
+      newIsDark ? "Switch to light mode" : "Switch to dark mode"
+    );
 
     debugLog("state", `🌙 Dark mode toggled: ${newIsDark ? "ON" : "OFF"}`);
 
@@ -99,5 +109,3 @@ export function initDarkMode() {
       }
     });
 }
-
-
