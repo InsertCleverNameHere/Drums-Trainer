@@ -1,5 +1,17 @@
 # Changelog
 
+## [v11.1.1] - 2026-05-15
+
+### 🧹 Chores
+
+- none: create nojekyll file
+- chore: Bump version to v11.1.0
+- none: fix css for patterm mode visuals
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v11.1.0] - 2026-05-15
 
 ### 🧹 Chores
