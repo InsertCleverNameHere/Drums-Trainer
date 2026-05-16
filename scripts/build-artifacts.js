@@ -19,6 +19,7 @@ const userFiles = [
   "manifest.webmanifest",
   "service-worker.js",
   "commits.json",
+  "defaultGrooves.json",
   "favicon.ico",
   "js",
   "css",
