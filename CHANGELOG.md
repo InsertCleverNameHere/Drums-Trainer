@@ -1,5 +1,16 @@
 # Changelog
 
+## [v11.1.3] - 2026-05-16
+
+### 🧹 Chores
+
+- chore: Bump version to v11.1.2
+- none: fix loading the default grooves
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v11.1.2] - 2026-05-15
 
 ### 🧹 Chores
