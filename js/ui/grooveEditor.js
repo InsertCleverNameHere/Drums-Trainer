@@ -86,11 +86,75 @@ export function initGrooveEditor() {
   });
 
   // 6. Listen for rhythm changes to re-render grid
-  ["patNumerator", "patDenominator", "patSubdivision", "patMeasures"].forEach(
-    (id) => {
+  ["patNumerator", "patDenominator", "patMeasures"].forEach((id) => {
+    // NOTE: patSubdivision is now handled separately below
+    if (id !== "patSubdivision") {
       document.getElementById(id).addEventListener("change", _renderGrid);
     }
-  );
+  });
+
+  // Subdivision Guard: Handles 6 cases of Upsampling/Downsampling
+  const subEl = document.getElementById("patSubdivision");
+  subEl.addEventListener("change", (e) => {
+    const newTicks = parseInt(e.target.value, 10);
+    const oldTicks = _currentTicks;
+
+    const { newData, hasConflicts } = _calculateResample(oldTicks, newTicks);
+
+    const applyChanges = () => {
+      _localPattern = newData;
+      _currentTicks = newTicks;
+      _renderGrid();
+    };
+
+    if (hasConflicts) {
+      // Trigger Warning (using existing PWA notice system)
+      const noticeEl = document.getElementById("uiNotice");
+      noticeEl.innerHTML = `
+        <div style="margin-bottom: 12px; font-weight: 600;">
+          ⚠️ Rhythmic Conflict: Some notes don't fit the smaller grid and will be deleted. Proceed?
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+          <button id="resample-confirm" style="background: var(--accent); color: white; flex: 1; min-height: 36px;">Yes, delete</button>
+          <button id="resample-cancel" style="flex: 1; min-height: 36px;">No, go back</button>
+        </div>
+      `;
+      noticeEl.classList.remove("hidden");
+      noticeEl.classList.add("interactive");
+      gsap.fromTo(
+        noticeEl,
+        { y: -20, opacity: 0 },
+        { y: 5, opacity: 1, duration: 0.4 }
+      );
+
+      document.getElementById("resample-confirm").onclick = () => {
+        applyChanges();
+        gsap.to(noticeEl, {
+          opacity: 0,
+          y: -20,
+          onComplete: () => {
+            noticeEl.classList.add("hidden");
+            noticeEl.classList.remove("interactive");
+          },
+        });
+      };
+
+      document.getElementById("resample-cancel").onclick = () => {
+        subEl.value = oldTicks; // Revert dropdown UI
+        gsap.to(noticeEl, {
+          opacity: 0,
+          y: -20,
+          onComplete: () => {
+            noticeEl.classList.add("hidden");
+            noticeEl.classList.remove("interactive");
+          },
+        });
+      };
+    } else {
+      // Silent update for Lossless transformations
+      applyChanges();
+    }
+  });
 
   // --- Restore last used Editor State (Text vs List) ---
   const savedState = localStorage.getItem("grooveEditorState") || "text";
@@ -236,6 +300,8 @@ function _openEditor(name) {
       saved.patternTimeSignature.value;
     document.getElementById("patSubdivision").value = saved.ticksPerBeat || 1;
     document.getElementById("patMeasures").value = saved.measures || 1;
+    // Sync module state to loaded pattern
+    _currentTicks = saved.ticksPerBeat || 1;
     _updateHint("Pattern loaded from storage.");
   } else {
     _localPattern = { hihat: [], kick: [], snare: [], HHPed: [] };
@@ -580,4 +646,32 @@ function _executeReplacement(nameToReplace) {
     _pendingSaveName = null;
     _rebuildInteractiveList();
   }
+}
+
+/**
+ * Resampling Engine
+ * Calculates the new index for every hit and flags if a note is lost.
+ */
+function _calculateResample(oldSub, newSub) {
+  const ratio = newSub / oldSub;
+  const newData = { hihat: [], kick: [], snare: [], HHPed: [] };
+  let hasConflicts = false;
+
+  Object.keys(_localPattern).forEach((track) => {
+    if (!Array.isArray(_localPattern[track])) return;
+
+    _localPattern[track].forEach((val, i) => {
+      if (val === 1) {
+        const newIdx = i * ratio;
+        // If the new index is not an integer, the note falls between the grid lines
+        if (Number.isInteger(newIdx)) {
+          newData[track][newIdx] = 1;
+        } else {
+          hasConflicts = true;
+        }
+      }
+    });
+  });
+
+  return { newData, hasConflicts };
 }
