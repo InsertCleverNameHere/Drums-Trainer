@@ -380,6 +380,8 @@ export function initSimplePanelControls() {
       if (newBpm) {
         const bpmInput = document.getElementById("simpleBpm");
         bpmInput.value = newBpm;
+        // Trigger change event for slider in simple mode
+        bpmInput.dispatchEvent(new Event("change", { bubbles: true }));
 
         if (typeof simpleMetronome.setBpm === "function") {
           simpleMetronome.setBpm(newBpm);
