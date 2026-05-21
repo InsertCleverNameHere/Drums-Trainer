@@ -16,7 +16,12 @@ import { debugLog } from "./debug.js";
 // Import UI submodules
 import { initDarkMode } from "./ui/theme.js";
 import { setupHotkeys } from "./ui/hotkeys.js";
-import { initSliders, updateBpmInputSteps, showNotice } from "./ui/sliders.js";
+import {
+  initSliders,
+  updateBpmInputSteps,
+  showNotice,
+  clearNotice,
+} from "./ui/sliders.js";
 import {
   initSoundProfileUI,
   initPanningModeUI,
@@ -600,8 +605,198 @@ export function initUpdateUI() {
   });
 }
 
-// Initialize all UI submodules
+/**
+ * Initializes the Import/Export UI logic.
+ * Wires the "Backup Library" and "Restore Library" buttons.
+ *
+ * @returns {void}
+ */
+export function initInteropUI() {
+  const exportBtn = document.getElementById("exportLibraryBtn");
+  const importBtn = document.getElementById("importLibraryBtn");
+  const fileIn = document.getElementById("importFileInput");
+
+  if (!exportBtn || !importBtn || !fileIn) return;
+
+  // 1. EXPORT: Generate JSON Blob and trigger browser download
+  exportBtn.addEventListener("click", () => {
+    const bundle = window.grooveStorage.exportLibrary();
+    if (!bundle) {
+      showNotice("⚠️ Cannot export: Your library is empty.");
+      return;
+    }
+
+    try {
+      const blob = new Blob([bundle], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const date = new Date().toISOString().split("T")[0];
+
+      a.href = url;
+      a.download = `rgt_backup_${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotice("✅ Backup file created.");
+      }, 100);
+    } catch (e) {
+      debugLog("state", "❌ Export UI Error", e);
+      showNotice("❌ Export failed.");
+    }
+  });
+
+  // 2. IMPORT: Trigger native file picker with session guard
+  importBtn.addEventListener("click", () => {
+    const owner =
+      typeof sessionEngine.getActiveModeOwner === "function"
+        ? sessionEngine.getActiveModeOwner()
+        : null;
+
+    if (owner) {
+      showNotice(`⚠️ Cannot import while ${owner} is active.`);
+      return;
+    }
+    fileIn.click();
+  });
+
+  // 3. FILE SELECTION: Read JSON and pass to feasibility engine
+  fileIn.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const bundle = JSON.parse(event.target.result);
+        const report = window.grooveStorage.getImportReport(bundle);
+
+        if (!report) throw new Error("Invalid Bundle Structure");
+        handleImportReport(bundle, report);
+      } catch (err) {
+        showNotice("❌ Invalid file format.");
+        debugLog("state", "❌ Import Parser Error", err);
+      }
+      fileIn.value = ""; // Reset input
+    };
+    reader.readAsText(file);
+  });
+}
+
+/**
+ * Handles the feasibility report and displays the interactive mediation UI.
+ * Exported for Testing Gates.
+ *
+ * @param {Object} bundle - Parsed JSON bundle
+ * @param {Object} report - Feasibility report from grooveStorage.getImportReport
+ * @returns {void}
+ */
+export function handleImportReport(bundle, report) {
+  const noticeEl = document.getElementById("uiNotice");
+  if (!noticeEl) return;
+
+  // Force-kill any background "auto-hide" timers to keep this dialog stable
+  clearNotice();
+
+  /**
+   * Finalizes the ingestion process and commits to localStorage.
+   * @param {string[]} namesToImport - Subset of patterns to save
+   */
+  const executeImport = (namesToImport) => {
+    const success = window.grooveStorage.commitImport(
+      bundle.library,
+      namesToImport
+    );
+    if (success) {
+      if (bundle.names) {
+        const textarea = document.getElementById("grooves");
+        if (textarea) {
+          textarea.value = bundle.names;
+          textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+      showNotice(`✅ Imported ${namesToImport.length} patterns.`);
+      document.dispatchEvent(
+        new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
+      );
+    }
+    _hideNotice();
+  };
+
+  const _hideNotice = () => {
+    gsap.to(noticeEl, {
+      y: -20,
+      opacity: 0,
+      duration: 0.3,
+      onComplete: () => {
+        noticeEl.classList.add("hidden");
+        noticeEl.classList.remove("interactive");
+      },
+    });
+  };
+
+  if (!report.canFit) {
+    noticeEl.innerHTML = `
+      <div style="margin-bottom: 12px; font-weight: 600;">
+        ❌ Storage Full: Not enough slots for ${report.newItems.length} new patterns.
+      </div>
+      <button id="import-cancel" style="width: 100%;">Cancel</button>
+    `;
+  } else if (report.collisions.length > 0) {
+    noticeEl.innerHTML = `
+      <div style="margin-bottom: 12px; font-weight: 600;">
+        ⚠️ Found ${report.collisions.length} duplicates. How would you like to proceed?
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="import-replace" style="background: var(--accent); color: white;">Replace My Patterns</button>
+        <button id="import-merge">Keep Mine & Merge New</button>
+        <button id="import-cancel" style="background: var(--bg-secondary);">Cancel</button>
+      </div>
+    `;
+  } else {
+    noticeEl.innerHTML = `
+      <div style="margin-bottom: 12px; font-weight: 600;">
+        Import ${report.totalIncoming} new patterns?
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="import-confirm" style="background: var(--accent); color: white; flex: 1;">Yes, Import</button>
+        <button id="import-cancel" style="flex: 1;">Cancel</button>
+      </div>
+    `;
+  }
+
+  noticeEl.classList.remove("hidden");
+  noticeEl.classList.add("interactive");
+  gsap.fromTo(
+    noticeEl,
+    { y: -20, opacity: 0 },
+    { y: 5, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
+  );
+
+  const cancelBtn = document.getElementById("import-cancel");
+  if (cancelBtn) cancelBtn.onclick = _hideNotice;
+
+  const confirmBtn = document.getElementById("import-confirm");
+  if (confirmBtn)
+    confirmBtn.onclick = () => executeImport(report.validIncoming);
+
+  const replaceBtn = document.getElementById("import-replace");
+  if (replaceBtn)
+    replaceBtn.onclick = () => executeImport(report.validIncoming);
+
+  const mergeBtn = document.getElementById("import-merge");
+  if (mergeBtn) mergeBtn.onclick = () => executeImport(report.newItems);
+}
+
+/**
+ * Initializes all UI submodules (hotkeys, sliders, and interop).
+ *
+ * @returns {void}
+ */
 export function initAllUI() {
   setupHotkeys();
   initSliders();
+  initInteropUI();
 }

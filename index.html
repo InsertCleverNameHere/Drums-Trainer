@@ -312,6 +312,37 @@
               session controls.
             </p>
           </div>
+          <!-- Interop Section (Import/Export)-->
+          <div
+            class="settings-group advanced-only"
+            style="padding-top: 10px; border-top: 1px solid var(--border)"
+          >
+            <div class="row" style="gap: 8px; margin: 0 0 12px 0">
+              <button
+                id="exportLibraryBtn"
+                style="flex: 1; margin-top: 0; font-size: 0.85rem; padding: 8px"
+              >
+                Backup Library
+              </button>
+              <button
+                id="importLibraryBtn"
+                style="flex: 1; margin-top: 0; font-size: 0.85rem; padding: 8px"
+              >
+                Restore Library
+              </button>
+            </div>
+            <input
+              type="file"
+              id="importFileInput"
+              accept=".json"
+              style="display: none"
+            />
+            <p class="setting-description">
+              Move your patterns between devices. Backups include all saved
+              rhythms and your current names list.
+            </p>
+          </div>
+
           <!-- BPM Step Input — advanced-only -->
           <div class="settings-group advanced-only">
             <label for="bpmStepInput">BPM Step (snap interval)</label>

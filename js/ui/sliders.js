@@ -14,6 +14,38 @@ import * as advancedMode from "./advancedMode.js";
 let grooveSliderInstance = null;
 let simpleSliderInstance = null;
 
+/** @type {number|null} Internal timer for notice fade-out sequence */
+let _noticeAutoTimer = null;
+/** @type {number|null} Internal timer for final notice removal */
+let _noticeHideTimer = null;
+
+/**
+ * Force-kills any active notice timers and clears visual state.
+ * Essential for preventing background "toast" timers from closing
+ * interactive dialogs.
+ *
+ * @returns {void}
+ */
+export function clearNotice() {
+  const notice = document.querySelector(".ui-notice");
+  if (!notice) return;
+
+  if (_noticeAutoTimer) clearTimeout(_noticeAutoTimer);
+  if (_noticeHideTimer) clearTimeout(_noticeHideTimer);
+  _noticeAutoTimer = null;
+  _noticeHideTimer = null;
+
+  gsap.killTweensOf(notice);
+  notice.classList.remove(
+    "show",
+    "fade-in",
+    "fade-out",
+    "hidden",
+    "interactive",
+    "auto"
+  );
+}
+
 /**
  * Shows floating UI notice message.
  *
@@ -32,19 +64,20 @@ export function showNotice(message, duration = 2000) {
     document.body.appendChild(notice);
   }
 
-  // Reset and apply fade-in
-  notice.textContent = message;
-  notice.classList.remove("hidden", "fade-out");
-  notice.classList.add("show", "fade-in");
+  // Clear any existing notice or pending timers to prevent collisions
+  clearNotice();
 
-  // Auto-hide with fade-out
-  setTimeout(() => {
+  notice.textContent = message;
+  notice.classList.add("show", "fade-in", "auto");
+
+  // Assign timers to tracked variables to allow cancellation
+  _noticeAutoTimer = setTimeout(() => {
     notice.classList.remove("fade-in");
     notice.classList.add("fade-out");
-    setTimeout(() => {
-      notice.classList.remove("show");
+    _noticeHideTimer = setTimeout(() => {
+      notice.classList.remove("show", "auto");
       notice.classList.add("hidden");
-    }, 500); // matches fade-out animation duration
+    }, 500);
   }, duration);
 }
 
@@ -193,14 +226,15 @@ function attachInputValidation() {
         if (document.activeElement === otherEl) return;
 
         const editedVal = Number(editedEl.value);
-        const otherVal  = Number(otherEl.value);
+        const otherVal = Number(otherEl.value);
         const margin = advancedMode.isAdvancedMode()
           ? advancedMode.getQuantizationStep()
           : 5;
 
-        const violated = editedEl === minInput
-          ? editedVal >= otherVal - margin + 1
-          : editedVal <= otherVal + margin - 1;
+        const violated =
+          editedEl === minInput
+            ? editedVal >= otherVal - margin + 1
+            : editedVal <= otherVal + margin - 1;
 
         if (violated) {
           // Revert both fields to their last confirmed-safe pair.
@@ -208,22 +242,28 @@ function attachInputValidation() {
           // branch and by _correctMarginIfViolated), so it is guaranteed to be
           // margin-safe. Reverting only editedEl would leave the pair in an
           // unsafe state if otherEl has drifted from its own LVV.
-          minInput.value = minInput.dataset.lastValidValue
-            || String(INPUT_LIMITS.bpmMin.defaultValue);
-          maxInput.value = maxInput.dataset.lastValidValue
-            || String(INPUT_LIMITS.bpmMax.defaultValue);
+          minInput.value =
+            minInput.dataset.lastValidValue ||
+            String(INPUT_LIMITS.bpmMin.defaultValue);
+          maxInput.value =
+            maxInput.dataset.lastValidValue ||
+            String(INPUT_LIMITS.bpmMax.defaultValue);
           showNotice(`BPM range must be at least ${margin} apart`);
         } else {
           // Both values are margin-safe — this is the only place that advances
           // lastValidValue for these two fields.
           editedEl.dataset.lastValidValue = String(editedVal);
-          otherEl.dataset.lastValidValue  = String(otherVal);
+          otherEl.dataset.lastValidValue = String(otherVal);
         }
       }, 0);
     };
 
-    minInput.addEventListener("blur", () => checkGrooveMargin(minInput, maxInput));
-    maxInput.addEventListener("blur", () => checkGrooveMargin(maxInput, minInput));
+    minInput.addEventListener("blur", () =>
+      checkGrooveMargin(minInput, maxInput)
+    );
+    maxInput.addEventListener("blur", () =>
+      checkGrooveMargin(maxInput, minInput)
+    );
   }
 }
 

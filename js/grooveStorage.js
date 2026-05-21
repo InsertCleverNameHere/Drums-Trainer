@@ -231,9 +231,24 @@ export function ingestLibrary(library, overwrite = false) {
 }
 
 /**
+ * Deep-compares two patterns to see if their rhythmic data is identical.
+ * Ignores the 'updatedAt' timestamp.
+ * @private
+ */
+function _isPatternEqual(p1, p2) {
+  if (!p1 || !p2) return false;
+  return (
+    JSON.stringify(p1.patternTimeSignature) ===
+      JSON.stringify(p2.patternTimeSignature) &&
+    p1.ticksPerBeat === p2.ticksPerBeat &&
+    p1.measures === p2.measures &&
+    JSON.stringify(p1.patterns) === JSON.stringify(p2.patterns)
+  );
+}
+
+/**
  * Pre-import analysis. Checks for collisions and capacity limits.
- * @param {Object} bundle - The parsed JSON bundle
- * @returns {Object|null} Feasibility report
+ * Now performs Content-Aware matching to skip identical patterns.
  */
 export function getImportReport(bundle) {
   if (!bundle || typeof bundle.library !== "object") return null;
@@ -247,24 +262,37 @@ export function getImportReport(bundle) {
     validIncoming: [],
     collisions: [],
     newItems: [],
+    identicalIgnored: 0, // Track patterns that match name AND content
     canFit: true,
     availableSlots: MAX_PATTERNS - currentNames.length,
   };
 
   for (const [name, data] of incomingEntries) {
     if (validatePattern(data)) {
-      report.totalIncoming++;
-      report.validIncoming.push(name);
+      const trimmedName = name.trim();
+      const existing = currentPatterns[trimmedName];
 
-      if (currentPatterns[name.trim()]) {
+      if (existing) {
+        // CONTENT-AWARE CHECK
+        if (_isPatternEqual(existing, data)) {
+          report.identicalIgnored++;
+          // We don't add to collisions or newItems; it's a silent match.
+          continue;
+        }
+        // It's a name collision but the content differs
         report.collisions.push(name);
       } else {
         report.newItems.push(name);
       }
+
+      // If we got here, it's a pattern we actually need to process
+      report.totalIncoming++;
+      report.validIncoming.push(name);
     }
   }
 
-  // Cap Logic: If new unique patterns exceed remaining slots, flag it.
+  // Cap Logic: Only unique 'new' patterns count against the slot limit.
+  // Collisions are overwrites (net 0 change to count).
   report.canFit = report.newItems.length <= report.availableSlots;
 
   return report;
