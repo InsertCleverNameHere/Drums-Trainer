@@ -231,6 +231,76 @@ export function ingestLibrary(library, overwrite = false) {
 }
 
 /**
+ * Pre-import analysis. Checks for collisions and capacity limits.
+ * @param {Object} bundle - The parsed JSON bundle
+ * @returns {Object|null} Feasibility report
+ */
+export function getImportReport(bundle) {
+  if (!bundle || typeof bundle.library !== "object") return null;
+
+  const currentPatterns = _getRaw();
+  const currentNames = Object.keys(currentPatterns);
+  const incomingEntries = Object.entries(bundle.library);
+
+  const report = {
+    totalIncoming: 0,
+    validIncoming: [],
+    collisions: [],
+    newItems: [],
+    canFit: true,
+    availableSlots: MAX_PATTERNS - currentNames.length,
+  };
+
+  for (const [name, data] of incomingEntries) {
+    if (validatePattern(data)) {
+      report.totalIncoming++;
+      report.validIncoming.push(name);
+
+      if (currentPatterns[name.trim()]) {
+        report.collisions.push(name);
+      } else {
+        report.newItems.push(name);
+      }
+    }
+  }
+
+  // Cap Logic: If new unique patterns exceed remaining slots, flag it.
+  report.canFit = report.newItems.length <= report.availableSlots;
+
+  return report;
+}
+
+/**
+ * Commits a selection of imported patterns to storage.
+ * @param {Object} library - The 'library' object from the bundle
+ * @param {string[]} namesToImport - List of names the user agreed to import
+ */
+export function commitImport(library, namesToImport) {
+  const currentPatterns = _getRaw();
+  let addedCount = 0;
+
+  namesToImport.forEach((name) => {
+    const data = library[name];
+    if (data && validatePattern(data)) {
+      currentPatterns[name.trim()] = {
+        ...data,
+        updatedAt: Date.now(),
+      };
+      addedCount++;
+    }
+  });
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentPatterns));
+    debugLog("state", `📥 Import Complete: ${addedCount} patterns committed.`);
+    return true;
+  } catch (e) {
+    debugLog("state", "❌ Import failed: Storage quota exceeded");
+    return false;
+  }
+}
+
+/**
  * Wipes all pattern data (used by restoreDefaults).
  */
 export function clearAllGroovePatterns() {
