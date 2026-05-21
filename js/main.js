@@ -25,6 +25,7 @@ window.Profiler = Profiler;
 // Expose for visuals and console debugging
 window.metronome = metronome;
 window.sessionEngine = sessionEngine;
+window.grooveStorage = grooveStorage;
 
 // set early to fetch from commits.json
 let appVersion;

@@ -84,6 +84,39 @@ export function getAllGrooveNames() {
 }
 
 /**
+ * Serializes the current library into a Version 1.1 Bundle.
+ * Returns null if the library contains no patterns.
+ * @returns {string|null}
+ */
+export function exportLibrary() {
+  const patterns = _getRaw();
+  const patternCount = Object.keys(patterns).length;
+
+  // Block export if no rhythmic data exists
+  if (patternCount === 0) {
+    debugLog("state", "📤 Export blocked: User library is empty.");
+    return null;
+  }
+
+  // Retrieve current names list from the textarea's persistence key
+  const namesList = localStorage.getItem("userGrooveNames") || "";
+
+  const bundle = {
+    version: "1.1",
+    exportedAt: new Date().toISOString(),
+    names: namesList,
+    library: patterns,
+  };
+
+  try {
+    return JSON.stringify(bundle);
+  } catch (e) {
+    debugLog("state", "❌ Export failed: Serialization error", e);
+    return null;
+  }
+}
+
+/**
  * Schema Validator
  * Ensures a pattern object is safe to ingest into the system.
  * Checks for Rhythmic Sovereignty metadata and valid track arrays.
