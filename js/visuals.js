@@ -850,6 +850,12 @@ export function createVisualCallback(panelId = "groove") {
   };
 }
 
+/**
+ * Primes the visual containers while the metronome is idle.
+ * Now dashboard-aware for pattern previews.
+ *
+ * @param {string} [panelId="groove"]
+ */
 export function primeVisuals(panelId = "groove") {
   const containerId =
     panelId === "groove"
@@ -860,35 +866,72 @@ export function primeVisuals(panelId = "groove") {
 
   const core =
     panelId === "groove" ? window.metronome : window.simpleMetronome.core;
-  if (!core || typeof core.getTimeSignature !== "function") return;
-
   const timeSignature = core.getTimeSignature();
   const ticksPerBeat = core.getTicksPerBeat();
+  const isPatternMode =
+    panelId === "groove" &&
+    patternScheduler.isActive() &&
+    advancedMode.isDashboardEnabled();
 
-  // This is the heavy, blocking code that we need to run upfront.
   container.innerHTML = "";
+  container.classList.toggle("pattern-mode", isPatternMode);
+
   const panningContainer = document.createElement("div");
   panningContainer.className = "panning-container";
   panningContainer.style.display = "flex";
+  if (isPatternMode) panningContainer.style.flexDirection = "column";
   container.appendChild(panningContainer);
-  const measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
 
-  measureLayout.forEach((dotInfo) => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "beat-wrapper";
-    const dot = document.createElement("div");
-    dot.className = `beat-dot ${dotInfo.size}`;
-    if (dotInfo.isAccent) dot.classList.add("accent");
-    const text = document.createElement("div");
-    text.className = "phonation-text";
-    text.textContent = dotInfo.label;
-    wrapper.appendChild(dot);
-    wrapper.appendChild(text);
-    panningContainer.appendChild(wrapper);
+  const measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
+  const tracks = isPatternMode ? ["hihat", "kick", "snare", "HHPed"] : [null];
+  const showPed = document.getElementById("toggleHHPed")?.checked ?? true;
+
+  tracks.forEach((trackID) => {
+    if (trackID === "HHPed" && !showPed) return;
+    let dotParent = panningContainer;
+
+    if (isPatternMode) {
+      const row = document.createElement("div");
+      row.className = "pattern-row";
+      if (trackID) row.dataset.track = trackID; // Added identity for CSS coloring
+      const label = document.createElement("div");
+      label.className = "pattern-row-label";
+      const labelMap = { hihat: "HH", kick: "KI", snare: "SN", HHPed: "PD" };
+      label.textContent = labelMap[trackID] || "";
+      row.appendChild(label);
+      panningContainer.appendChild(row);
+      dotParent = row;
+    }
+
+    measureLayout.forEach((dotInfo, i) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "beat-wrapper";
+      const dot = document.createElement("div");
+
+      if (isPatternMode) {
+        dot.className = "pattern-dot";
+        if (patternScheduler.getStepData(trackID, i))
+          dot.classList.add("active");
+      } else {
+        dot.className = `beat-dot ${dotInfo.size}`;
+        if (dotInfo.isAccent) dot.classList.add("accent");
+      }
+
+      wrapper.appendChild(dot);
+      // Only show phonation text on the bottom track of the dashboard
+      if (!isPatternMode || trackID === (showPed ? "HHPed" : "snare")) {
+        const text = document.createElement("div");
+        text.className = isPatternMode
+          ? "phonation-text pattern-label"
+          : "phonation-text";
+        text.textContent = dotInfo.label;
+        wrapper.appendChild(text);
+      }
+      dotParent.appendChild(wrapper);
+    });
   });
 }
 
-// --- Keep the other functions from the original visuals.js ---
 export function updateCountdownBadge(badgeEl, options = {}) {
   if (!badgeEl) return;
   const { step = "", fadeIn = false, fadeOut = false } = options;

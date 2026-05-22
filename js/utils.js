@@ -668,7 +668,11 @@ export function decompressGroove(compressedStr) {
     // Restore standard LZ-String characters before decompressing
     const restored = compressedStr.replace(/-/g, "+").replace(/_/g, "/");
     const json = LZString.decompressFromEncodedURIComponent(restored);
-    return json ? JSON.parse(json) : null;
+    if (!json) return null;
+    const obj = JSON.parse(json);
+    // Logic Guard: Ensure valid structure before returning to engine
+    if (!obj || typeof obj !== "object" || !obj.patterns) return null;
+    return obj;
   } catch (e) {
     debugLog(
       "state",

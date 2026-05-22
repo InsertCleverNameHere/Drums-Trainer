@@ -11,6 +11,7 @@ import { VISUAL_TIMING } from "./constants.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
+import * as grooveStorage from "./grooveStorage.js";
 import { debugLog } from "./debug.js";
 
 // Import UI submodules
@@ -45,6 +46,9 @@ export {
   isAdvancedMode,
   getQuantizationStep,
 };
+
+let _isPreviewActive = false;
+let _isPreviewPlaying = false;
 
 /**
  * Initializes ownership guards to prevent mode conflicts.
@@ -120,7 +124,25 @@ export function initUI(deps) {
   nextBtn.disabled = true;
 
   // Wire up session buttons
-  startBtn.onclick = () => sessionEngine.startSession();
+  startBtn.onclick = () => {
+    if (_isPreviewActive) {
+      if (_isPreviewPlaying) {
+        // STOP LOGIC
+        window.metronome.stopMetronome();
+        _isPreviewPlaying = false;
+        startBtn.textContent = "Start";
+        debugLog("state", "🛑 Preview stopped");
+      } else {
+        // START LOGIC
+        window.metronome.startMetronome(120);
+        _isPreviewPlaying = true;
+        startBtn.textContent = "Stop";
+        debugLog("state", "▶️ Preview playing");
+      }
+    } else {
+      sessionEngine.startSession();
+    }
+  };
   pauseBtn.onclick = () => sessionEngine.pauseSession();
   nextBtn.onclick = () => sessionEngine.nextCycle();
 
@@ -671,6 +693,14 @@ export function initInteropUI() {
     reader.onload = (event) => {
       try {
         const bundle = JSON.parse(event.target.result);
+        // --- FUTURE: Version Enforcement Sentinel ---
+        /*
+        const SUPPORTED_VERSION = "1.1";
+        if (bundle.version !== SUPPORTED_VERSION) {
+          showNotice(`⚠️ Incompatible backup version: ${bundle.version}`);
+          return;
+        }
+        */
         const report = window.grooveStorage.getImportReport(bundle);
 
         if (!report) throw new Error("Invalid Bundle Structure");
@@ -788,6 +818,136 @@ export function handleImportReport(bundle, report) {
 
   const mergeBtn = document.getElementById("import-merge");
   if (mergeBtn) mergeBtn.onclick = () => executeImport(report.newItems);
+}
+
+/**
+ * Checks for shared groove data in the URL hash.
+ * @returns {boolean} True if a deep link was found and is being processed.
+ */
+export function checkDeepLinks() {
+  const hash = window.location.hash;
+  if (!hash.startsWith("#share=")) return false;
+
+  // Clear hash immediately to prevent re-triggering on refresh
+  const compressedData = hash.replace("#share=", "");
+  window.history.replaceState(null, null, window.location.pathname);
+
+  const sharedPattern = utils.decompressGroove(compressedData);
+
+  if (sharedPattern) {
+    handlePreviewMode(sharedPattern);
+    return true;
+  } else {
+    showNotice("❌ Shared link is invalid or corrupted.");
+    return false;
+  }
+}
+
+/**
+ * Loads a shared groove into a volatile preview state.
+ * Exported for Testing Gates.
+ */
+export function handlePreviewMode(pattern) {
+  const noticeEl = document.getElementById("uiNotice");
+  if (!noticeEl) return;
+
+  const owner =
+    typeof sessionEngine.getActiveModeOwner === "function"
+      ? sessionEngine.getActiveModeOwner()
+      : null;
+  if (owner) {
+    showNotice("⚠️ Busy: Stop metronome to preview shared groove.");
+    return;
+  }
+
+  _isPreviewActive = true;
+  window.patternScheduler.load(pattern);
+
+  // Sync Metronome Core
+  const pTS = pattern.patternTimeSignature || { beats: 4, value: 4 };
+  window.metronome.setTimeSignature(parseInt(pTS.beats), parseInt(pTS.value));
+  window.metronome.setTicksPerBeat(pattern.ticksPerBeat || 1);
+
+  // Force Redraw
+  import("./visuals.js").then((m) => m.primeVisuals("groove"));
+
+  const displayGroove = document.getElementById("displayGroove");
+  if (displayGroove)
+    displayGroove.textContent = `Preview: ${pattern.name || "Shared"}`;
+
+  clearNotice();
+  noticeEl.innerHTML = `
+    <div style="margin-bottom: 12px; font-weight: 600;">Previewing: "${pattern.name || "Shared"}"</div>
+    <div style="display: flex; gap: 8px;">
+      <button id="preview-save" style="background: var(--accent); color: white; flex: 1;">Save</button>
+      <button id="preview-discard" style="flex: 1;">Discard</button>
+    </div>
+  `;
+
+  noticeEl.classList.remove("hidden");
+  noticeEl.classList.add("interactive");
+  gsap.fromTo(
+    noticeEl,
+    { y: -20, opacity: 0 },
+    { y: 5, opacity: 1, duration: 0.5 }
+  );
+
+  const closePreview = () => {
+    _isPreviewActive = false;
+    _isPreviewPlaying = false;
+    window.patternScheduler.clear();
+    if (typeof window.metronome.stopMetronome === "function") {
+      window.metronome.stopMetronome();
+    }
+    const sBtn = document.getElementById("startBtn");
+    if (sBtn) sBtn.textContent = "Start";
+    if (displayGroove) displayGroove.textContent = "Groove: —";
+    gsap.to(noticeEl, {
+      opacity: 0,
+      y: -20,
+      onComplete: () => {
+        // Only add 'hidden' if we aren't about to show the seed notice
+        const needsSeed = !localStorage.getItem("rgt_library_seeded");
+
+        noticeEl.classList.remove("interactive");
+
+        if (needsSeed && typeof window.checkLibrarySeed === "function") {
+          window.checkLibrarySeed();
+        } else {
+          noticeEl.classList.add("hidden");
+        }
+      },
+    });
+  };
+
+  document.getElementById("preview-discard").onclick = closePreview;
+
+  document.getElementById("preview-save").onclick = () => {
+    const pName = (pattern.name || "Shared").trim();
+    const bundle = { library: { [pName]: pattern }, names: pName };
+    const report = window.grooveStorage.getImportReport(bundle);
+
+    // streamlined UX: Save immediately if no collision
+    if (report.collisions.length === 0 && report.canFit) {
+      window.grooveStorage.commitImport(bundle.library, [pName]);
+
+      const textarea = document.getElementById("grooves");
+      if (textarea) {
+        const names = textarea.value.split("\n").map((n) => n.trim());
+        if (!names.includes(pName)) {
+          textarea.value += (textarea.value.length > 0 ? "\n" : "") + pName;
+          textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+      showNotice(`✅ Saved "${pName}"`);
+      document.dispatchEvent(
+        new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
+      );
+      closePreview();
+    } else {
+      handleImportReport(bundle, report);
+    }
+  };
 }
 
 /**

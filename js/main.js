@@ -27,6 +27,82 @@ window.metronome = metronome;
 window.sessionEngine = sessionEngine;
 window.grooveStorage = grooveStorage;
 window.utils = utils;
+window.patternScheduler = patternScheduler;
+window.uiController = uiController;
+
+/**
+ * Checks if the library needs seeding and triggers the Welcome prompt.
+ * Globalized for Sprint 6.5 re-trigger after preview discard/save.
+ */
+window.checkLibrarySeed = () => {
+  const LIBRARY_SEED_KEY = "rgt_library_seeded";
+  if (localStorage.getItem(LIBRARY_SEED_KEY)) return;
+
+  // Kill any background "Saved" toasts before showing the interactive Welcome notice
+  import("./ui/sliders.js").then((m) => m.clearNotice());
+
+  fetch("./defaultGrooves.json")
+    .then((res) => res.json())
+    .then((data) => {
+      const noticeEl = document.getElementById("uiNotice");
+      if (!noticeEl) return;
+
+      noticeEl.innerHTML = `
+        <div style="margin-bottom: 12px; font-weight: 600;">
+          Welcome: would you like to use the default grooves with actual drum sounds?
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+          <button id="seed-yes" style="background: var(--accent); color: white; min-height: 36px; padding: 0 16px;">Yes</button>
+          <button id="seed-no" style="min-height: 36px; padding: 0 16px;">No</button>
+        </div>
+      `;
+
+      noticeEl.classList.remove("hidden");
+      noticeEl.classList.add("interactive");
+      gsap.fromTo(
+        noticeEl,
+        { y: -20, opacity: 0 },
+        { y: 5, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
+      );
+
+      const libNames = Object.keys(data.library).join("\n");
+      const finalizeChoice = () => {
+        localStorage.setItem(LIBRARY_SEED_KEY, "true");
+        gsap.to(noticeEl, {
+          y: -20,
+          opacity: 0,
+          duration: 0.3,
+          onComplete: () => {
+            noticeEl.classList.add("hidden");
+            noticeEl.classList.remove("interactive");
+            if (localStorage.getItem("grooveEditorState") === "list") {
+              document.dispatchEvent(
+                new CustomEvent("metronome:ownerChanged", {
+                  detail: { owner: null },
+                })
+              );
+            }
+          },
+        });
+      };
+
+      document.getElementById("seed-yes").onclick = () => {
+        window.grooveStorage.ingestLibrary(data.library, false);
+        localStorage.setItem("userGrooveNames", libNames);
+        const groovesEl = document.getElementById("grooves");
+        if (groovesEl) groovesEl.value = libNames;
+        finalizeChoice();
+      };
+
+      document.getElementById("seed-no").onclick = () => {
+        localStorage.setItem("userGrooveNames", libNames);
+        const groovesEl = document.getElementById("grooves");
+        if (groovesEl) groovesEl.value = libNames;
+        finalizeChoice();
+      };
+    })
+    .catch((err) => debugLog("state", "Library fetch skipped or failed"));
+};
 
 // set early to fetch from commits.json
 let appVersion;
@@ -152,73 +228,11 @@ if (document.readyState === "loading") {
     controls.initTimeSignatureUI();
     initGrooveEditor();
 
-    const LIBRARY_SEED_KEY = "rgt_library_seeded";
-    if (!localStorage.getItem(LIBRARY_SEED_KEY)) {
-      fetch("./defaultGrooves.json")
-        .then((res) => res.json())
-        .then((data) => {
-          const noticeEl = document.getElementById("uiNotice");
-          if (!noticeEl) return;
+    // 1. Check for shared grooves via URL hash FIRST
+    const hasSharedGroove = uiController.checkDeepLinks();
 
-          // 1. Setup the UI Content
-          noticeEl.innerHTML = `
-            <div style="margin-bottom: 12px; font-weight: 600;">
-              Welcome: would you like to use the default grooves with actual drum sounds?
-            </div>
-            <div style="display: flex; gap: 8px; justify-content: center;">
-              <button id="seed-yes" style="background: var(--accent); color: white; min-height: 36px; padding: 0 16px;">Yes</button>
-              <button id="seed-no" style="min-height: 36px; padding: 0 16px;">No</button>
-            </div>
-          `;
-
-          // 2. Animate Entrance using GSAP
-          noticeEl.classList.remove("hidden");
-          noticeEl.classList.add("interactive");
-          gsap.fromTo(
-            noticeEl,
-            { y: -20, opacity: 0 },
-            { y: 5, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
-          );
-
-          const libNames = Object.keys(data.library).join("\n");
-
-          const finalizeChoice = () => {
-            localStorage.setItem(LIBRARY_SEED_KEY, "true");
-            gsap.to(noticeEl, {
-              y: -20,
-              opacity: 0,
-              duration: 0.3,
-              onComplete: () => {
-                noticeEl.classList.add("hidden");
-                noticeEl.classList.remove("interactive");
-                // Refresh list if user is already looking at it
-                if (localStorage.getItem("grooveEditorState") === "list") {
-                  document.dispatchEvent(
-                    new CustomEvent("metronome:ownerChanged", {
-                      detail: { owner: null },
-                    })
-                  );
-                }
-              },
-            });
-          };
-
-          // 3. Choice Logic
-          document.getElementById("seed-yes").onclick = () => {
-            grooveStorage.ingestLibrary(data.library, false);
-            localStorage.setItem("userGrooveNames", libNames);
-            if (groovesEl) groovesEl.value = libNames;
-            finalizeChoice();
-          };
-
-          document.getElementById("seed-no").onclick = () => {
-            localStorage.setItem("userGrooveNames", libNames);
-            if (groovesEl) groovesEl.value = libNames;
-            finalizeChoice();
-          };
-        })
-        .catch((err) => debugLog("state", "Library fetch skipped or failed"));
-    }
+    // 2. Only check for library seeding if NO shared groove is being previewed
+    if (!hasSharedGroove) window.checkLibrarySeed();
 
     uiController.initMuteControl(); // Sync mute state
     loadDrumSamples(); // Load audio samples before initializing related UI
@@ -257,73 +271,11 @@ if (document.readyState === "loading") {
   controls.initTimeSignatureUI();
   initGrooveEditor();
 
-  const LIBRARY_SEED_KEY = "rgt_library_seeded";
-  if (!localStorage.getItem(LIBRARY_SEED_KEY)) {
-    fetch("./defaultGrooves.json")
-      .then((res) => res.json())
-      .then((data) => {
-        const noticeEl = document.getElementById("uiNotice");
-        if (!noticeEl) return;
+  // 1. Check for shared grooves via URL hash FIRST
+  const hasSharedGroove = uiController.checkDeepLinks();
 
-        // 1. Setup the UI Content
-        noticeEl.innerHTML = `
-            <div style="margin-bottom: 12px; font-weight: 600;">
-              Welcome: would you like to use the default grooves with actual drum sounds?
-            </div>
-            <div style="display: flex; gap: 8px; justify-content: center;">
-              <button id="seed-yes" style="background: var(--accent); color: white; min-height: 36px; padding: 0 16px;">Yes</button>
-              <button id="seed-no" style="min-height: 36px; padding: 0 16px;">No</button>
-            </div>
-          `;
-
-        // 2. Animate Entrance using GSAP
-        noticeEl.classList.remove("hidden");
-        noticeEl.classList.add("interactive");
-        gsap.fromTo(
-          noticeEl,
-          { y: -20, opacity: 0 },
-          { y: 5, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
-        );
-
-        const libNames = Object.keys(data.library).join("\n");
-
-        const finalizeChoice = () => {
-          localStorage.setItem(LIBRARY_SEED_KEY, "true");
-          gsap.to(noticeEl, {
-            y: -20,
-            opacity: 0,
-            duration: 0.3,
-            onComplete: () => {
-              noticeEl.classList.add("hidden");
-              noticeEl.classList.remove("interactive");
-              // Refresh list if user is already looking at it
-              if (localStorage.getItem("grooveEditorState") === "list") {
-                document.dispatchEvent(
-                  new CustomEvent("metronome:ownerChanged", {
-                    detail: { owner: null },
-                  })
-                );
-              }
-            },
-          });
-        };
-
-        // 3. Choice Logic
-        document.getElementById("seed-yes").onclick = () => {
-          grooveStorage.ingestLibrary(data.library, false);
-          localStorage.setItem("userGrooveNames", libNames);
-          if (groovesEl) groovesEl.value = libNames;
-          finalizeChoice();
-        };
-
-        document.getElementById("seed-no").onclick = () => {
-          localStorage.setItem("userGrooveNames", libNames);
-          if (groovesEl) groovesEl.value = libNames;
-          finalizeChoice();
-        };
-      })
-      .catch((err) => debugLog("state", "Library fetch skipped or failed"));
-  }
+  // 2. Only check for library seeding if NO shared groove is being previewed
+  if (!hasSharedGroove) window.checkLibrarySeed();
 
   uiController.initMuteControl(); // Sync mute state
   loadDrumSamples(); // Load audio samples before initializing related UI
@@ -466,3 +418,11 @@ const unlockAudio = () => {
 
 window.addEventListener("click", unlockAudio);
 window.addEventListener("keydown", unlockAudio);
+
+/**
+ * Returning User Support: Listen for URL hash changes while the app is already open.
+ * Allows "Live" link ingestion without requiring a page refresh.
+ */
+window.addEventListener("hashchange", () => {
+  uiController.checkDeepLinks();
+});

@@ -72,9 +72,14 @@ export function showNotice(message, duration = 2000) {
 
   // Assign timers to tracked variables to allow cancellation
   _noticeAutoTimer = setTimeout(() => {
+    // Logic Guard: If the notice is now interactive (e.g. Welcome prompt),
+    // do not auto-hide it.
+    if (notice.classList.contains("interactive")) return;
+
     notice.classList.remove("fade-in");
     notice.classList.add("fade-out");
     _noticeHideTimer = setTimeout(() => {
+      if (notice.classList.contains("interactive")) return;
       notice.classList.remove("show", "auto");
       notice.classList.add("hidden");
     }, 500);
