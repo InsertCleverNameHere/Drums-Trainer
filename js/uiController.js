@@ -642,7 +642,7 @@ export function initInteropUI() {
 
   // 1. EXPORT: Generate JSON Blob and trigger browser download
   exportBtn.addEventListener("click", () => {
-    const bundle = window.grooveStorage.exportLibrary();
+    const bundle = grooveStorage.exportLibrary();
     if (!bundle) {
       showNotice("⚠️ Cannot export: Your library is empty.");
       return;
@@ -701,7 +701,7 @@ export function initInteropUI() {
           return;
         }
         */
-        const report = window.grooveStorage.getImportReport(bundle);
+        const report = grooveStorage.getImportReport(bundle);
 
         if (!report) throw new Error("Invalid Bundle Structure");
         handleImportReport(bundle, report);
@@ -735,10 +735,7 @@ export function handleImportReport(bundle, report) {
    * @param {string[]} namesToImport - Subset of patterns to save
    */
   const executeImport = (namesToImport) => {
-    const success = window.grooveStorage.commitImport(
-      bundle.library,
-      namesToImport
-    );
+    const success = grooveStorage.commitImport(bundle.library, namesToImport);
     if (success) {
       if (bundle.names) {
         const textarea = document.getElementById("grooves");
@@ -965,11 +962,11 @@ export function handlePreviewMode(pattern) {
   document.getElementById("preview-save").onclick = () => {
     const pName = (pattern.name || "Shared").trim();
     const bundle = { library: { [pName]: pattern }, names: pName };
-    const report = window.grooveStorage.getImportReport(bundle);
+    const report = grooveStorage.getImportReport(bundle);
 
     // streamlined UX: Save immediately if no collision
     if (report.collisions.length === 0 && report.canFit) {
-      window.grooveStorage.commitImport(bundle.library, [pName]);
+      grooveStorage.commitImport(bundle.library, [pName]);
 
       const textarea = document.getElementById("grooves");
       if (textarea) {

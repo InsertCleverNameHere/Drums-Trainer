@@ -22,17 +22,14 @@ import { ensureAudio } from "./audioProfiles.js";
 // Expose explicitly (redundant but safe)
 window.Profiler = Profiler;
 
-// Expose for visuals and console debugging
+// Expose ONLY the primary cores needed for the Visualizer and Session logic
 window.metronome = metronome;
 window.sessionEngine = sessionEngine;
-window.grooveStorage = grooveStorage;
-window.utils = utils;
 window.patternScheduler = patternScheduler;
-window.uiController = uiController;
 
 /**
  * Checks if the library needs seeding and triggers the Welcome prompt.
- * Globalized for Sprint 6.5 re-trigger after preview discard/save.
+ * Globalized for re-trigger after preview discard/save.
  */
 window.checkLibrarySeed = () => {
   const LIBRARY_SEED_KEY = "rgt_library_seeded";
@@ -87,7 +84,7 @@ window.checkLibrarySeed = () => {
       };
 
       document.getElementById("seed-yes").onclick = () => {
-        window.grooveStorage.ingestLibrary(data.library, false);
+        grooveStorage.ingestLibrary(data.library, false);
         localStorage.setItem("userGrooveNames", libNames);
         const groovesEl = document.getElementById("grooves");
         if (groovesEl) groovesEl.value = libNames;
@@ -232,7 +229,7 @@ if (document.readyState === "loading") {
     const hasSharedGroove = uiController.checkDeepLinks();
 
     // 2. Only check for library seeding if NO shared groove is being previewed
-    if (!hasSharedGroove) window.checkLibrarySeed();
+    if (!hasSharedGroove) grooveStorage.checkLibrarySeed();
 
     uiController.initMuteControl(); // Sync mute state
     loadDrumSamples(); // Load audio samples before initializing related UI
