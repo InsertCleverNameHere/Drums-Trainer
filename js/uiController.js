@@ -743,7 +743,21 @@ export function handleImportReport(bundle, report) {
       if (bundle.names) {
         const textarea = document.getElementById("grooves");
         if (textarea) {
-          textarea.value = bundle.names;
+          // SPLIT AND MERGE: Get existing names to prevent overwriting the whole list
+          const existing = textarea.value
+            .split("\n")
+            .map((n) => n.trim())
+            .filter(Boolean);
+          const incoming = bundle.names
+            .split("\n")
+            .map((n) => n.trim())
+            .filter(Boolean);
+
+          incoming.forEach((name) => {
+            if (!existing.includes(name)) existing.push(name);
+          });
+
+          textarea.value = existing.join("\n");
           textarea.dispatchEvent(new Event("input", { bubbles: true }));
         }
       }
@@ -755,14 +769,25 @@ export function handleImportReport(bundle, report) {
     _hideNotice();
   };
 
+  /**
+   * Hides the interactive notice with GSAP animation.
+   * Guarded to prevent "Murdering" subsequent toast notifications.
+   */
   const _hideNotice = () => {
+    // If the 'interactive' class is already gone, a toast has taken over.
+    // We abort the animation to let the toast's own timer handle the exit.
+    if (!noticeEl.classList.contains("interactive")) return;
+
     gsap.to(noticeEl, {
       y: -20,
       opacity: 0,
       duration: 0.3,
       onComplete: () => {
-        noticeEl.classList.add("hidden");
-        noticeEl.classList.remove("interactive");
+        // Second check: Ensure no toast appeared during the 300ms animation
+        if (noticeEl.classList.contains("interactive")) {
+          noticeEl.classList.add("hidden");
+          noticeEl.classList.remove("interactive");
+        }
       },
     });
   };
@@ -902,19 +927,34 @@ export function handlePreviewMode(pattern) {
     const sBtn = document.getElementById("startBtn");
     if (sBtn) sBtn.textContent = "Start";
     if (displayGroove) displayGroove.textContent = "Groove: —";
+
+    // Logic Guard: If a toast has already taken over, abort animation
+    // to let the toast's own timers handle the lifecycle.
+    if (!noticeEl.classList.contains("interactive")) {
+      const needsSeed = !localStorage.getItem("rgt_library_seeded");
+      if (needsSeed && typeof window.checkLibrarySeed === "function")
+        window.checkLibrarySeed();
+      return;
+    }
+
     gsap.to(noticeEl, {
       opacity: 0,
       y: -20,
       onComplete: () => {
-        // Only add 'hidden' if we aren't about to show the seed notice
+        // Double Check: Ensure no toast appeared during the 300ms animation
+        const isStillInteractive = noticeEl.classList.contains("interactive");
         const needsSeed = !localStorage.getItem("rgt_library_seeded");
 
-        noticeEl.classList.remove("interactive");
-
-        if (needsSeed && typeof window.checkLibrarySeed === "function") {
+        if (isStillInteractive) {
+          noticeEl.classList.remove("interactive");
+          if (needsSeed && typeof window.checkLibrarySeed === "function") {
+            window.checkLibrarySeed();
+          } else {
+            noticeEl.classList.add("hidden");
+          }
+        } else if (needsSeed && typeof window.checkLibrarySeed === "function") {
+          // If a toast is present, we still trigger the seed check for cold boots
           window.checkLibrarySeed();
-        } else {
-          noticeEl.classList.add("hidden");
         }
       },
     });

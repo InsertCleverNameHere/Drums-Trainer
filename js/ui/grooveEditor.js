@@ -62,6 +62,18 @@ export function initGrooveEditor() {
   // 1. State A -> B (Textarea to List)
   confirmBtn.addEventListener("click", () => _toggleState("list"));
 
+  // --- Interop Refresh Listener ---
+  // When an import finishes, it dispatches an ownerChanged(null) event.
+  // We catch this to rebuild the list if the user is currently in State B.
+  document.addEventListener("metronome:ownerChanged", (e) => {
+    if (
+      e.detail.owner === null &&
+      localStorage.getItem("grooveEditorState") === "list"
+    ) {
+      _rebuildInteractiveList();
+    }
+  });
+
   // 2. State B -> A (List to Textarea)
   changeBtn.addEventListener("click", () => _toggleState("text"));
 

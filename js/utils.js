@@ -664,14 +664,19 @@ export function compressGroove(patternObj) {
  */
 export function decompressGroove(compressedStr) {
   if (!compressedStr) return null;
+
   try {
     // Restore standard LZ-String characters before decompressing
     const restored = compressedStr.replace(/-/g, "+").replace(/_/g, "/");
     const json = LZString.decompressFromEncodedURIComponent(restored);
+
     if (!json) return null;
+
     const obj = JSON.parse(json);
-    // Logic Guard: Ensure valid structure before returning to engine
+
+    // Logic Guard: Ensure valid structure and pattern sovereignty metadata
     if (!obj || typeof obj !== "object" || !obj.patterns) return null;
+
     return obj;
   } catch (e) {
     debugLog(
