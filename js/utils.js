@@ -635,3 +635,55 @@ export function migrateStoredVersion(storedVersion) {
 
   return storedVersion;
 }
+
+/**
+ * Compresses a pattern object into a URL-safe Base64 string.
+ * @param {Object} patternObj
+ * @returns {string|null}
+ */
+export function compressGroove(patternObj) {
+  try {
+    const json = JSON.stringify(patternObj);
+    const compressed = LZString.compressToEncodedURIComponent(json);
+    // Force-replace any remaining '+' or '/' and strip '=' padding
+    // to ensure 100% stability in the browser address bar fragments.
+    return compressed
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  } catch (e) {
+    debugLog("state", "❌ Compression failed", e);
+    return null;
+  }
+}
+
+/**
+ * Decompresses a URL-safe string back into a pattern object.
+ * @param {string} compressedStr
+ * @returns {Object|null}
+ */
+export function decompressGroove(compressedStr) {
+  if (!compressedStr) return null;
+
+  try {
+    // Restore standard LZ-String characters before decompressing
+    const restored = compressedStr.replace(/-/g, "+").replace(/_/g, "/");
+    const json = LZString.decompressFromEncodedURIComponent(restored);
+
+    if (!json) return null;
+
+    const obj = JSON.parse(json);
+
+    // Logic Guard: Ensure valid structure and pattern sovereignty metadata
+    if (!obj || typeof obj !== "object" || !obj.patterns) return null;
+
+    return obj;
+  } catch (e) {
+    debugLog(
+      "state",
+      "❌ Decompression failed: Invalid or corrupted string",
+      e
+    );
+    return null;
+  }
+}
