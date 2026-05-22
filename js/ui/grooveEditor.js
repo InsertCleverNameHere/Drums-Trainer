@@ -77,6 +77,12 @@ export function initGrooveEditor() {
   // 2. State B -> A (List to Textarea)
   changeBtn.addEventListener("click", () => _toggleState("text"));
 
+  // Clipboard Paste Handler
+  const pasteBtn = document.getElementById("pasteGrooveBtn");
+  if (pasteBtn) {
+    pasteBtn.addEventListener("click", () => pasteFromClipboard());
+  }
+
   // 3. Editor Actions
   document.getElementById("saveGrooveBtn").onclick = _saveActivePattern;
   document.getElementById("cancelGrooveBtn").onclick = _closeEditor;
@@ -241,15 +247,33 @@ function _rebuildInteractiveList() {
 
     li.innerHTML = `
       <span class="groove-name-label">${name}</span>
-      <div class="groove-item-actions">
+      <div class="groove-item-actions" style="display: flex; align-items: center; gap: 6px;">
         <button class="edit-pattern-btn"
                 aria-label="${fullAriaLabel}"
                 ${_isReplacementMode && !exists ? "disabled" : ""}>
           ${btnLabel}
         </button>
+        ${
+          exists && !_isReplacementMode
+            ? `
+          <button class="copy-link-btn" title="Copy Share Link" style="font-size: 0.8rem; padding: 3px 6px; min-height: unset; margin: 0;">
+            🔗
+          </button>
+        `
+            : ""
+        }
         ${exists ? '<span class="saved-badge">✓</span>' : ""}
       </div>
     `;
+
+    // Wire Copy Button
+    const copyBtn = li.querySelector(".copy-link-btn");
+    if (copyBtn) {
+      copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        _copyGrooveLink(name);
+      };
+    }
 
     li.querySelector(".edit-pattern-btn").onclick = (e) => {
       if (_isReplacementMode) {
@@ -686,4 +710,71 @@ function _calculateResample(oldSub, newSub) {
   });
 
   return { newData, hasConflicts };
+}
+
+/**
+ * Serializes a pattern and copies a shareable URL to the clipboard.
+ * @private
+ * @param {string} name - Name of the saved pattern
+ */
+function _copyGrooveLink(name) {
+  const pattern = grooveStorage.getGroovePattern(name);
+  if (!pattern) return;
+
+  // Add name to object so recipient's UI identifies it correctly
+  const shareObj = { ...pattern, name: name.trim() };
+  const hash = utils.compressGroove(shareObj);
+  const url = `${window.location.origin}${window.location.pathname}#share=${hash}`;
+
+  navigator.clipboard
+    .writeText(url)
+    .then(() => {
+      import("./sliders.js").then((m) =>
+        m.showNotice(`📋 Link copied for "${name}"`)
+      );
+    })
+    .catch((err) => {
+      debugLog("state", "❌ Clipboard write failed", err);
+      import("./sliders.js").then((m) =>
+        m.showNotice("❌ Failed to copy link.")
+      );
+    });
+}
+
+/**
+ * Reads a link or raw hash from the clipboard and triggers the preview engine.
+ * Supports: Full URL, #share fragment, or Raw Data Hash.
+ *
+ * @returns {void}
+ */
+export async function pasteFromClipboard() {
+  try {
+    const rawText = await navigator.clipboard.readText();
+    const text = rawText.trim();
+
+    // 1. Standard Case: Identify the #share fragment
+    const hashMatch = text.match(/#share=([A-Za-z0-9\-_]+)/);
+    let finalHash = hashMatch ? hashMatch[1] : null;
+
+    // 2. Fallback: If no #share= prefix, check if the string itself is a valid hash
+    if (!finalHash && /^[A-Za-z0-9\-_]+$/.test(text)) {
+      // "Dry Run" decompression to verify it's actual RGT data
+      const isValid = utils.decompressGroove(text);
+      if (isValid) finalHash = text;
+    }
+
+    if (finalHash) {
+      // Update hash to trigger the hashchange listener in main.js
+      window.location.hash = `share=${finalHash}`;
+    } else {
+      import("../ui/sliders.js").then((m) =>
+        m.showNotice("⚠️ No valid groove data found in clipboard.")
+      );
+    }
+  } catch (err) {
+    debugLog("state", "❌ Clipboard read failed", err);
+    import("../ui/sliders.js").then((m) =>
+      m.showNotice("❌ Clipboard access denied.")
+    );
+  }
 }

@@ -657,8 +657,27 @@ Funk
 
       <div id="groove-list-container" class="hidden">
         <ul id="groove-interactive-list"></ul>
-        <!-- State B -> A Trigger -->
-        <button id="editGrooveNamesBtn">Change Names</button>
+        <!-- State B -> A Trigger & Utility Actions -->
+        <div
+          class="row"
+          style="margin-top: 10px; justify-content: space-between"
+        >
+          <button id="editGrooveNamesBtn" style="margin-top: 0">
+            Change Names
+          </button>
+          <button
+            id="pasteGrooveBtn"
+            title="Paste Groove Link from Clipboard"
+            style="
+              margin-top: 0;
+              font-size: 0.85rem;
+              padding: 8px 12px;
+              background: var(--bg-secondary);
+            "
+          >
+            📋 Paste Link
+          </button>
+        </div>
       </div>
 
       <!-- Groove Pattern Editor -->
