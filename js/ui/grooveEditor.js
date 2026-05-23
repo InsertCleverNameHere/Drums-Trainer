@@ -193,6 +193,13 @@ function _toggleState(mode) {
   const editorPanel = document.getElementById("groove-editor-panel");
 
   if (mode === "list") {
+    // 1. Garbage Collection: Purge patterns for names that were deleted in State A
+    const activeNames = _groovesTextArea.value
+      .split("\n")
+      .filter((g) => g.trim());
+    grooveStorage.purgeDanglingPatterns(activeNames);
+
+    // 2. Rebuild UI
     _rebuildInteractiveList();
     gsap.to(textContainer, {
       opacity: 0,
