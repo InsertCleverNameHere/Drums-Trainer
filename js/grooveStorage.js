@@ -329,6 +329,37 @@ export function commitImport(library, namesToImport) {
 }
 
 /**
+ * Audits patterns and removes any data whose name is no longer in the active list.
+ *
+ * @param {string[]} activeNames - The current list of names from the textarea.
+ * @returns {number} Count of patterns purged.
+ */
+export function purgeDanglingPatterns(activeNames) {
+  const patterns = _getRaw();
+  const patternNames = Object.keys(patterns);
+  const trimmedActiveNames = activeNames.map((n) => n.trim());
+
+  let purgeCount = 0;
+
+  patternNames.forEach((pName) => {
+    if (!trimmedActiveNames.includes(pName)) {
+      delete patterns[pName];
+      purgeCount++;
+    }
+  });
+
+  if (purgeCount > 0) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(patterns));
+    debugLog(
+      "state",
+      `🧹 Garbage Collection: Purged ${purgeCount} dangling patterns.`
+    );
+  }
+
+  return purgeCount;
+}
+
+/**
  * Wipes all pattern data (used by restoreDefaults).
  */
 export function clearAllGroovePatterns() {
