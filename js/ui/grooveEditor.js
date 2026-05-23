@@ -5,6 +5,7 @@
  */
 
 import * as grooveStorage from "../grooveStorage.js";
+import { compressGroove, decompressGroove } from "../utils.js";
 import { patternScheduler } from "../patternScheduler.js";
 import { showNotice } from "./sliders.js";
 import { isAdvancedMode } from "./advancedMode.js";
@@ -723,7 +724,7 @@ function _copyGrooveLink(name) {
 
   // Add name to object so recipient's UI identifies it correctly
   const shareObj = { ...pattern, name: name.trim() };
-  const hash = utils.compressGroove(shareObj);
+  const hash = compressGroove(shareObj);
   const url = `${window.location.origin}${window.location.pathname}#share=${hash}`;
 
   navigator.clipboard
@@ -759,7 +760,7 @@ export async function pasteFromClipboard() {
     // 2. Fallback: If no #share= prefix, check if the string itself is a valid hash
     if (!finalHash && /^[A-Za-z0-9\-_]+$/.test(text)) {
       // "Dry Run" decompression to verify it's actual RGT data
-      const isValid = utils.decompressGroove(text);
+      const isValid = decompressGroove(text);
       if (isValid) finalHash = text;
     }
 
