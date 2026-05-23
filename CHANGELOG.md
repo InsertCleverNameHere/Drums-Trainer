@@ -1,5 +1,11 @@
 # Changelog
 
+## [v12.0.2] - 2026-05-23
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v12.0.1] - 2026-05-23
 
 **[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
