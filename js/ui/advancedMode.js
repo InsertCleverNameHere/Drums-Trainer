@@ -27,7 +27,8 @@ let _advanced = false; // mirrors localStorage['advancedMode']
 let _step = 5; // mirrors localStorage['bpmQuantizationStep']
 let _grooveAnchor = "min"; // "min" | "max" — persisted; randomizer grid direction only
 let _simpleBpmAnchor = 120; // NOT persisted — captured each time Advanced Mode is enabled
-let _dashboardEnabled = true; // -- Persisted mode visual choice --
+let _dashboardEnabled = true; // Persisted mode visual choice
+let _adjustingTarget = "min"; // "min" | "max" | "simple" — set on adjust button press, read by hotkeys.js to know which field to move
 
 // ── Public API ───────────────────────────────────────────────────
 
@@ -155,6 +156,17 @@ export function restoreDefaults() {
 
   // 4. Full reload is required to re-initialize all modules from zero
   location.reload();
+}
+
+export function getAdjustmentTarget() {
+  return _adjustingTarget;
+}
+
+export function setAdjustmentTarget(target) {
+  if (["min", "max", "simple"].includes(target)) {
+    _adjustingTarget = target;
+    debugLog("advancedMode", `🎯 Adjustment target set to: ${target}`);
+  }
 }
 
 export function isDashboardEnabled(enabled) {
@@ -596,7 +608,7 @@ function _wireAdjustButtons() {
 
     // Injection: Must set target BEFORE firing so hotkeys.js knows which field to move
     if (target === "min" || target === "max") {
-      window.__adjustingTarget = target;
+      setAdjustmentTarget(target);
     }
     // For "simple", decideTarget() in hotkeys.js returns "simple" when
     // panel-metronome is visible, which it is when the stepper is shown.

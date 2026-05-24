@@ -7,6 +7,7 @@ import * as visuals from "./visuals.js";
 import { showNotice } from "./ui/sliders.js";
 import { debugLog } from "./debug.js";
 import { isAdvancedMode, getGrooveAnchor } from "./ui/advancedMode.js";
+import { toggleGrooveSliderDisabled } from "./ui/sliders.js";
 import { animateTextUpdate } from "./uiController.js";
 import * as grooveStorage from "./grooveStorage.js";
 import { patternScheduler } from "./patternScheduler.js";
@@ -268,9 +269,7 @@ export function startSession() {
     }, 1000);
   }
   // Disable groove slider when session is running
-  if (typeof window.toggleGrooveSliderDisabled === "function") {
-    window.toggleGrooveSliderDisabled(true);
-  }
+  toggleGrooveSliderDisabled(true);
 }
 
 /**
@@ -438,9 +437,7 @@ export function stopSession(message = "") {
 
   debugLog("state", message || "Session stopped");
   // Re-enable groove slider when session stops
-  if (typeof window.toggleGrooveSliderDisabled === "function") {
-    window.toggleGrooveSliderDisabled(false);
-  }
+  toggleGrooveSliderDisabled(false);
 }
 
 // === Internal Helpers ===

@@ -9,9 +9,10 @@
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
-import { debugLog } from "./debug.js";
+import { toggleSimpleSliderDisabled } from "./ui/sliders.js";
 import * as utils from "./utils.js";
 import { animateTextUpdate } from "./uiController.js";
+import { debugLog } from "./debug.js";
 
 export const core = simpleCore;
 
@@ -24,8 +25,8 @@ let visualRegistered = false;
 
 // Helper for disabling the slider when the metronome is running
 function toggleSliderDisabled(disabled) {
-  if (typeof window.toggleSimpleSliderDisabled === "function") {
-    window.toggleSimpleSliderDisabled(disabled);
+  if (typeof toggleSimpleSliderDisabled === "function") {
+    toggleSimpleSliderDisabled(disabled);
   }
 }
 

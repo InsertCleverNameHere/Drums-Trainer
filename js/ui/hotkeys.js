@@ -14,7 +14,6 @@ import * as advancedMode from "./advancedMode.js";
 
 // Hotkey state
 let _hotkeyLock = false;
-window.__adjustingTarget = window.__adjustingTarget || "min";
 
 /**
  * Validates and updates numeric input with limits enforcement.
@@ -50,13 +49,17 @@ function validateNumericInput(input) {
  * @param {HTMLInputElement} inputEl
  */
 function _triggerFlashOverlay(inputEl) {
-  const overlay = inputEl.parentElement?.querySelector('.bpm-flash-overlay');
+  const overlay = inputEl.parentElement?.querySelector(".bpm-flash-overlay");
   if (!overlay) return;
   // Force a reflow so re-triggering the animation on rapid presses works.
-  overlay.classList.remove('animating');
+  overlay.classList.remove("animating");
   void overlay.offsetWidth;
-  overlay.classList.add('animating');
-  overlay.addEventListener('animationend', () => overlay.classList.remove('animating'), { once: true });
+  overlay.classList.add("animating");
+  overlay.addEventListener(
+    "animationend",
+    () => overlay.classList.remove("animating"),
+    { once: true }
+  );
 }
 
 /**
@@ -70,8 +73,9 @@ function _triggerFlashOverlay(inputEl) {
 function adjustGrooveInput(delta) {
   const bpmMinInput = document.getElementById("bpmMin");
   const bpmMaxInput = document.getElementById("bpmMax");
-  const adj = window.__adjustingTarget === "max" ? bpmMaxInput : bpmMinInput;
-  const other = window.__adjustingTarget === "max" ? bpmMinInput : bpmMaxInput;
+  const target = advancedMode.getAdjustmentTarget();
+  const adj = target === "max" ? bpmMaxInput : bpmMinInput;
+  const other = target === "max" ? bpmMinInput : bpmMaxInput;
 
   if (!adj || !other) return;
 
@@ -128,7 +132,10 @@ function adjustSimpleBpm(delta) {
     effectiveMax = anchor + Math.floor((limits.max - anchor) / step) * step;
   }
 
-  const next = Math.max(effectiveMin, Math.min(effectiveMax, cur + delta * step));
+  const next = Math.max(
+    effectiveMin,
+    Math.min(effectiveMax, cur + delta * step)
+  );
   if (next === cur) return; // already at grid boundary — do nothing
   el.value = next;
 
@@ -328,7 +335,7 @@ export function setupHotkeys() {
         }
 
         const newTarget = code === "ArrowRight" ? "max" : "min";
-        window.__adjustingTarget = newTarget;
+        advancedMode.setAdjustmentTarget(newTarget);
         debugLog(
           "hotkeys",
           `🎚️ Adjusting target: ${newTarget.toUpperCase()} BPM`

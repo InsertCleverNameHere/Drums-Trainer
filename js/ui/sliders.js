@@ -392,9 +392,9 @@ function createMetronomeSlider(elementId, config) {
  * @returns {void}
  *
  * @example
- * window.toggleGrooveSliderDisabled(true); // Disable during playback
+ * toggleGrooveSliderDisabled(true); // Disable during playback
  */
-window.toggleGrooveSliderDisabled = (disabled) => {
+export function toggleGrooveSliderDisabled(disabled) {
   const wrapper = document.getElementById("groove-slider-wrapper");
   if (!grooveSliderInstance) return;
 
@@ -405,7 +405,7 @@ window.toggleGrooveSliderDisabled = (disabled) => {
     grooveSliderInstance.enable();
     wrapper.classList.remove("disabled");
   }
-};
+}
 
 /**
  * Toggles simple slider enabled/disabled state.
@@ -414,9 +414,9 @@ window.toggleGrooveSliderDisabled = (disabled) => {
  * @returns {void}
  *
  * @example
- * window.toggleSimpleSliderDisabled(true); // Disable during playback
+ * toggleSimpleSliderDisabled(true); // Disable during playback
  */
-window.toggleSimpleSliderDisabled = (disabled) => {
+export function toggleSimpleSliderDisabled(disabled) {
   const wrapper = document.getElementById("simple-slider-wrapper");
   if (!simpleSliderInstance) return;
 
@@ -427,7 +427,7 @@ window.toggleSimpleSliderDisabled = (disabled) => {
     simpleSliderInstance.enable();
     wrapper.classList.remove("disabled");
   }
-};
+}
 
 /**
  * Initializes both groove and simple sliders with input sync.
