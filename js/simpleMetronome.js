@@ -67,18 +67,6 @@ function updateSimpleDisplayBpm() {
  */
 export function initSimpleMetronome(opts = {}) {
   if (opts.initialBpm) bpm = Number(opts.initialBpm) || bpm;
-
-  // Expose for console/debugging
-  window.simpleMetronome = window.simpleMetronome || {};
-  window.simpleMetronome.setBpm = setBpm;
-  window.simpleMetronome.getBpm = getBpm;
-  window.simpleMetronome.isRunning = isRunning;
-  window.simpleMetronome.isPaused = isPaused;
-  window.simpleMetronome.start = start;
-  window.simpleMetronome.pause = pause;
-  window.simpleMetronome.resume = resume;
-  window.simpleMetronome.stop = stop;
-  window.simpleMetronome.core = simpleCore;
 }
 
 // Listen for explicit owner changes and stop if we lose ownership

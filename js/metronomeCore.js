@@ -23,9 +23,9 @@ let endOfCycleRequested = false;
 let onCycleComplete = null;
 
 let bpm = 120;
-// NEW: timeSignature object replaces beatsPerBar
 let timeSignature = { beats: 4, value: 4 };
 let ticksPerBeat = 1; // subdivisions per beat (1 = one tick per beat)
+let _requestedMeasures = 1; // Used for end-of-cycle logic to determine how many measures to play before stopping
 
 // How far ahead to schedule (in seconds)
 const scheduleAheadTime = 0.1;
@@ -47,7 +47,7 @@ let pauseAudioOffset = 0; // nextNoteTime offset preserved across pause
  * @param {Function} cb - Callback function receiving (tickIndex, isPrimaryAccent, isMainBeat)
  * @returns {void}
  * @example
- * window.metronome.registerVisualCallback((tick, accent, beat) => {
+ * metronome.registerVisualCallback((tick, accent, beat) => {
  *   console.log(`Tick ${tick}, Accent: ${accent}`);
  * });
  */
@@ -108,7 +108,7 @@ function scheduleNote() {
   // If end-of-cycle requested, stop at the next pattern boundary
   const nextMainBeatIndex = Math.floor(tickIndex / ticksPerBeat);
   // Default to 1 measure if not provided
-  const targetMeasure = window.__requestedMeasures || 1;
+  const targetMeasure = _requestedMeasures || 1;
 
   if (
     endOfCycleRequested &&
@@ -161,7 +161,7 @@ function scheduler() {
  * @param {number} [newBpm=120] - Tempo in beats per minute (30-300, clamped to hard limits)
  * @returns {void}
  * @example
- * window.metronome.startMetronome(120);
+ * metronome.startMetronome(120);
  */
 export function startMetronome(newBpm = 120) {
   if (isMetronomePlaying) {
@@ -195,7 +195,7 @@ export function startMetronome(newBpm = 120) {
  * @param {boolean} [tempoSynced=true] - Use tempo-based intervals (true) or fixed 1s intervals (false)
  * @returns {Promise<void>} Resolves when count-in completes
  * @example
- * await window.metronome.performCountIn(120, true);
+ * await metronome.performCountIn(120, true);
  * console.log('Count-in finished');
  */
 export function performCountIn(nextBpm = 120, tempoSynced = true) {
@@ -242,7 +242,7 @@ export function performCountIn(nextBpm = 120, tempoSynced = true) {
  *
  * @returns {void}
  * @example
- * window.metronome.stopMetronome();
+ * metronome.stopMetronome();
  */
 export function stopMetronome() {
   isMetronomePlaying = false;
@@ -270,7 +270,7 @@ export function resetPlaybackFlag() {
  * @param {number} value - Denominator (2, 4, 8, or 16)
  * @returns {void}
  * @example
- * window.metronome.setTimeSignature(7, 8); // 7/8 time
+ * metronome.setTimeSignature(7, 8); // 7/8 time
  */
 export function setTimeSignature(beats, value) {
   // 🛡️ GUARD: Block changes during active playback
@@ -325,7 +325,7 @@ export function setTimeSignature(beats, value) {
  *
  * @returns {{beats: number, value: number}} Time signature object
  * @example
- * const sig = window.metronome.getTimeSignature();
+ * const sig = metronome.getTimeSignature();
  * // { beats: 4, value: 4 }
  */
 export function getTimeSignature() {
@@ -339,7 +339,7 @@ export function getTimeSignature() {
  * @param {number} n - Ticks per beat (1, 2, or 4)
  * @returns {void}
  * @example
- * window.metronome.setTicksPerBeat(4); // 16th note subdivisions
+ * metronome.setTicksPerBeat(4); // 16th note subdivisions
  */
 export function setTicksPerBeat(n) {
   // 🛡️ GUARD: Block changes during active playback
@@ -360,7 +360,7 @@ export function setTicksPerBeat(n) {
  *
  * @returns {number} Ticks per beat (1, 2, or 4)
  * @example
- * const ticks = window.metronome.getTicksPerBeat(); // 4 (16ths)
+ * const ticks = metronome.getTicksPerBeat(); // 4 (16ths)
  */
 export function getTicksPerBeat() {
   return ticksPerBeat;
@@ -371,7 +371,7 @@ export function getTicksPerBeat() {
  *
  * @returns {number} Current BPM
  * @example
- * const tempo = window.metronome.getBpm(); // 120
+ * const tempo = metronome.getBpm(); // 120
  */
 export function getBpm() {
   return bpm;
@@ -382,7 +382,7 @@ export function getBpm() {
  *
  * @returns {boolean} True if paused, false otherwise
  * @example
- * if (window.metronome.getPauseState()) console.log('Paused');
+ * if (metronome.getPauseState()) console.log('Paused');
  */
 export function getPauseState() {
   return !!isPaused;
@@ -393,7 +393,7 @@ export function getPauseState() {
  *
  * @returns {void}
  * @example
- * window.metronome.pauseMetronome();
+ * metronome.pauseMetronome();
  */
 export function pauseMetronome() {
   if (!isMetronomePlaying || isPaused) return;
@@ -414,7 +414,7 @@ export function pauseMetronome() {
  *
  * @returns {void}
  * @example
- * window.metronome.resumeMetronome();
+ * metronome.resumeMetronome();
  */
 export function resumeMetronome() {
   if (!isPaused || !audioCtx) return;
@@ -432,7 +432,7 @@ export function resumeMetronome() {
  * @param {Function} callback - Called after bar completes
  * @returns {void}
  * @example
- * window.metronome.requestEndOfCycle(() => {
+ * metronome.requestEndOfCycle(() => {
  *   console.log('Bar finished cleanly');
  * });
  */
@@ -440,7 +440,7 @@ export function requestEndOfCycle(callback, measures = 1) {
   if (!isMetronomePlaying || endOfCycleRequested) return;
 
   endOfCycleRequested = true;
-  window.__requestedMeasures = measures; // Store target measures globally for scheduler access
+  _requestedMeasures = measures; // Store target measures locally
   if (typeof callback === "function") {
     onCycleComplete = callback;
   }

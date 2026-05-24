@@ -573,7 +573,7 @@ function _wireOwnershipGuard() {
  * Synthesises ArrowUp/ArrowDown KeyboardEvents on window so the existing
  * hotkeys.js handler processes button clicks identically to key presses —
  * ownership guard, margin guard, flash animation, and setBpm call are
- * all inherited. For groove fields, sets window.__adjustingTarget first
+ * all inherited. For groove fields, sets _adjustingTarget first
  * so adjustGrooveInput moves the correct field.
  *
  * Does NOT update _simpleBpmAnchor — consistent with arrow key behaviour:

@@ -8,10 +8,12 @@
 
 import * as audioProfiles from "./audioProfiles.js";
 import { VISUAL_TIMING } from "./constants.js";
+import * as metronome from "./metronomeCore.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
 import * as grooveStorage from "./grooveStorage.js";
+import { patternScheduler } from "./patternScheduler.js";
 import { debugLog } from "./debug.js";
 
 // Import UI submodules
@@ -128,13 +130,13 @@ export function initUI(deps) {
     if (_isPreviewActive) {
       if (_isPreviewPlaying) {
         // STOP LOGIC
-        window.metronome.stopMetronome();
+        metronome.stopMetronome();
         _isPreviewPlaying = false;
         startBtn.textContent = "Start";
         debugLog("state", "🛑 Preview stopped");
       } else {
         // START LOGIC
-        window.metronome.startMetronome(120);
+        metronome.startMetronome(120);
         _isPreviewPlaying = true;
         startBtn.textContent = "Stop";
         debugLog("state", "▶️ Preview playing");
@@ -883,12 +885,12 @@ export function handlePreviewMode(pattern) {
   }
 
   _isPreviewActive = true;
-  window.patternScheduler.load(pattern);
+  patternScheduler.load(pattern);
 
   // Sync Metronome Core
   const pTS = pattern.patternTimeSignature || { beats: 4, value: 4 };
-  window.metronome.setTimeSignature(parseInt(pTS.beats), parseInt(pTS.value));
-  window.metronome.setTicksPerBeat(pattern.ticksPerBeat || 1);
+  metronome.setTimeSignature(parseInt(pTS.beats), parseInt(pTS.value));
+  metronome.setTicksPerBeat(pattern.ticksPerBeat || 1);
 
   // Force Redraw
   import("./visuals.js").then((m) => m.primeVisuals("groove"));
@@ -917,10 +919,8 @@ export function handlePreviewMode(pattern) {
   const closePreview = () => {
     _isPreviewActive = false;
     _isPreviewPlaying = false;
-    window.patternScheduler.clear();
-    if (typeof window.metronome.stopMetronome === "function") {
-      window.metronome.stopMetronome();
-    }
+    patternScheduler.clear();
+    metronome.stopMetronome();
     const sBtn = document.getElementById("startBtn");
     if (sBtn) sBtn.textContent = "Start";
     if (displayGroove) displayGroove.textContent = "Groove: —";

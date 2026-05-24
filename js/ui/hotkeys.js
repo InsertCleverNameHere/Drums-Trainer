@@ -88,10 +88,16 @@ function adjustGrooveInput(delta) {
 
   // Check if this change would violate the margin constraint
   const margin = step; // margin always equals step
-  if (window.__adjustingTarget === "min" && next >= otherVal - margin + 1) {
+  if (
+    advancedMode.getAdjustmentTarget() === "min" &&
+    next >= otherVal - margin + 1
+  ) {
     return;
   }
-  if (window.__adjustingTarget === "max" && next <= otherVal + margin - 1) {
+  if (
+    advancedMode.getAdjustmentTarget() === "max" &&
+    next <= otherVal + margin - 1
+  ) {
     return;
   }
 
@@ -139,17 +145,7 @@ function adjustSimpleBpm(delta) {
   if (next === cur) return; // already at grid boundary — do nothing
   el.value = next;
 
-  if (
-    typeof window.simpleMetronome !== "undefined" &&
-    typeof window.simpleMetronome.setBpm === "function"
-  ) {
-    window.simpleMetronome.setBpm(next);
-  } else if (
-    typeof simpleMetronome !== "undefined" &&
-    typeof simpleMetronome.setBpm === "function"
-  ) {
-    simpleMetronome.setBpm(next);
-  }
+  simpleMetronome.setBpm(next);
 
   _triggerFlashOverlay(el);
   el.dispatchEvent(new Event("change", { bubbles: true }));
@@ -263,23 +259,14 @@ export function setupHotkeys() {
           if (!grooveStartBtn || grooveStartBtn.disabled) break;
           grooveStartBtn.click();
         } else {
-          (async () => {
-            if (
-              typeof simpleMetronome !== "undefined" &&
-              typeof simpleMetronome.isRunning === "function" &&
-              simpleMetronome.isRunning()
-            ) {
-              if (typeof simpleMetronome.stop === "function")
-                simpleMetronome.stop();
-            } else {
-              const bpmEl = document.getElementById("simpleBpm");
-              const bpm = bpmEl ? parseInt(bpmEl.value, 10) : null;
-              if (bpm && typeof simpleMetronome.setBpm === "function")
-                simpleMetronome.setBpm(bpm);
-              if (typeof simpleMetronome.start === "function")
-                await simpleMetronome.start();
-            }
-          })();
+          if (simpleMetronome.isRunning()) {
+            simpleMetronome.stop();
+          } else {
+            const bpmEl = document.getElementById("simpleBpm");
+            const bpm = bpmEl ? parseInt(bpmEl.value, 10) : 120;
+            simpleMetronome.setBpm(bpm);
+            simpleMetronome.start();
+          }
         }
         break;
 

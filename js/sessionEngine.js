@@ -130,7 +130,7 @@ export function initSessionEngine(deps) {
  *
  * @returns {void}
  * @example
- * window.sessionEngine.startSession();
+ * sessionEngine.startSession();
  */
 export function startSession() {
   // Prevent starting if already active or counting in (fixes audio bug encountere while stress testing)

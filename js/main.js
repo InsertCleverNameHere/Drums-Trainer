@@ -21,12 +21,6 @@ import { ensureAudio } from "./audioProfiles.js";
 
 // Expose explicitly (redundant but safe)
 window.Profiler = Profiler;
-
-// Expose ONLY the primary cores needed for the Visualizer and Session logic
-window.metronome = metronome;
-window.sessionEngine = sessionEngine;
-window.patternScheduler = patternScheduler;
-
 /**
  * Checks if the library needs seeding and triggers the Welcome prompt.
  * Globalized for re-trigger after preview discard/save.
