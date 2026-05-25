@@ -853,7 +853,7 @@ export function checkDeepLinks() {
   if (!hash.startsWith("#share=")) return false;
 
   // Clear hash immediately to prevent re-triggering on refresh
-  const compressedData = hash.replace("#share=", "");
+  const compressedData = decodeURIComponent(hash.replace("#share=", ""));
   window.history.replaceState(null, null, window.location.pathname);
 
   const sharedPattern = utils.decompressGroove(compressedData);

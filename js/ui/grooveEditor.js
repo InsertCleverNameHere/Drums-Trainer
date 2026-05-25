@@ -754,11 +754,11 @@ export async function pasteFromClipboard() {
     const text = rawText.trim();
 
     // 1. Standard Case: Identify the #share fragment
-    const hashMatch = text.match(/#share=([A-Za-z0-9\-_]+)/);
+    const hashMatch = text.match(/#share=([A-Za-z0-9\-_+$]+)/);
     let finalHash = hashMatch ? hashMatch[1] : null;
 
     // 2. Fallback: If no #share= prefix, check if the string itself is a valid hash
-    if (!finalHash && /^[A-Za-z0-9\-_]+$/.test(text)) {
+    if (!finalHash && /^[A-Za-z0-9\-_+$]+$/.test(text)) {
       // "Dry Run" decompression to verify it's actual RGT data
       const isValid = decompressGroove(text);
       if (isValid) finalHash = text;
@@ -766,7 +766,7 @@ export async function pasteFromClipboard() {
 
     if (finalHash) {
       // Update hash to trigger the hashchange listener in main.js
-      window.location.hash = `share=${finalHash}`;
+      window.location.hash = `share=${encodeURIComponent(finalHash)}`;
     } else {
       import("../ui/sliders.js").then((m) =>
         m.showNotice("⚠️ No valid groove data found in clipboard.")
