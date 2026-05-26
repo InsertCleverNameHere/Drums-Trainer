@@ -273,14 +273,48 @@ button:disabled {
   border: 1px solid var(--border);
 }
 
+.section-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  margin-top: 24px;
+  white-space: nowrap;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.6;
+}
+
 /* ============================================
 🎛 2. Controls & Toggles
 ============================================ */
 .controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+  width: 100%;
+}
+.controls button {
+  width: 100%;
+  margin-top: 0;
+  padding: 10px 4px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 16px;
+}
+/* Specific sizing for the Tap icon to prevent it from looking bulky */
+#tapTempoBtn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 .controls .toggle {
   display: inline-flex;
@@ -414,15 +448,18 @@ button:disabled {
 ============================================ */
 .mode-tabs {
   display: flex;
-  gap: 8px;
+  gap: 24px;
+  justify-content: space-between;
   margin: 20px 0;
-  padding: 8px 8px 16px 8px;
+  padding: 4px 24px 12px 24px;
   background: var(--bg-secondary);
   border-radius: 12px;
   box-shadow: 0 1px 3px var(--shadow);
 }
 .tab {
-  padding: 10px 16px;
+  flex: 1;
+  text-align: center;
+  padding: 10px 4px;
   border-radius: 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
