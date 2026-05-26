@@ -7,7 +7,9 @@
 
 import { debugLog } from "../debug.js";
 import * as audioProfiles from "../audioProfiles.js";
+import * as metronome from "../metronomeCore.js";
 import * as simpleMetronome from "../simpleMetronome.js";
+import { getActiveModeOwner } from "../sessionEngine.js";
 
 /**
  * Initializes sound profile dropdowns for both groove and simple panels.
@@ -173,10 +175,7 @@ export function initTempoSyncedUI() {
   }
 
   function updateDisabledState() {
-    const owner =
-      typeof window.sessionEngine?.getActiveModeOwner === "function"
-        ? window.sessionEngine.getActiveModeOwner()
-        : null;
+    const owner = getActiveModeOwner();
     const panelVisible =
       panelGroove && !panelGroove.classList.contains("hidden");
 
@@ -260,8 +259,7 @@ export function initTimeSignatureUI() {
     );
 
     // Determine which metronome core to control
-    const core =
-      panelPrefix === "groove" ? window.metronome : simpleMetronome.core;
+    const core = panelPrefix === "groove" ? metronome : simpleMetronome.core;
     if (!core) {
       console.error(`Metronome core not found for prefix: ${panelPrefix}`);
       return;

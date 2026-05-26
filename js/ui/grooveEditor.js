@@ -4,7 +4,9 @@
  * @module ui/grooveEditor
  */
 
+import { getTimeSignature, getTicksPerBeat } from "../metronomeCore.js";
 import * as grooveStorage from "../grooveStorage.js";
+import { getActiveModeOwner, setActiveModeOwner } from "../sessionEngine.js";
 import { compressGroove, decompressGroove } from "../utils.js";
 import { patternScheduler } from "../patternScheduler.js";
 import { showNotice } from "./sliders.js";
@@ -316,10 +318,7 @@ function _rebuildInteractiveList() {
  */
 function _openEditor(name) {
   // --- Gatekeeper: Prevent entry if metronome is playing ---
-  const owner =
-    typeof window.sessionEngine?.getActiveModeOwner === "function"
-      ? window.sessionEngine.getActiveModeOwner()
-      : null;
+  const owner = getActiveModeOwner();
   if (owner === "groove" || owner === "simple") return;
 
   _activeGrooveName = name;
@@ -350,11 +349,10 @@ function _openEditor(name) {
   } else {
     _localPattern = { hihat: [], kick: [], snare: [], HHPed: [] };
     // Start with global metronome settings as defaults
-    const globalSig = window.metronome.getTimeSignature();
+    const globalSig = getTimeSignature();
     document.getElementById("patNumerator").value = globalSig.beats;
     document.getElementById("patDenominator").value = globalSig.value;
-    document.getElementById("patSubdivision").value =
-      window.metronome.getTicksPerBeat();
+    document.getElementById("patSubdivision").value = getTicksPerBeat();
     document.getElementById("patMeasures").value = 1;
     _updateHint("New pattern (unsaved)");
   }
@@ -366,9 +364,7 @@ function _openEditor(name) {
   document.getElementById("deleteGrooveBtn").disabled = !saved;
 
   // Claim ownership to block metronome starts while editing
-  if (typeof window.sessionEngine?.setActiveModeOwner === "function") {
-    window.sessionEngine.setActiveModeOwner("editing");
-  }
+  setActiveModeOwner("editing");
 }
 
 /**
@@ -567,10 +563,7 @@ function _closeEditor() {
   panel.classList.remove("visible");
 
   // Release ownership so metronome can start again
-  if (typeof window.sessionEngine?.setActiveModeOwner === "function") {
-    window.sessionEngine.setActiveModeOwner(null);
-  }
-
+  setActiveModeOwner(null);
   debugLog("state", "Closed groove editor");
 }
 
@@ -761,11 +754,11 @@ export async function pasteFromClipboard() {
     const text = rawText.trim();
 
     // 1. Standard Case: Identify the #share fragment
-    const hashMatch = text.match(/#share=([A-Za-z0-9\-_]+)/);
+    const hashMatch = text.match(/#share=([A-Za-z0-9\-_+$]+)/);
     let finalHash = hashMatch ? hashMatch[1] : null;
 
     // 2. Fallback: If no #share= prefix, check if the string itself is a valid hash
-    if (!finalHash && /^[A-Za-z0-9\-_]+$/.test(text)) {
+    if (!finalHash && /^[A-Za-z0-9\-_+$]+$/.test(text)) {
       // "Dry Run" decompression to verify it's actual RGT data
       const isValid = decompressGroove(text);
       if (isValid) finalHash = text;
@@ -773,7 +766,7 @@ export async function pasteFromClipboard() {
 
     if (finalHash) {
       // Update hash to trigger the hashchange listener in main.js
-      window.location.hash = `share=${finalHash}`;
+      window.location.hash = `share=${encodeURIComponent(finalHash)}`;
     } else {
       import("../ui/sliders.js").then((m) =>
         m.showNotice("⚠️ No valid groove data found in clipboard.")

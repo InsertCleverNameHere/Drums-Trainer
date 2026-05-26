@@ -15,8 +15,11 @@
 // - No resize bugs due to transform-based positioning
 
 import { VISUAL_TIMING } from "./constants.js";
+import * as metronome from "./metronomeCore.js";
+import * as simpleMetronome from "./simpleMetronome.js";
 import { patternScheduler } from "./patternScheduler.js";
 import * as advancedMode from "./ui/advancedMode.js";
+import { getGroovePattern } from "./grooveStorage.js";
 import { debugLog } from "./debug.js";
 
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
@@ -378,10 +381,15 @@ function flashActiveDot(
  * Takes the current time signature and subdivision and returns an array
  * of "virtual dot" objects representing the entire measure.
  */
-export function generateMeasureLayout(timeSignature, ticksPerBeat) {
+export function generateMeasureLayout(
+  timeSignature,
+  ticksPerBeat,
+  measures = 1
+) {
   const layout = [];
   const { beats } = timeSignature;
-  const totalTicksInMeasure = beats * ticksPerBeat;
+  const totalTicksInMeasure = beats * ticksPerBeat * measures;
+  const ticksPerMeasure = beats * ticksPerBeat;
 
   const phonationPatterns = {
     1: [
@@ -442,7 +450,7 @@ export function generateMeasureLayout(timeSignature, ticksPerBeat) {
 
   for (let i = 0; i < totalTicksInMeasure; i++) {
     const tickInBeat = i % ticksPerBeat;
-    const currentBeat = Math.floor(i / ticksPerBeat);
+    const currentBeat = Math.floor((i % ticksPerMeasure) / ticksPerBeat);
 
     let size = "tertiary";
     let colorClass = "tertiary";
@@ -464,7 +472,7 @@ export function generateMeasureLayout(timeSignature, ticksPerBeat) {
 
     // Determine phonation label
     const pattern = phonationPatterns[ticksPerBeat] || phonationPatterns[1];
-    const labelIndex = ticksPerBeat === 1 ? currentBeat : i;
+    const labelIndex = ticksPerBeat === 1 ? currentBeat : i % ticksPerMeasure; // Correctly index within the measure for patterns
 
     let label = pattern[labelIndex % pattern.length] || String(currentBeat + 1);
     if (ticksPerBeat === 1 && currentBeat >= pattern.length) {
@@ -475,7 +483,7 @@ export function generateMeasureLayout(timeSignature, ticksPerBeat) {
       size,
       label,
       colorClass,
-      isAccent: i === 0,
+      isAccent: i % ticksPerMeasure === 0, // Accent the first beat of each measure
     });
   }
   return layout;
@@ -532,8 +540,7 @@ export function createVisualCallback(panelId = "groove") {
       if (!container) return;
 
       // Get the correct metronome core
-      const core =
-        panelId === "groove" ? window.metronome : window.simpleMetronome.core;
+      const core = panelId === "groove" ? metronome : simpleMetronome.core;
       // Safety check
       if (!core || typeof core.getTimeSignature !== "function") {
         return;
@@ -541,14 +548,31 @@ export function createVisualCallback(panelId = "groove") {
 
       const timeSignature = core.getTimeSignature();
       const ticksPerBeat = core.getTicksPerBeat();
-      const signatureKey = `${timeSignature.beats}/${timeSignature.value}`;
-      const totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
+      const isPatternActive =
+        panelId === "groove" && patternScheduler.isActive();
+
+      let totalTicksInMeasure;
+      let currentMeasures = 1; // Declare here so it's accessible below
+
+      if (isPatternActive) {
+        const pattern = getGroovePattern(
+          document
+            .getElementById("displayGroove")
+            .textContent.replace("Groove: ", "")
+            .replace("Preview: ", "")
+        );
+        currentMeasures = pattern?.measures || 1; // Update the shared variable
+        totalTicksInMeasure =
+          timeSignature.beats * ticksPerBeat * currentMeasures;
+      } else {
+        totalTicksInMeasure = timeSignature.beats * ticksPerBeat;
+      }
+
+      const signatureKey = `${timeSignature.beats}/${timeSignature.value}-${totalTicksInMeasure}`;
 
       if (totalTicksInMeasure === 0) return;
 
       const currentTickInMeasure = tickIndex % totalTicksInMeasure;
-      const isPatternActive =
-        panelId === "groove" && patternScheduler.isActive();
       // Only show the 4-row dashboard if active AND enabled in settings
       const showDashboard =
         isPatternActive && advancedMode.isDashboardEnabled();
@@ -566,7 +590,11 @@ export function createVisualCallback(panelId = "groove") {
         signatureKey !== lastRenderedSignature ||
         ticksPerBeat !== lastRenderedTicksPerBeat
       ) {
-        measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
+        measureLayout = generateMeasureLayout(
+          timeSignature,
+          ticksPerBeat,
+          currentMeasures
+        );
         phrases = segmentIntoPhrases(totalTicksInMeasure);
         currentPhraseIndex = -1;
 
@@ -864,14 +892,29 @@ export function primeVisuals(panelId = "groove") {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const core =
-    panelId === "groove" ? window.metronome : window.simpleMetronome.core;
+  const core = panelId === "groove" ? metronome : simpleMetronome.core;
   const timeSignature = core.getTimeSignature();
   const ticksPerBeat = core.getTicksPerBeat();
   const isPatternMode =
     panelId === "groove" &&
     patternScheduler.isActive() &&
     advancedMode.isDashboardEnabled();
+
+  // Calculate measures for the Idle layout: If we're in groove panel with an active pattern, use the pattern's measure count. Otherwise, default to 1 measure.
+  let measures = 1;
+  if (panelId === "groove" && patternScheduler.isActive()) {
+    // We get the name of the groove currently shown in the UI status area
+    const displayEl = document.getElementById("displayGroove");
+    const grooveName = displayEl
+      ? displayEl.textContent
+          .replace("Groove: ", "")
+          .replace("Preview: ", "")
+          .trim()
+      : "";
+
+    const pattern = getGroovePattern(grooveName);
+    measures = pattern?.measures || 1;
+  }
 
   container.innerHTML = "";
   container.classList.toggle("pattern-mode", isPatternMode);
@@ -882,7 +925,11 @@ export function primeVisuals(panelId = "groove") {
   if (isPatternMode) panningContainer.style.flexDirection = "column";
   container.appendChild(panningContainer);
 
-  const measureLayout = generateMeasureLayout(timeSignature, ticksPerBeat);
+  const measureLayout = generateMeasureLayout(
+    timeSignature,
+    ticksPerBeat,
+    measures
+  );
   const tracks = isPatternMode ? ["hihat", "kick", "snare", "HHPed"] : [null];
   const showPed = document.getElementById("toggleHHPed")?.checked ?? true;
 

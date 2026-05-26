@@ -17,14 +17,6 @@ export const DEBUG = {
   all: false, // Master override (enables everything)
 };
 
-// Expose to window for console access
-if (typeof window !== "undefined") {
-  window.DEBUG = DEBUG;
-  console.info(
-    "🐛 Debug system loaded. Use DEBUG.audio = true to enable logging."
-  );
-}
-
 /**
  * Conditional logging based on debug flags.
  *

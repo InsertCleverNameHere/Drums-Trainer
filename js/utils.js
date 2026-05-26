@@ -644,13 +644,8 @@ export function migrateStoredVersion(storedVersion) {
 export function compressGroove(patternObj) {
   try {
     const json = JSON.stringify(patternObj);
-    const compressed = LZString.compressToEncodedURIComponent(json);
-    // Force-replace any remaining '+' or '/' and strip '=' padding
-    // to ensure 100% stability in the browser address bar fragments.
-    return compressed
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+    // LZ-String handles safety internally.
+    return LZString.compressToEncodedURIComponent(json);
   } catch (e) {
     debugLog("state", "❌ Compression failed", e);
     return null;
@@ -666,9 +661,8 @@ export function decompressGroove(compressedStr) {
   if (!compressedStr) return null;
 
   try {
-    // Restore standard LZ-String characters before decompressing
-    const restored = compressedStr.replace(/-/g, "+").replace(/_/g, "/");
-    const json = LZString.decompressFromEncodedURIComponent(restored);
+    // Pass the raw string directly.
+    const json = LZString.decompressFromEncodedURIComponent(compressedStr);
 
     if (!json) return null;
 
