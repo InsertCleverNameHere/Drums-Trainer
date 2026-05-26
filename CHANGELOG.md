@@ -1,5 +1,27 @@
 # Changelog
 
+## [v12.0.2] - 2026-05-23
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
+## [v12.0.1] - 2026-05-23
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
+## [v12.0.0] - 2026-05-22
+
+### 💥 Breaking Changes
+
+- MAJOR: phase 6 merge
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v11.1.3] - 2026-05-16
 
 ### 🧹 Chores
