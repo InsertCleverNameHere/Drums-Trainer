@@ -929,8 +929,7 @@ export function handlePreviewMode(pattern) {
     // to let the toast's own timers handle the lifecycle.
     if (!noticeEl.classList.contains("interactive")) {
       const needsSeed = !localStorage.getItem("rgt_library_seeded");
-      if (needsSeed && typeof window.checkLibrarySeed === "function")
-        window.checkLibrarySeed();
+      if (needsSeed) grooveStorage.checkLibrarySeed();
       return;
     }
 
@@ -944,14 +943,14 @@ export function handlePreviewMode(pattern) {
 
         if (isStillInteractive) {
           noticeEl.classList.remove("interactive");
-          if (needsSeed && typeof window.checkLibrarySeed === "function") {
-            window.checkLibrarySeed();
+          if (needsSeed) {
+            grooveStorage.checkLibrarySeed();
           } else {
             noticeEl.classList.add("hidden");
           }
-        } else if (needsSeed && typeof window.checkLibrarySeed === "function") {
+        } else if (needsSeed) {
           // If a toast is present, we still trigger the seed check for cold boots
-          window.checkLibrarySeed();
+          grooveStorage.checkLibrarySeed();
         }
       },
     });

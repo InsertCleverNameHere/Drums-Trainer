@@ -563,13 +563,3 @@ ${
 function average(arr) {
   return arr.reduce((sum, val) => sum + val, 0) / arr.length || 0;
 }
-
-// === GLOBAL EXPOSURE ===
-
-/**
- * Expose Profiler to window for console access
- * @global
- */
-if (typeof window !== "undefined") {
-  window.Profiler = Profiler;
-}

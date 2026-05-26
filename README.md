@@ -163,10 +163,10 @@ Access the settings menu by pressing `H` or clicking the ⚙️ gear icon (top-r
 Enable debug logging in browser console:
 
 ```javascript
-DEBUG.audio = true; // Audio scheduling
-DEBUG.visuals = true; // Visual rendering
-DEBUG.hotkeys = true; // Keyboard input
-DEBUG.all = true; // Enable everything
+RGT.DEBUG.audio = true; // Audio scheduling
+RGT.DEBUG.visuals = true; // Visual rendering
+RGT.DEBUG.hotkeys = true; // Keyboard input
+RGT.DEBUG.all = true; // Enable everything
 ```
 
 See **[Debugging Guide](docs/DEBUGGING.md)** for details.

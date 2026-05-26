@@ -12,19 +12,19 @@ Enable logging categories via browser console:
 
 ```javascript
 // Enable individual categories
-DEBUG.audio = true; // Audio scheduling, tick generation
-DEBUG.visuals = true; // Visual rendering, panning decisions
-DEBUG.ownership = true; // Mode ownership changes
-DEBUG.hotkeys = true; // Keyboard input handling
-DEBUG.timing = true; // Performance measurements (>16ms warnings)
-DEBUG.state = true; // UI state transitions
+RGT.DEBUG.audio = true; // Audio scheduling, tick generation
+RGT.DEBUG.visuals = true; // Visual rendering, panning decisions
+RGT.DEBUG.ownership = true; // Mode ownership changes
+RGT.DEBUG.hotkeys = true; // Keyboard input handling
+RGT.DEBUG.timing = true; // Performance measurements (>16ms warnings)
+RGT.DEBUG.state = true; // UI state transitions
 
 // Enable all categories at once
-DEBUG.all = true;
+RGT.DEBUG.all = true;
 
 // Disable all
-DEBUG.all = false;
-DEBUG.audio = false; // etc.
+RGT.DEBUG.all = false;
+RGT.DEBUG.audio = false; // etc.
 ```
 
 ### Category Details
@@ -50,8 +50,8 @@ DEBUG.audio = false; // etc.
 **Debug**:
 
 ```javascript
-DEBUG.audio = true;
-DEBUG.timing = true;
+RGT.DEBUG.audio = true;
+RGT.DEBUG.timing = true;
 
 // Start metronome, look for:
 // - "Scheduling tick" messages every ~5-25ms
@@ -74,7 +74,7 @@ DEBUG.timing = true;
 **Debug**:
 
 ```javascript
-DEBUG.visuals = true;
+RGT.DEBUG.visuals = true;
 
 // Start metronome, look for:
 // - "PHRASE BOUNDARY DETECTED" messages
@@ -97,8 +97,8 @@ DEBUG.visuals = true;
 **Debug**:
 
 ```javascript
-DEBUG.ownership = true;
-DEBUG.state = true;
+RGT.DEBUG.ownership = true;
+RGT.DEBUG.state = true;
 
 // Try switching modes or starting metronomes:
 // - "Owner changed: null → groove" (expected)
@@ -122,7 +122,7 @@ DEBUG.state = true;
 **Debug**:
 
 ```javascript
-DEBUG.hotkeys = true;
+RGT.DEBUG.hotkeys = true;
 
 // Press hotkeys and check console:
 // - "Key pressed: Space, owner: groove, target: groove"
@@ -145,7 +145,7 @@ DEBUG.hotkeys = true;
 **Debug**:
 
 ```javascript
-DEBUG.timing = true;
+RGT.DEBUG.timing = true;
 
 // Chrome DevTools:
 // 1. Memory → Heap Snapshot (baseline)
@@ -244,7 +244,7 @@ console.log = (...args) => {
   }
   originalLog(...args);
 };
-DEBUG.audio = true;
+RGT.DEBUG.audio = true;
 // Start metronome, watch intervals
 ```
 
