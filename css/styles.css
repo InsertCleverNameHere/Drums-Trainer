@@ -1308,21 +1308,24 @@ button#installBtn.utility-button:active {
 /* --- Container Alignment --- */
 #beat-indicator-container,
 #beat-indicator-container-simple {
-  display: flex;
-  justify-content: center; /* ← CHANGED from flex-start */
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 14px;
-  min-height: 160px;
+  display: block;
+  min-height: 180px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 14px;
-  padding: 0 10px;
   overflow: hidden;
   width: 100%;
-  padding: 15px 10px 30px;
+  padding: 40px 0 30px;
   background: var(--bg-secondary);
   border-radius: 12px;
   box-shadow: inset 0 1px 3px var(--shadow);
+}
+
+.panning-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
 }
 
 /* Dashboard Container */
@@ -1447,9 +1450,9 @@ button#installBtn.utility-button:active {
   /* Center the dot horizontally and vertically */
   justify-content: center;
   align-items: center;
-  margin: 0 12px;
-  /* Set a fixed height that can contain the LARGEST dot + text */
-  height: 100px;
+  margin: 0;
+  height: 110px;
+  flex: 0 0 auto;
 }
 
 .phonation-text {
@@ -1970,51 +1973,19 @@ button#installBtn.utility-button {
   .sound-section {
     margin-left: 0 !important;
   }
-}
 
-@media (max-width: 500px) {
-  .advanced-mode .beats-and-sound-row.advanced-only {
-    display: flex !important; /* Force out of Desktop Grid */
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-    margin-top: 16px;
+  /* Downscale dots for mobile while maintaining distinguishing gaps */
+  .beat-dot.primary {
+    width: 60px;
+    height: 60px;
   }
-
-  .advanced-mode .beats-and-sound-row.advanced-only > div {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
-    margin: 0;
-    justify-self: stretch;
+  .beat-dot.secondary {
+    width: 44px;
+    height: 44px;
   }
-
-  #grooveCustomTimeSignature,
-  #simpleCustomTimeSignature {
-    flex-direction: row !important; /* Keep numbers side-by-side */
-    align-items: center !important;
-    padding-top: 0 !important; /* Kill desktop 'phantom label' alignment */
-    margin-top: -12px !important; /* Cluster vertically with the TS dropdown above */
-  }
-
-  /* Force the subdivision pillar to anchor its internal label/select to the left */
-  #grooveSubdivisionContainer,
-  #simpleSubdivisionContainer {
-    align-items: flex-start !important;
-
-    opacity: 0; /* Hidden by default */
-  }
-
-  /* Allow the subdivision to become visible via class */
-  #grooveSubdivisionContainer.visible,
-  #simpleSubdivisionContainer.visible {
-    opacity: 1 !important;
-    max-width: 100% !important;
-  }
-
-  .sound-section {
-    margin-left: 0 !important;
+  .beat-dot.tertiary {
+    width: 32px;
+    height: 32px;
   }
 }
 
