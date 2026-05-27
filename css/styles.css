@@ -1785,8 +1785,8 @@ button#installBtn.utility-button {
   display: flex;
   align-items: stretch;
   height: 40px;
-  width: 142px;
-  margin: 10px 0 0 0 !important;
+  width: 150px;
+  margin: 0 !important;
   border: 1px solid var(--border);
   border-radius: 20px;
   background-color: var(--bg-secondary);
@@ -1805,30 +1805,29 @@ button#installBtn.utility-button {
   position: relative;
   display: flex;
   align-items: stretch;
+  justify-content: center;
   overflow: hidden;
 }
 
 .advanced-mode .bpm-stepper input[type="number"] {
   width: 100% !important;
-  height: auto !important;
+  height: 100% !important;
   min-height: 0 !important;
-  line-height: 38px !important;
-
-  /* Force kill inherited layout styles */
+  border-top: none;
+  border-bottom: none;
   margin: 0 !important;
   padding: 0 !important;
+  line-height: 38px;
 
   /* Visuals */
   border: none;
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  border-radius: 0;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   text-align: center;
   font-family: inherit;
   font-size: 1.1rem;
   font-weight: 700;
+  outline: none;
   transition: border-color 0.4s ease;
 
   /* Kill internal UA styles that cause sunken text */
@@ -1845,12 +1844,12 @@ button#installBtn.utility-button {
   justify-content: center;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   border: none;
   cursor: pointer;
   margin: 0;
-  padding: 0;
+  line-height: 0;
   transition:
     background 0.4s ease,
     color 0.4s ease;
@@ -1886,6 +1885,61 @@ button#installBtn.utility-button {
 
 .advanced-mode .bpm-stepper:has(.bpm-adjust-btn[data-delta="1"]:active) input {
   border-right-color: var(--accent) !important;
+}
+
+/* --- Panel Toolbar Component --- */
+.panel-toolbar {
+  display: none !important;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  margin: -20px -20px 24px -20px; /* Flush with panel edges */
+  padding: 10px 15px;
+  min-height: 52px;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* Show only when Advanced Mode is active */
+.advanced-mode .panel-toolbar {
+  display: flex !important; /* Default for single-toolbar */
+}
+
+/* Specific display for the range grid */
+.advanced-mode .range-toolbar {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr;
+  justify-items: center;
+}
+
+.advanced-mode .range-toolbar .bpm-stepper:first-child {
+  justify-self: start;
+}
+.advanced-mode .range-toolbar .bpm-stepper:last-child {
+  justify-self: end;
+}
+
+.advanced-mode .single-toolbar {
+  justify-content: space-between;
+}
+
+/* Ensure the panel itself clips the toolbar edges */
+.panel {
+  overflow: hidden;
+}
+
+.toolbar-label {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  min-width: 50px;
 }
 
 /* =============================
@@ -1986,6 +2040,32 @@ button#installBtn.utility-button {
   .beat-dot.tertiary {
     width: 32px;
     height: 32px;
+  }
+
+  .advanced-mode .range-toolbar .bpm-stepper {
+    width: 125px; /* 👈 Mathematical fit for 320px-390px screens */
+    height: 36px;
+  }
+
+  .advanced-mode .range-toolbar .bpm-adjust-btn {
+    flex: 0 0 32px; /* 👈 Narrower buttons to save space */
+    font-size: 1.1rem;
+  }
+
+  .advanced-mode .range-toolbar input[type="number"] {
+    font-size: 1rem;
+    line-height: 36px; /* 👈 Vertical centering for the new height */
+  }
+
+  .range-toolbar {
+    padding: 8px 10px !important; /* Tighter internal padding */
+    gap: 4px !important;
+  }
+
+  .range-toolbar .toolbar-label {
+    flex-direction: column;
+    gap: 0;
+    font-size: 0.6rem; /* 👈 Smaller font for the stacked label */
   }
 }
 

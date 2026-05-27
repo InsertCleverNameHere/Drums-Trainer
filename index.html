@@ -556,71 +556,49 @@
       aria-labelledby="tab-groove"
     >
       <!-- BEGIN existing Groove UI -->
-      <label class="advanced-only"> BPM range (min / max)</label>
-      <div class="row advanced-only">
-        <div class="col">
-          <div class="bpm-stepper advanced-only">
-            <button
-              class="bpm-adjust-btn"
-              data-target="min"
-              data-delta="-1"
-              aria-label="Decrease minimum BPM"
-            >
-              −
-            </button>
-            <div class="bpm-input-wrap">
-              <input
-                id="bpmMin"
-                type="number"
-                inputmode="numeric"
-                min="5"
-                max="300"
-                value="30"
-                aria-label="Minimum BPM"
-              />
-              <div class="bpm-flash-overlay"></div>
-            </div>
-            <button
-              class="bpm-adjust-btn"
-              data-target="min"
-              data-delta="1"
-              aria-label="Increase minimum BPM"
-            >
-              +
-            </button>
+      <div class="panel-toolbar range-toolbar advanced-only">
+        <!-- Min Stepper -->
+        <div class="bpm-stepper">
+          <button class="bpm-adjust-btn" data-target="min" data-delta="-1">
+            −
+          </button>
+          <div class="bpm-input-wrap">
+            <input
+              id="bpmMin"
+              type="number"
+              inputmode="numeric"
+              min="30"
+              max="300"
+              value="30"
+            />
+            <div class="bpm-flash-overlay"></div>
           </div>
+          <button class="bpm-adjust-btn" data-target="min" data-delta="1">
+            +
+          </button>
         </div>
-        <div class="col">
-          <div class="bpm-stepper advanced-only">
-            <button
-              class="bpm-adjust-btn"
-              data-target="max"
-              data-delta="-1"
-              aria-label="Decrease maximum BPM"
-            >
-              −
-            </button>
-            <div class="bpm-input-wrap">
-              <input
-                id="bpmMax"
-                type="number"
-                inputmode="numeric"
-                min="5"
-                max="300"
-                value="60"
-                aria-label="Maximum BPM"
-              />
-              <div class="bpm-flash-overlay"></div>
-            </div>
-            <button
-              class="bpm-adjust-btn"
-              data-target="max"
-              data-delta="1"
-              aria-label="Increase maximum BPM"
-            >
-              +
-            </button>
+
+        <span class="toolbar-label"><span>BPM</span><span>RANGE</span></span>
+
+        <!-- Max Stepper -->
+        <div class="bpm-stepper">
+          <button class="bpm-adjust-btn" data-target="max" data-delta="-1">
+            −
+          </button>
+          <div class="bpm-input-wrap">
+            <input
+              id="bpmMax"
+              type="number"
+              inputmode="numeric"
+              min="30"
+              max="300"
+              value="60"
+            />
+            <div class="bpm-flash-overlay"></div>
           </div>
+          <button class="bpm-adjust-btn" data-target="max" data-delta="1">
+            +
+          </button>
         </div>
       </div>
       <!-- Groove Slider -->
@@ -951,36 +929,27 @@ Funk
       aria-labelledby="tab-metronome"
     >
       <!-- BEGIN Simple Metronome UI -->
-      <label class="advanced-only">Metronome BPM</label>
-      <div class="bpm-stepper advanced-only">
-        <button
-          class="bpm-adjust-btn"
-          data-target="simple"
-          data-delta="-1"
-          aria-label="Decrease BPM"
-        >
-          −
-        </button>
-        <div class="bpm-input-wrap">
-          <input
-            id="simpleBpm"
-            type="number"
-            inputmode="numeric"
-            min="30"
-            max="300"
-            value="120"
-            aria-label="Metronome BPM"
-          />
-          <div class="bpm-flash-overlay"></div>
+      <div class="panel-toolbar single-toolbar advanced-only">
+        <span class="toolbar-label">BPM</span>
+        <div class="bpm-stepper">
+          <button class="bpm-adjust-btn" data-target="simple" data-delta="-1">
+            −
+          </button>
+          <div class="bpm-input-wrap">
+            <input
+              id="simpleBpm"
+              type="number"
+              inputmode="numeric"
+              min="30"
+              max="300"
+              value="120"
+            />
+            <div class="bpm-flash-overlay"></div>
+          </div>
+          <button class="bpm-adjust-btn" data-target="simple" data-delta="1">
+            +
+          </button>
         </div>
-        <button
-          class="bpm-adjust-btn"
-          data-target="simple"
-          data-delta="1"
-          aria-label="Increase BPM"
-        >
-          +
-        </button>
       </div>
 
       <!-- Simple Slider -->
