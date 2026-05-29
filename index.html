@@ -769,62 +769,64 @@ Funk
         </div>
       </div>
 
-      <div class="row advanced-only">
-        <div class="col">
-          <label>Time per cycle</label>
-          <div class="row" style="gap: 6px">
-            <input
-              id="cycleDuration"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              value="60"
-              step="1"
-            />
-            <select id="cycleUnit">
-              <option value="seconds" selected>Seconds</option>
-              <option value="minutes">Minutes</option>
+      <div class="session-toolbar advanced-only">
+        <div class="session-master-row">
+          <div class="session-unit">
+            <label>Time per cycle</label>
+            <div class="session-pill">
+              <!-- type="text" allows perfect centering; inputmode="numeric" keeps the keypad -->
+              <input
+                id="cycleDuration"
+                type="text"
+                inputmode="numeric"
+                min="1"
+                value="60"
+              />
+              <select id="cycleUnit">
+                <option value="seconds" selected>Seconds</option>
+                <option value="minutes">Minutes</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="session-unit">
+            <label>Session limit</label>
+            <select id="sessionMode">
+              <option value="infinite">Infinite</option>
+              <option value="cycles">By Cycles</option>
+              <option value="time">By Time</option>
             </select>
           </div>
         </div>
-        <div class="col">
-          <label>Session limit (choose one)</label>
-          <select id="sessionMode">
-            <option value="infinite">Run until Stop</option>
-            <option value="cycles">Total cycles (set below)</option>
-            <option value="time">Total session time</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="row advanced-only" style="margin-top: 8px">
-        <div class="col">
-          <label id="cyclesLabel">Total cycles</label>
-          <input
-            id="totalCycles"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            value="5"
-            step="1"
-          />
-        </div>
-        <div class="col">
-          <label id="totalTimeLabel">Total session time</label>
-          <div class="row" style="gap: 6px">
+        <div id="sessionDetailTray" class="session-detail-tray">
+          <div id="unitTotalCycles" class="session-unit">
+            <label>Total cycles</label>
             <input
-              id="totalTime"
-              type="number"
+              id="totalCycles"
+              type="text"
               inputmode="numeric"
               min="1"
-              value="300"
-              step="1"
+              value="5"
             />
-            <select id="totalTimeUnit">
-              <option value="seconds" selected>Seconds</option>
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-            </select>
+          </div>
+
+          <div id="unitTotalTime" class="session-unit">
+            <label>Total session time</label>
+            <div class="session-pill">
+              <input
+                id="totalTime"
+                type="text"
+                inputmode="numeric"
+                min="1"
+                value="300"
+              />
+              <select id="totalTimeUnit">
+                <option value="seconds" selected>Seconds</option>
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

@@ -1949,6 +1949,88 @@ button#installBtn.utility-button {
   min-width: 50px;
 }
 
+.session-toolbar {
+  width: 100%;
+  margin-bottom: 24px;
+  margin-top: 32px;
+}
+
+.session-master-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+  align-items: start;
+}
+
+.session-detail-tray {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 10px;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  box-sizing: border-box;
+  opacity: 0;
+  max-height: 0;
+}
+
+.session-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.session-unit label {
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+  margin: 0 0 6px 0 !important;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.session-pill {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.session-toolbar select,
+.session-toolbar input {
+  height: 36px !important;
+  font-size: 0.85rem !important;
+  text-align: center !important;
+  text-align-last: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.session-toolbar input {
+  width: 60px !important;
+  flex: 0 0 auto !important;
+}
+.session-toolbar select {
+  width: 105px !important;
+  padding-right: 20px !important;
+}
+
 /* =============================
 📱 17. Responsive Media Queries
 ================================ */
@@ -2140,6 +2222,19 @@ button#installBtn.utility-button {
     flex-direction: column;
     gap: 0;
     font-size: 0.6rem; /* 👈 Smaller font for the stacked label */
+  }
+
+  .session-master-row {
+    gap: 8px !important;
+  }
+
+  .session-toolbar select {
+    width: 95px !important;
+    padding-right: 20px !important;
+  }
+
+  .session-unit label {
+    font-size: 0.85rem !important;
   }
 }
 
