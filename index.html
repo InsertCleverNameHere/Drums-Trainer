@@ -556,71 +556,49 @@
       aria-labelledby="tab-groove"
     >
       <!-- BEGIN existing Groove UI -->
-      <label class="advanced-only"> BPM range (min / max)</label>
-      <div class="row advanced-only">
-        <div class="col">
-          <div class="bpm-stepper advanced-only">
-            <button
-              class="bpm-adjust-btn"
-              data-target="min"
-              data-delta="-1"
-              aria-label="Decrease minimum BPM"
-            >
-              −
-            </button>
-            <div class="bpm-input-wrap">
-              <input
-                id="bpmMin"
-                type="number"
-                inputmode="numeric"
-                min="5"
-                max="300"
-                value="30"
-                aria-label="Minimum BPM"
-              />
-              <div class="bpm-flash-overlay"></div>
-            </div>
-            <button
-              class="bpm-adjust-btn"
-              data-target="min"
-              data-delta="1"
-              aria-label="Increase minimum BPM"
-            >
-              +
-            </button>
+      <div class="panel-toolbar range-toolbar advanced-only">
+        <!-- Min Stepper -->
+        <div class="bpm-stepper">
+          <button class="bpm-adjust-btn" data-target="min" data-delta="-1">
+            −
+          </button>
+          <div class="bpm-input-wrap">
+            <input
+              id="bpmMin"
+              type="number"
+              inputmode="numeric"
+              min="30"
+              max="300"
+              value="30"
+            />
+            <div class="bpm-flash-overlay"></div>
           </div>
+          <button class="bpm-adjust-btn" data-target="min" data-delta="1">
+            +
+          </button>
         </div>
-        <div class="col">
-          <div class="bpm-stepper advanced-only">
-            <button
-              class="bpm-adjust-btn"
-              data-target="max"
-              data-delta="-1"
-              aria-label="Decrease maximum BPM"
-            >
-              −
-            </button>
-            <div class="bpm-input-wrap">
-              <input
-                id="bpmMax"
-                type="number"
-                inputmode="numeric"
-                min="5"
-                max="300"
-                value="60"
-                aria-label="Maximum BPM"
-              />
-              <div class="bpm-flash-overlay"></div>
-            </div>
-            <button
-              class="bpm-adjust-btn"
-              data-target="max"
-              data-delta="1"
-              aria-label="Increase maximum BPM"
-            >
-              +
-            </button>
+
+        <span class="toolbar-label"><span>BPM</span><span>RANGE</span></span>
+
+        <!-- Max Stepper -->
+        <div class="bpm-stepper">
+          <button class="bpm-adjust-btn" data-target="max" data-delta="-1">
+            −
+          </button>
+          <div class="bpm-input-wrap">
+            <input
+              id="bpmMax"
+              type="number"
+              inputmode="numeric"
+              min="30"
+              max="300"
+              value="60"
+            />
+            <div class="bpm-flash-overlay"></div>
           </div>
+          <button class="bpm-adjust-btn" data-target="max" data-delta="1">
+            +
+          </button>
         </div>
       </div>
       <!-- Groove Slider -->
@@ -630,7 +608,7 @@
         </div>
       </div>
 
-      <label>Groove names (one per line)</label>
+      <label class="section-divider">Groove names (one per line)</label>
       <div id="groove-textarea-container">
         <textarea
           id="grooves"
@@ -791,62 +769,64 @@ Funk
         </div>
       </div>
 
-      <div class="row advanced-only">
-        <div class="col">
-          <label>Time per cycle</label>
-          <div class="row" style="gap: 6px">
-            <input
-              id="cycleDuration"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              value="60"
-              step="1"
-            />
-            <select id="cycleUnit">
-              <option value="seconds" selected>Seconds</option>
-              <option value="minutes">Minutes</option>
+      <div class="session-toolbar advanced-only">
+        <div class="session-master-row">
+          <div class="session-unit">
+            <label>Time per cycle</label>
+            <div class="session-pill">
+              <!-- type="text" allows perfect centering; inputmode="numeric" keeps the keypad -->
+              <input
+                id="cycleDuration"
+                type="text"
+                inputmode="numeric"
+                min="1"
+                value="60"
+              />
+              <select id="cycleUnit">
+                <option value="seconds" selected>Seconds</option>
+                <option value="minutes">Minutes</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="session-unit">
+            <label>Session limit</label>
+            <select id="sessionMode">
+              <option value="infinite">Infinite</option>
+              <option value="cycles">By Cycles</option>
+              <option value="time">By Time</option>
             </select>
           </div>
         </div>
-        <div class="col">
-          <label>Session limit (choose one)</label>
-          <select id="sessionMode">
-            <option value="infinite">Run until Stop</option>
-            <option value="cycles">Total cycles (set below)</option>
-            <option value="time">Total session time</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="row advanced-only" style="margin-top: 8px">
-        <div class="col">
-          <label id="cyclesLabel">Total cycles</label>
-          <input
-            id="totalCycles"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            value="5"
-            step="1"
-          />
-        </div>
-        <div class="col">
-          <label id="totalTimeLabel">Total session time</label>
-          <div class="row" style="gap: 6px">
+        <div id="sessionDetailTray" class="session-detail-tray">
+          <div id="unitTotalCycles" class="session-unit">
+            <label>Total cycles</label>
             <input
-              id="totalTime"
-              type="number"
+              id="totalCycles"
+              type="text"
               inputmode="numeric"
               min="1"
-              value="300"
-              step="1"
+              value="5"
             />
-            <select id="totalTimeUnit">
-              <option value="seconds" selected>Seconds</option>
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-            </select>
+          </div>
+
+          <div id="unitTotalTime" class="session-unit">
+            <label>Total session time</label>
+            <div class="session-pill">
+              <input
+                id="totalTime"
+                type="text"
+                inputmode="numeric"
+                min="1"
+                value="300"
+              />
+              <select id="totalTimeUnit">
+                <option value="seconds" selected>Seconds</option>
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -951,36 +931,27 @@ Funk
       aria-labelledby="tab-metronome"
     >
       <!-- BEGIN Simple Metronome UI -->
-      <label class="advanced-only">Metronome BPM</label>
-      <div class="bpm-stepper advanced-only">
-        <button
-          class="bpm-adjust-btn"
-          data-target="simple"
-          data-delta="-1"
-          aria-label="Decrease BPM"
-        >
-          −
-        </button>
-        <div class="bpm-input-wrap">
-          <input
-            id="simpleBpm"
-            type="number"
-            inputmode="numeric"
-            min="30"
-            max="300"
-            value="120"
-            aria-label="Metronome BPM"
-          />
-          <div class="bpm-flash-overlay"></div>
+      <div class="panel-toolbar single-toolbar advanced-only">
+        <span class="toolbar-label">BPM</span>
+        <div class="bpm-stepper">
+          <button class="bpm-adjust-btn" data-target="simple" data-delta="-1">
+            −
+          </button>
+          <div class="bpm-input-wrap">
+            <input
+              id="simpleBpm"
+              type="number"
+              inputmode="numeric"
+              min="30"
+              max="300"
+              value="120"
+            />
+            <div class="bpm-flash-overlay"></div>
+          </div>
+          <button class="bpm-adjust-btn" data-target="simple" data-delta="1">
+            +
+          </button>
         </div>
-        <button
-          class="bpm-adjust-btn"
-          data-target="simple"
-          data-delta="1"
-          aria-label="Increase BPM"
-        >
-          +
-        </button>
       </div>
 
       <!-- Simple Slider -->
@@ -1064,6 +1035,7 @@ Funk
               d="M18 7a2 2 0 1 1 4 0v7a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"
             ></path>
           </svg>
+          <span>Tap</span>
         </button>
       </div>
 

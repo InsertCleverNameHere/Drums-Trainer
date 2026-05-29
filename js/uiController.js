@@ -317,6 +317,7 @@ export function initUI(deps) {
       }
     });
   }
+  initSessionControlsUI();
 }
 
 /**
@@ -369,6 +370,88 @@ export function initMuteControl() {
       );
     });
   });
+}
+
+/**
+ * Handles the animated transitions for the Session Command Center.
+ * Manages tray expansion and cross-fading between parameter units.
+ */
+export function initSessionControlsUI() {
+  const sessionMode = document.getElementById("sessionMode");
+  const tray = document.getElementById("sessionDetailTray");
+  const unitCycles = document.getElementById("unitTotalCycles");
+  const unitTime = document.getElementById("unitTotalTime");
+
+  if (!sessionMode || !tray || !unitCycles || !unitTime) return;
+
+  let currentMode = sessionMode.value;
+
+  const updateTray = (animate = true) => {
+    const nextMode = sessionMode.value;
+    const isInfinite = nextMode === "infinite";
+    const toShow = nextMode === "cycles" ? unitCycles : unitTime;
+    const toHide = nextMode === "cycles" ? unitTime : unitCycles;
+
+    if (animate) {
+      if (isInfinite) {
+        // 1. Collapse the tray
+        gsap.to(tray, {
+          maxHeight: 0,
+          opacity: 0,
+          marginTop: 0,
+          duration: 0.25,
+          ease: "power2.in",
+        });
+      } else {
+        // 2. Expand or Cross-fade
+        const isOpening = currentMode === "infinite"; // If coming from infinite, we are opening the tray
+
+        if (isOpening) {
+          // If the tray was closed, snap content and slide open
+          toHide.style.display = "none";
+          toShow.style.display = "flex";
+          toShow.style.opacity = "1";
+          gsap.to(tray, {
+            maxHeight: 120, // Enough room for the fixed 100px tray
+            opacity: 1,
+            marginTop: 10,
+            duration: 0.25,
+            ease: "expo.out",
+          });
+        } else {
+          // If tray was already open, perform a cross-fade sequence
+          gsap.killTweensOf([unitCycles, unitTime]);
+          const tl = gsap.timeline();
+          tl.to(toHide, {
+            opacity: 0,
+            y: -5,
+            duration: 0.2,
+            onComplete: () => {
+              toHide.style.display = "none";
+              toShow.style.display = "flex";
+            },
+          }).fromTo(
+            toShow,
+            { opacity: 0, y: 5 },
+            { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
+          );
+        }
+      }
+    } else {
+      // Instant update for initial load
+      tray.style.maxHeight = isInfinite ? "0" : "120px";
+      tray.style.opacity = isInfinite ? "0" : "1";
+      tray.style.marginTop = isInfinite ? "0" : "10px";
+      unitCycles.style.display = nextMode === "cycles" ? "flex" : "none";
+      unitTime.style.display = nextMode === "time" ? "flex" : "none";
+    }
+    currentMode = nextMode;
+  };
+
+  sessionMode.addEventListener("change", () => updateTray(true));
+
+  // Initial check (no animation on boot)
+  updateTray(false);
 }
 
 /**
