@@ -1,5 +1,15 @@
 # Changelog
 
+## [v12.2.0] - 2026-05-29
+
+### ✨ Features
+
+- minor: modify various visual elements regarding app controls
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v12.1.0] - 2026-05-26
 
 ### ✨ Features
