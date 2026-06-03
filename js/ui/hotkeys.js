@@ -9,7 +9,7 @@ import { debugLog } from "../debug.js";
 import { VISUAL_TIMING, INPUT_LIMITS } from "../constants.js";
 import * as sessionEngine from "../sessionEngine.js";
 import * as simpleMetronome from "../simpleMetronome.js";
-import { showNotice } from "./sliders.js";
+import { showNotice } from "./notices.js";
 import * as advancedMode from "./advancedMode.js";
 import { getActiveModeOwner } from "../ownership.js";
 

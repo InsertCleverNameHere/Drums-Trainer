@@ -13,6 +13,7 @@ import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
 import * as grooveStorage from "./grooveStorage.js";
+import * as notices from "./ui/notices.js";
 import { patternScheduler } from "./patternScheduler.js";
 import { getActiveModeOwner } from "./ownership.js";
 import { debugLog } from "./debug.js";
@@ -20,12 +21,7 @@ import { debugLog } from "./debug.js";
 // Import UI submodules
 import { initDarkMode } from "./ui/theme.js";
 import { setupHotkeys } from "./ui/hotkeys.js";
-import {
-  initSliders,
-  updateBpmInputSteps,
-  showNotice,
-  clearNotice,
-} from "./ui/sliders.js";
+import { initSliders, updateBpmInputSteps } from "./ui/sliders.js";
 import {
   initSoundProfileUI,
   initPanningModeUI,
@@ -40,7 +36,7 @@ import {
 } from "./ui/advancedMode.js";
 
 // Re-export for external use
-export { initDarkMode, showNotice, updateBpmInputSteps };
+export { initDarkMode, updateBpmInputSteps };
 export { initSoundProfileUI, initPanningModeUI, initTimeSignatureUI };
 export { initModeTabs, initSimplePanelControls };
 export {
@@ -573,6 +569,7 @@ export function initUpdateUI() {
 
   // Check updates button
   checkUpdatesBtn.addEventListener("click", () => {
+    notices.clearNotice();
     const start = performance.now();
     let spinnerShown = false;
 
@@ -726,7 +723,7 @@ export function initInteropUI() {
   exportBtn.addEventListener("click", () => {
     const bundle = grooveStorage.exportLibrary();
     if (!bundle) {
-      showNotice("⚠️ Cannot export: Your library is empty.");
+      notices.showNotice("⚠️ Cannot export: Your library is empty.");
       return;
     }
 
@@ -744,11 +741,11 @@ export function initInteropUI() {
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showNotice("✅ Backup file created.");
+        notices.showNotice("✅ Backup file created.");
       }, 100);
     } catch (e) {
       debugLog("state", "❌ Export UI Error", e);
-      showNotice("❌ Export failed.");
+      notices.showNotice("❌ Export failed.");
     }
   });
 
@@ -756,7 +753,7 @@ export function initInteropUI() {
   importBtn.addEventListener("click", () => {
     const owner = getActiveModeOwner();
     if (owner) {
-      showNotice(`⚠️ Cannot import while ${owner} is active.`);
+      notices.showNotice(`⚠️ Cannot import while ${owner} is active.`);
       return;
     }
     fileIn.click();
@@ -775,7 +772,7 @@ export function initInteropUI() {
         /*
         const SUPPORTED_VERSION = "1.1";
         if (bundle.version !== SUPPORTED_VERSION) {
-          showNotice(`⚠️ Incompatible backup version: ${bundle.version}`);
+          notices.showNotice(`⚠️ Incompatible backup version: ${bundle.version}`);
           return;
         }
         */
@@ -784,7 +781,7 @@ export function initInteropUI() {
         if (!report) throw new Error("Invalid Bundle Structure");
         handleImportReport(bundle, report);
       } catch (err) {
-        showNotice("❌ Invalid file format.");
+        notices.showNotice("❌ Invalid file format.");
         debugLog("state", "❌ Import Parser Error", err);
       }
       fileIn.value = ""; // Reset input
@@ -802,12 +799,6 @@ export function initInteropUI() {
  * @returns {void}
  */
 export function handleImportReport(bundle, report) {
-  const noticeEl = document.getElementById("uiNotice");
-  if (!noticeEl) return;
-
-  // Force-kill any background "auto-hide" timers to keep this dialog stable
-  clearNotice();
-
   /**
    * Finalizes the ingestion process and commits to localStorage.
    * @param {string[]} namesToImport - Subset of patterns to save
@@ -836,46 +827,24 @@ export function handleImportReport(bundle, report) {
           textarea.dispatchEvent(new Event("input", { bubbles: true }));
         }
       }
-      showNotice(`✅ Imported ${namesToImport.length} patterns.`);
+      notices.showNotice(`✅ Imported ${namesToImport.length} patterns.`);
       document.dispatchEvent(
         new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
       );
     }
-    _hideNotice();
+    notices.hideInteractiveNotice();
   };
 
-  /**
-   * Hides the interactive notice with GSAP animation.
-   * Guarded to prevent "Murdering" subsequent toast notifications.
-   */
-  const _hideNotice = () => {
-    // If the 'interactive' class is already gone, a toast has taken over.
-    // We abort the animation to let the toast's own timer handle the exit.
-    if (!noticeEl.classList.contains("interactive")) return;
-
-    gsap.to(noticeEl, {
-      y: -20,
-      opacity: 0,
-      duration: 0.3,
-      onComplete: () => {
-        // Second check: Ensure no toast appeared during the 300ms animation
-        if (noticeEl.classList.contains("interactive")) {
-          noticeEl.classList.add("hidden");
-          noticeEl.classList.remove("interactive");
-        }
-      },
-    });
-  };
-
+  let html = "";
   if (!report.canFit) {
-    noticeEl.innerHTML = `
+    html = `
       <div style="margin-bottom: 12px; font-weight: 600;">
         ❌ Storage Full: Not enough slots for ${report.newItems.length} new patterns.
       </div>
       <button id="import-cancel" style="width: 100%;">Cancel</button>
     `;
   } else if (report.collisions.length > 0) {
-    noticeEl.innerHTML = `
+    html = `
       <div style="margin-bottom: 12px; font-weight: 600;">
         ⚠️ Found ${report.collisions.length} duplicates. How would you like to proceed?
       </div>
@@ -886,7 +855,7 @@ export function handleImportReport(bundle, report) {
       </div>
     `;
   } else {
-    noticeEl.innerHTML = `
+    html = `
       <div style="margin-bottom: 12px; font-weight: 600;">
         Import ${report.totalIncoming} new patterns?
       </div>
@@ -897,16 +866,10 @@ export function handleImportReport(bundle, report) {
     `;
   }
 
-  noticeEl.classList.remove("hidden");
-  noticeEl.classList.add("interactive");
-  gsap.fromTo(
-    noticeEl,
-    { y: -20, opacity: 0 },
-    { y: 5, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
-  );
+  notices.showInteractiveNotice(html);
 
   const cancelBtn = document.getElementById("import-cancel");
-  if (cancelBtn) cancelBtn.onclick = _hideNotice;
+  if (cancelBtn) cancelBtn.onclick = notices.hideInteractiveNotice;
 
   const confirmBtn = document.getElementById("import-confirm");
   if (confirmBtn)
@@ -938,7 +901,7 @@ export function checkDeepLinks() {
     handlePreviewMode(sharedPattern);
     return true;
   } else {
-    showNotice("❌ Shared link is invalid or corrupted.");
+    notices.showNotice("❌ Shared link is invalid or corrupted.");
     return false;
   }
 }
@@ -953,7 +916,7 @@ export function handlePreviewMode(pattern) {
 
   const owner = getActiveModeOwner();
   if (owner) {
-    showNotice("⚠️ Busy: Stop metronome to preview shared groove.");
+    notices.showNotice("⚠️ Busy: Stop metronome to preview shared groove.");
     return;
   }
 
@@ -972,22 +935,14 @@ export function handlePreviewMode(pattern) {
   if (displayGroove)
     displayGroove.textContent = `Preview: ${pattern.name || "Shared"}`;
 
-  clearNotice();
-  noticeEl.innerHTML = `
+  notices.clearNotice();
+  notices.showInteractiveNotice(`
     <div style="margin-bottom: 12px; font-weight: 600;">Previewing: "${pattern.name || "Shared"}"</div>
     <div style="display: flex; gap: 8px;">
       <button id="preview-save" style="background: var(--accent); color: white; flex: 1;">Save</button>
       <button id="preview-discard" style="flex: 1;">Discard</button>
     </div>
-  `;
-
-  noticeEl.classList.remove("hidden");
-  noticeEl.classList.add("interactive");
-  gsap.fromTo(
-    noticeEl,
-    { y: -20, opacity: 0 },
-    { y: 5, opacity: 1, duration: 0.5 }
-  );
+  `);
 
   const closePreview = () => {
     _isPreviewActive = false;
@@ -998,35 +953,12 @@ export function handlePreviewMode(pattern) {
     if (sBtn) sBtn.textContent = "Start";
     if (displayGroove) displayGroove.textContent = "Groove: —";
 
-    // Logic Guard: If a toast has already taken over, abort animation
-    // to let the toast's own timers handle the lifecycle.
-    if (!noticeEl.classList.contains("interactive")) {
-      const needsSeed = !localStorage.getItem("rgt_library_seeded");
-      if (needsSeed) grooveStorage.checkLibrarySeed();
-      return;
-    }
+    // Offload animation to service
+    notices.hideInteractiveNotice();
 
-    gsap.to(noticeEl, {
-      opacity: 0,
-      y: -20,
-      onComplete: () => {
-        // Double Check: Ensure no toast appeared during the 300ms animation
-        const isStillInteractive = noticeEl.classList.contains("interactive");
-        const needsSeed = !localStorage.getItem("rgt_library_seeded");
-
-        if (isStillInteractive) {
-          noticeEl.classList.remove("interactive");
-          if (needsSeed) {
-            grooveStorage.checkLibrarySeed();
-          } else {
-            noticeEl.classList.add("hidden");
-          }
-        } else if (needsSeed) {
-          // If a toast is present, we still trigger the seed check for cold boots
-          grooveStorage.checkLibrarySeed();
-        }
-      },
-    });
+    // Check seed after notice is cleared (notices.js handles the delay internally if needed)
+    const needsSeed = !localStorage.getItem("rgt_library_seeded");
+    if (needsSeed) notices.checkLibrarySeed();
   };
 
   document.getElementById("preview-discard").onclick = closePreview;
@@ -1048,7 +980,7 @@ export function handlePreviewMode(pattern) {
           textarea.dispatchEvent(new Event("input", { bubbles: true }));
         }
       }
-      showNotice(`✅ Saved "${pName}"`);
+      notices.showNotice(`✅ Saved "${pName}"`);
       document.dispatchEvent(
         new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
       );

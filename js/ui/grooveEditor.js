@@ -7,9 +7,9 @@
 import { getTimeSignature, getTicksPerBeat } from "../metronomeCore.js";
 import * as grooveStorage from "../grooveStorage.js";
 import { getActiveModeOwner, setActiveModeOwner } from "../ownership.js";
+import * as notices from "./notices.js";
 import { compressGroove, decompressGroove } from "../utils.js";
 import { patternScheduler } from "../patternScheduler.js";
-import { showNotice } from "./sliders.js";
 import { isAdvancedMode } from "./advancedMode.js";
 import { generateMeasureLayout } from "../visuals.js";
 import { debugLog } from "../debug.js";
@@ -129,9 +129,7 @@ export function initGrooveEditor() {
     };
 
     if (hasConflicts) {
-      // Trigger Warning (using existing PWA notice system)
-      const noticeEl = document.getElementById("uiNotice");
-      noticeEl.innerHTML = `
+      notices.showInteractiveNotice(`
         <div style="margin-bottom: 12px; font-weight: 600;">
           ⚠️ Rhythmic Conflict: Some notes don't fit the smaller grid and will be deleted. Proceed?
         </div>
@@ -139,37 +137,16 @@ export function initGrooveEditor() {
           <button id="resample-confirm" style="background: var(--accent); color: white; flex: 1; min-height: 36px;">Yes, delete</button>
           <button id="resample-cancel" style="flex: 1; min-height: 36px;">No, go back</button>
         </div>
-      `;
-      noticeEl.classList.remove("hidden");
-      noticeEl.classList.add("interactive");
-      gsap.fromTo(
-        noticeEl,
-        { y: -20, opacity: 0 },
-        { y: 5, opacity: 1, duration: 0.4 }
-      );
+      `);
 
       document.getElementById("resample-confirm").onclick = () => {
         applyChanges();
-        gsap.to(noticeEl, {
-          opacity: 0,
-          y: -20,
-          onComplete: () => {
-            noticeEl.classList.add("hidden");
-            noticeEl.classList.remove("interactive");
-          },
-        });
+        notices.hideInteractiveNotice();
       };
 
       document.getElementById("resample-cancel").onclick = () => {
-        subEl.value = oldTicks; // Revert dropdown UI
-        gsap.to(noticeEl, {
-          opacity: 0,
-          y: -20,
-          onComplete: () => {
-            noticeEl.classList.add("hidden");
-            noticeEl.classList.remove("interactive");
-          },
-        });
+        subEl.value = oldTicks;
+        notices.hideInteractiveNotice();
       };
     } else {
       // Silent update for Lossless transformations
@@ -541,7 +518,7 @@ function _saveActivePattern() {
 
   const result = grooveStorage.setGroovePattern(_activeGrooveName, data);
   if (result.success) {
-    showNotice(`Pattern saved for ${_activeGrooveName}`);
+    notices.showNotice(`Pattern saved for ${_activeGrooveName}`);
     _updateHint("Saved");
     _rebuildInteractiveList();
     _closeEditor();
@@ -553,7 +530,9 @@ function _saveActivePattern() {
     _isReplacementMode = true;
     _closeEditor(); // Close current grid
     _rebuildInteractiveList(); // Redraw list with "Replace" buttons
-    showNotice("⚠️ Storage Full. Delete a groove pattern to save this one.");
+    notices.showNotice(
+      "⚠️ Storage Full. Delete a groove pattern to save this one."
+    );
   }
 }
 
@@ -591,7 +570,7 @@ function _deleteSavedPattern() {
     _rebuildInteractiveList();
     _closeEditor();
 
-    showNotice(`Deleted ${_activeGrooveName}`);
+    notices.showNotice(`Deleted ${_activeGrooveName}`);
 
     // 3. Reset button visual state
     btn.classList.remove("confirming");
@@ -677,7 +656,7 @@ function _executeReplacement(nameToReplace) {
   );
 
   if (result.success) {
-    showNotice(`Replaced ${nameToReplace} with ${_pendingSaveName}`);
+    notices.showNotice(`Replaced ${nameToReplace} with ${_pendingSaveName}`);
     _isReplacementMode = false;
     _pendingSaveData = null;
     _pendingSaveName = null;
@@ -731,13 +710,13 @@ function _copyGrooveLink(name) {
     .writeText(url)
     .then(() => {
       import("./sliders.js").then((m) =>
-        m.showNotice(`📋 Link copied for "${name}"`)
+        m.notices.showNotice(`📋 Link copied for "${name}"`)
       );
     })
     .catch((err) => {
       debugLog("state", "❌ Clipboard write failed", err);
       import("./sliders.js").then((m) =>
-        m.showNotice("❌ Failed to copy link.")
+        m.notices.showNotice("❌ Failed to copy link.")
       );
     });
 }
@@ -769,13 +748,13 @@ export async function pasteFromClipboard() {
       window.location.hash = `share=${encodeURIComponent(finalHash)}`;
     } else {
       import("../ui/sliders.js").then((m) =>
-        m.showNotice("⚠️ No valid groove data found in clipboard.")
+        m.notices.showNotice("⚠️ No valid groove data found in clipboard.")
       );
     }
   } catch (err) {
     debugLog("state", "❌ Clipboard read failed", err);
     import("../ui/sliders.js").then((m) =>
-      m.showNotice("❌ Clipboard access denied.")
+      m.notices.showNotice("❌ Clipboard access denied.")
     );
   }
 }

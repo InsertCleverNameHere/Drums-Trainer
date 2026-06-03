@@ -4,7 +4,7 @@
 // === Imports ===
 import * as utils from "./utils.js";
 import * as visuals from "./visuals.js";
-import { showNotice } from "./ui/sliders.js";
+import { showNotice } from "./ui/notices.js";
 import { debugLog } from "./debug.js";
 import { isAdvancedMode, getGrooveAnchor } from "./ui/advancedMode.js";
 import { toggleGrooveSliderDisabled } from "./ui/sliders.js";

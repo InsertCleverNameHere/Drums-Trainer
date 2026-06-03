@@ -6,6 +6,7 @@
  */
 
 import { debugLog } from "../debug.js";
+import { showNotice } from "./notices.js";
 import { INPUT_LIMITS, VISUAL_TIMING } from "../constants.js";
 import * as utils from "../utils.js";
 import * as advancedMode from "./advancedMode.js";
@@ -18,73 +19,6 @@ let simpleSliderInstance = null;
 let _noticeAutoTimer = null;
 /** @type {number|null} Internal timer for final notice removal */
 let _noticeHideTimer = null;
-
-/**
- * Force-kills any active notice timers and clears visual state.
- * Essential for preventing background "toast" timers from closing
- * interactive dialogs.
- *
- * @returns {void}
- */
-export function clearNotice() {
-  const notice = document.querySelector(".ui-notice");
-  if (!notice) return;
-
-  if (_noticeAutoTimer) clearTimeout(_noticeAutoTimer);
-  if (_noticeHideTimer) clearTimeout(_noticeHideTimer);
-  _noticeAutoTimer = null;
-  _noticeHideTimer = null;
-
-  gsap.killTweensOf(notice);
-  notice.classList.remove(
-    "show",
-    "fade-in",
-    "fade-out",
-    "hidden",
-    "interactive",
-    "auto"
-  );
-}
-
-/**
- * Shows floating UI notice message.
- *
- * @param {string} message - Notice text
- * @param {number} [duration=2000] - Display duration in ms
- * @returns {void}
- *
- * @example
- * showNotice('⚠️ BPM range must be at least 5 apart');
- */
-export function showNotice(message, duration = 2000) {
-  let notice = document.querySelector(".ui-notice");
-  if (!notice) {
-    notice = document.createElement("div");
-    notice.className = "ui-notice";
-    document.body.appendChild(notice);
-  }
-
-  // Clear any existing notice or pending timers to prevent collisions
-  clearNotice();
-
-  notice.textContent = message;
-  notice.classList.add("show", "fade-in", "auto");
-
-  // Assign timers to tracked variables to allow cancellation
-  _noticeAutoTimer = setTimeout(() => {
-    // Logic Guard: If the notice is now interactive (e.g. Welcome prompt),
-    // do not auto-hide it.
-    if (notice.classList.contains("interactive")) return;
-
-    notice.classList.remove("fade-in");
-    notice.classList.add("fade-out");
-    _noticeHideTimer = setTimeout(() => {
-      if (notice.classList.contains("interactive")) return;
-      notice.classList.remove("show", "auto");
-      notice.classList.add("hidden");
-    }, 500);
-  }, duration);
-}
 
 /**
  * Validates and sanitizes numeric input against defined limits.

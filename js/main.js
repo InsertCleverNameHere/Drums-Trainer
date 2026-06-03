@@ -16,6 +16,7 @@ import { initWakeLock } from "./ui/wakeLock.js";
 import { initAdvancedMode } from "./ui/advancedMode.js";
 import { patternScheduler } from "./patternScheduler.js";
 import { initGrooveEditor, updatePlayhead } from "./ui/grooveEditor.js";
+import * as notices from "./ui/notices.js";
 import * as grooveStorage from "./grooveStorage.js";
 import { loadDrumSamples } from "./sampleLoader.js";
 import { ensureAudio } from "./audioProfiles.js";
@@ -148,7 +149,7 @@ if (document.readyState === "loading") {
     const hasSharedGroove = uiController.checkDeepLinks();
 
     // 2. Only check for library seeding if NO shared groove is being previewed
-    if (!hasSharedGroove) grooveStorage.checkLibrarySeed();
+    if (!hasSharedGroove) notices.checkLibrarySeed();
 
     uiController.initMuteControl(); // Sync mute state
     loadDrumSamples(); // Load audio samples before initializing related UI
@@ -191,7 +192,7 @@ if (document.readyState === "loading") {
   const hasSharedGroove = uiController.checkDeepLinks();
 
   // 2. Only check for library seeding if NO shared groove is being previewed
-  if (!hasSharedGroove) grooveStorage.checkLibrarySeed();
+  if (!hasSharedGroove) notices.checkLibrarySeed();
 
   uiController.initMuteControl(); // Sync mute state
   loadDrumSamples(); // Load audio samples before initializing related UI
@@ -360,6 +361,7 @@ if (typeof window !== "undefined") {
 
     // Utilities & Storage
     storage: grooveStorage,
+    notices: notices,
     utils: utils,
   });
 
