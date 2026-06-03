@@ -6,7 +6,7 @@
  * @module simpleMetronome
  */
 
-import * as sessionEngine from "./sessionEngine.js";
+import { getActiveModeOwner, setActiveModeOwner } from "./ownership.js";
 import * as simpleCore from "./simpleMetronomeCore.js";
 import { createVisualCallback } from "./visuals.js";
 import { toggleSimpleSliderDisabled } from "./ui/sliders.js";
@@ -175,10 +175,7 @@ export function setBpm(newBpm) {
  * await start(); // Starts metronome at current BPM
  */
 export function start() {
-  const owner =
-    typeof sessionEngine.getActiveModeOwner === "function"
-      ? sessionEngine.getActiveModeOwner()
-      : null;
+  const owner = getActiveModeOwner();
   if (owner && owner !== "simple") {
     debugLog(
       "ownership",
@@ -190,8 +187,7 @@ export function start() {
   if (running && !paused) return Promise.resolve(true);
 
   // Claim ownership
-  if (typeof sessionEngine.setActiveModeOwner === "function")
-    sessionEngine.setActiveModeOwner("simple");
+  setActiveModeOwner("simple");
   // Broadcast canonical owner change for other modules and console-driven paths
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: "simple" } })
@@ -296,8 +292,7 @@ export function stop() {
   running = false;
   paused = false;
   updateSimpleDisplayBpm();
-  if (typeof sessionEngine.setActiveModeOwner === "function")
-    sessionEngine.setActiveModeOwner(null);
+  setActiveModeOwner(null);
   // Broadcast canonical owner cleared
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })

@@ -14,6 +14,7 @@ import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
 import * as grooveStorage from "./grooveStorage.js";
 import { patternScheduler } from "./patternScheduler.js";
+import { getActiveModeOwner } from "./ownership.js";
 import { debugLog } from "./debug.js";
 
 // Import UI submodules
@@ -71,11 +72,7 @@ export function initOwnershipGuards() {
   startBtn.addEventListener(
     "click",
     (ev) => {
-      const owner =
-        typeof sessionEngine.getActiveModeOwner === "function"
-          ? sessionEngine.getActiveModeOwner()
-          : null;
-
+      const owner = getActiveModeOwner();
       if (owner && owner !== "groove") {
         ev.preventDefault();
         ev.stopImmediatePropagation();
@@ -757,11 +754,7 @@ export function initInteropUI() {
 
   // 2. IMPORT: Trigger native file picker with session guard
   importBtn.addEventListener("click", () => {
-    const owner =
-      typeof sessionEngine.getActiveModeOwner === "function"
-        ? sessionEngine.getActiveModeOwner()
-        : null;
-
+    const owner = getActiveModeOwner();
     if (owner) {
       showNotice(`⚠️ Cannot import while ${owner} is active.`);
       return;
@@ -958,10 +951,7 @@ export function handlePreviewMode(pattern) {
   const noticeEl = document.getElementById("uiNotice");
   if (!noticeEl) return;
 
-  const owner =
-    typeof sessionEngine.getActiveModeOwner === "function"
-      ? sessionEngine.getActiveModeOwner()
-      : null;
+  const owner = getActiveModeOwner();
   if (owner) {
     showNotice("⚠️ Busy: Stop metronome to preview shared groove.");
     return;

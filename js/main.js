@@ -3,6 +3,7 @@
 import * as metronome from "./metronomeCore.js";
 import { createVisualCallback, primeVisuals } from "./visuals.js";
 import * as utils from "./utils.js";
+import * as ownership from "./ownership.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as uiController from "./uiController.js";
@@ -349,6 +350,7 @@ if (typeof window !== "undefined") {
     // Logic Cores
     metronome: metronome,
     session: sessionEngine,
+    ownership: ownership,
     scheduler: patternScheduler,
     simple: simpleMetronome,
 

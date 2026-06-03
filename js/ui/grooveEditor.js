@@ -6,7 +6,7 @@
 
 import { getTimeSignature, getTicksPerBeat } from "../metronomeCore.js";
 import * as grooveStorage from "../grooveStorage.js";
-import { getActiveModeOwner, setActiveModeOwner } from "../sessionEngine.js";
+import { getActiveModeOwner, setActiveModeOwner } from "../ownership.js";
 import { compressGroove, decompressGroove } from "../utils.js";
 import { patternScheduler } from "../patternScheduler.js";
 import { showNotice } from "./sliders.js";

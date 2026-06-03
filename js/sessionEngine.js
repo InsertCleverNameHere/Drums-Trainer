@@ -11,45 +11,7 @@ import { toggleGrooveSliderDisabled } from "./ui/sliders.js";
 import { animateTextUpdate } from "./uiController.js";
 import * as grooveStorage from "./grooveStorage.js";
 import { patternScheduler } from "./patternScheduler.js";
-
-let activeModeOwner = null; // "groove" | "simple" | null
-
-/**
- * Sets the active mode owner (groove/simple/null).
- * Dispatches 'metronome:ownerChanged' event.
- *
- * @param {string|null} owner - 'groove', 'simple', or null
- * @returns {void}
- */
-export function setActiveModeOwner(owner) {
-  const newOwner = owner || null;
-
-  // ✅ Only change if different (prevents spam)
-  if (newOwner === activeModeOwner) {
-    return; // No-op, don't dispatch event
-  }
-
-  const previous = activeModeOwner;
-  activeModeOwner = newOwner;
-
-  debugLog("ownership", `Owner changed: ${previous} → ${activeModeOwner}`);
-
-  // dispatch a DOM event so other code can react immediately
-  document.dispatchEvent(
-    new CustomEvent("metronome:ownerChanged", {
-      detail: { owner: activeModeOwner },
-    })
-  );
-}
-
-/**
- * Returns the current mode owner.
- *
- * @returns {string|null} 'groove', 'simple', or null
- */
-export function getActiveModeOwner() {
-  return activeModeOwner;
-}
+import { getActiveModeOwner, setActiveModeOwner } from "./ownership.js";
 
 // === Internal State ===
 let metronome = {};
@@ -142,8 +104,7 @@ export function startSession() {
     }
   }
   // Ownership guard: refuse to start groove if another owner is active
-  const currentOwner =
-    typeof getActiveModeOwner === "function" ? getActiveModeOwner() : null;
+  const currentOwner = getActiveModeOwner();
   if (currentOwner && currentOwner !== "groove") {
     debugLog(
       "ownership",
@@ -153,9 +114,7 @@ export function startSession() {
   }
 
   // Claim ownership for groove before starting playback
-  if (typeof setActiveModeOwner === "function") {
-    setActiveModeOwner("groove");
-  }
+  setActiveModeOwner("groove");
   // Broadcast canonical owner change so other modules know immediately
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: "groove" } })
@@ -372,7 +331,7 @@ export function nextCycle() {
  */
 export function stopSession(message = "") {
   // Ownership release: clear active mode owner
-  if (typeof setActiveModeOwner === "function") setActiveModeOwner(null);
+  setActiveModeOwner(null);
   document.dispatchEvent(
     new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
   );

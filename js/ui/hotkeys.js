@@ -11,6 +11,7 @@ import * as sessionEngine from "../sessionEngine.js";
 import * as simpleMetronome from "../simpleMetronome.js";
 import { showNotice } from "./sliders.js";
 import * as advancedMode from "./advancedMode.js";
+import { getActiveModeOwner } from "../ownership.js";
 
 // Hotkey state
 let _hotkeyLock = false;
@@ -158,11 +159,7 @@ function adjustSimpleBpm(delta) {
  * @returns {'groove'|'simple'} Target mode
  */
 function decideTarget() {
-  const owner =
-    typeof sessionEngine.getActiveModeOwner === "function"
-      ? sessionEngine.getActiveModeOwner()
-      : null;
-
+  const owner = getActiveModeOwner();
   // Owner wins
   if (owner === "groove") return "groove";
   if (owner === "simple") return "simple";
@@ -238,10 +235,7 @@ export function setupHotkeys() {
     )
       event.preventDefault();
 
-    const owner =
-      typeof sessionEngine.getActiveModeOwner === "function"
-        ? sessionEngine.getActiveModeOwner()
-        : null;
+    const owner = getActiveModeOwner();
 
     const target = decideTarget();
     const grooveStartBtn = document.getElementById("startBtn");
@@ -333,7 +327,7 @@ export function setupHotkeys() {
       case "ArrowUp":
       case "ArrowDown": {
         // ✅ GUARD: Block BPM changes during playback
-        const owner = sessionEngine.getActiveModeOwner();
+        const owner = getActiveModeOwner();
         if (owner) {
           debugLog("hotkeys", `⚠️ BPM adjustment blocked - ${owner} is active`);
           showNotice("⚠️ Cannot adjust BPM during playback");

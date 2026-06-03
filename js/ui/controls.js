@@ -9,7 +9,7 @@ import { debugLog } from "../debug.js";
 import * as audioProfiles from "../audioProfiles.js";
 import * as metronome from "../metronomeCore.js";
 import * as simpleMetronome from "../simpleMetronome.js";
-import { getActiveModeOwner } from "../sessionEngine.js";
+import { getActiveModeOwner } from "../ownership.js";
 
 /**
  * Initializes sound profile dropdowns for both groove and simple panels.
