@@ -14,6 +14,7 @@ import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
 import * as grooveStorage from "./grooveStorage.js";
 import * as notices from "./ui/notices.js";
+import * as interop from "./ui/interop.js";
 import { patternScheduler } from "./patternScheduler.js";
 import { getActiveModeOwner } from "./ownership.js";
 import { debugLog } from "./debug.js";
@@ -45,9 +46,6 @@ export {
   isAdvancedMode,
   getQuantizationStep,
 };
-
-let _isPreviewActive = false;
-let _isPreviewPlaying = false;
 
 /**
  * Initializes ownership guards to prevent mode conflicts.
@@ -120,20 +118,8 @@ export function initUI(deps) {
 
   // Wire up session buttons
   startBtn.onclick = () => {
-    if (_isPreviewActive) {
-      if (_isPreviewPlaying) {
-        // STOP LOGIC
-        metronome.stopMetronome();
-        _isPreviewPlaying = false;
-        startBtn.textContent = "Start";
-        debugLog("state", "🛑 Preview stopped");
-      } else {
-        // START LOGIC
-        metronome.startMetronome(120);
-        _isPreviewPlaying = true;
-        startBtn.textContent = "Stop";
-        debugLog("state", "▶️ Preview playing");
-      }
+    if (interop.isPreviewActive()) {
+      interop.togglePreviewPlayback();
     } else {
       sessionEngine.startSession();
     }
@@ -707,291 +693,6 @@ export function initUpdateUI() {
 }
 
 /**
- * Initializes the Import/Export UI logic.
- * Wires the "Backup Library" and "Restore Library" buttons.
- *
- * @returns {void}
- */
-export function initInteropUI() {
-  const exportBtn = document.getElementById("exportLibraryBtn");
-  const importBtn = document.getElementById("importLibraryBtn");
-  const fileIn = document.getElementById("importFileInput");
-
-  if (!exportBtn || !importBtn || !fileIn) return;
-
-  // 1. EXPORT: Generate JSON Blob and trigger browser download
-  exportBtn.addEventListener("click", () => {
-    const bundle = grooveStorage.exportLibrary();
-    if (!bundle) {
-      notices.showNotice("⚠️ Cannot export: Your library is empty.");
-      return;
-    }
-
-    try {
-      const blob = new Blob([bundle], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const date = new Date().toISOString().split("T")[0];
-
-      a.href = url;
-      a.download = `rgt_backup_${date}.json`;
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        notices.showNotice("✅ Backup file created.");
-      }, 100);
-    } catch (e) {
-      debugLog("state", "❌ Export UI Error", e);
-      notices.showNotice("❌ Export failed.");
-    }
-  });
-
-  // 2. IMPORT: Trigger native file picker with session guard
-  importBtn.addEventListener("click", () => {
-    const owner = getActiveModeOwner();
-    if (owner) {
-      notices.showNotice(`⚠️ Cannot import while ${owner} is active.`);
-      return;
-    }
-    fileIn.click();
-  });
-
-  // 3. FILE SELECTION: Read JSON and pass to feasibility engine
-  fileIn.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const bundle = JSON.parse(event.target.result);
-        // --- FUTURE: Version Enforcement Sentinel ---
-        /*
-        const SUPPORTED_VERSION = "1.1";
-        if (bundle.version !== SUPPORTED_VERSION) {
-          notices.showNotice(`⚠️ Incompatible backup version: ${bundle.version}`);
-          return;
-        }
-        */
-        const report = grooveStorage.getImportReport(bundle);
-
-        if (!report) throw new Error("Invalid Bundle Structure");
-        handleImportReport(bundle, report);
-      } catch (err) {
-        notices.showNotice("❌ Invalid file format.");
-        debugLog("state", "❌ Import Parser Error", err);
-      }
-      fileIn.value = ""; // Reset input
-    };
-    reader.readAsText(file);
-  });
-}
-
-/**
- * Handles the feasibility report and displays the interactive mediation UI.
- * Exported for Testing Gates.
- *
- * @param {Object} bundle - Parsed JSON bundle
- * @param {Object} report - Feasibility report from grooveStorage.getImportReport
- * @returns {void}
- */
-export function handleImportReport(bundle, report) {
-  /**
-   * Finalizes the ingestion process and commits to localStorage.
-   * @param {string[]} namesToImport - Subset of patterns to save
-   */
-  const executeImport = (namesToImport) => {
-    const success = grooveStorage.commitImport(bundle.library, namesToImport);
-    if (success) {
-      if (bundle.names) {
-        const textarea = document.getElementById("grooves");
-        if (textarea) {
-          // SPLIT AND MERGE: Get existing names to prevent overwriting the whole list
-          const existing = textarea.value
-            .split("\n")
-            .map((n) => n.trim())
-            .filter(Boolean);
-          const incoming = bundle.names
-            .split("\n")
-            .map((n) => n.trim())
-            .filter(Boolean);
-
-          incoming.forEach((name) => {
-            if (!existing.includes(name)) existing.push(name);
-          });
-
-          textarea.value = existing.join("\n");
-          textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-      }
-      notices.showNotice(`✅ Imported ${namesToImport.length} patterns.`);
-      document.dispatchEvent(
-        new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
-      );
-    }
-    notices.hideInteractiveNotice();
-  };
-
-  let html = "";
-  if (!report.canFit) {
-    html = `
-      <div style="margin-bottom: 12px; font-weight: 600;">
-        ❌ Storage Full: Not enough slots for ${report.newItems.length} new patterns.
-      </div>
-      <button id="import-cancel" style="width: 100%;">Cancel</button>
-    `;
-  } else if (report.collisions.length > 0) {
-    html = `
-      <div style="margin-bottom: 12px; font-weight: 600;">
-        ⚠️ Found ${report.collisions.length} duplicates. How would you like to proceed?
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <button id="import-replace" style="background: var(--accent); color: white;">Replace My Patterns</button>
-        <button id="import-merge">Keep Mine & Merge New</button>
-        <button id="import-cancel" style="background: var(--bg-secondary);">Cancel</button>
-      </div>
-    `;
-  } else {
-    html = `
-      <div style="margin-bottom: 12px; font-weight: 600;">
-        Import ${report.totalIncoming} new patterns?
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <button id="import-confirm" style="background: var(--accent); color: white; flex: 1;">Yes, Import</button>
-        <button id="import-cancel" style="flex: 1;">Cancel</button>
-      </div>
-    `;
-  }
-
-  notices.showInteractiveNotice(html);
-
-  const cancelBtn = document.getElementById("import-cancel");
-  if (cancelBtn) cancelBtn.onclick = notices.hideInteractiveNotice;
-
-  const confirmBtn = document.getElementById("import-confirm");
-  if (confirmBtn)
-    confirmBtn.onclick = () => executeImport(report.validIncoming);
-
-  const replaceBtn = document.getElementById("import-replace");
-  if (replaceBtn)
-    replaceBtn.onclick = () => executeImport(report.validIncoming);
-
-  const mergeBtn = document.getElementById("import-merge");
-  if (mergeBtn) mergeBtn.onclick = () => executeImport(report.newItems);
-}
-
-/**
- * Checks for shared groove data in the URL hash.
- * @returns {boolean} True if a deep link was found and is being processed.
- */
-export function checkDeepLinks() {
-  const hash = window.location.hash;
-  if (!hash.startsWith("#share=")) return false;
-
-  // Clear hash immediately to prevent re-triggering on refresh
-  const compressedData = decodeURIComponent(hash.replace("#share=", ""));
-  window.history.replaceState(null, null, window.location.pathname);
-
-  const sharedPattern = utils.decompressGroove(compressedData);
-
-  if (sharedPattern) {
-    handlePreviewMode(sharedPattern);
-    return true;
-  } else {
-    notices.showNotice("❌ Shared link is invalid or corrupted.");
-    return false;
-  }
-}
-
-/**
- * Loads a shared groove into a volatile preview state.
- * Exported for Testing Gates.
- */
-export function handlePreviewMode(pattern) {
-  const noticeEl = document.getElementById("uiNotice");
-  if (!noticeEl) return;
-
-  const owner = getActiveModeOwner();
-  if (owner) {
-    notices.showNotice("⚠️ Busy: Stop metronome to preview shared groove.");
-    return;
-  }
-
-  _isPreviewActive = true;
-  patternScheduler.load(pattern);
-
-  // Sync Metronome Core
-  const pTS = pattern.patternTimeSignature || { beats: 4, value: 4 };
-  metronome.setTimeSignature(parseInt(pTS.beats), parseInt(pTS.value));
-  metronome.setTicksPerBeat(pattern.ticksPerBeat || 1);
-
-  // Force Redraw
-  import("./visuals.js").then((m) => m.primeVisuals("groove"));
-
-  const displayGroove = document.getElementById("displayGroove");
-  if (displayGroove)
-    displayGroove.textContent = `Preview: ${pattern.name || "Shared"}`;
-
-  notices.clearNotice();
-  notices.showInteractiveNotice(`
-    <div style="margin-bottom: 12px; font-weight: 600;">Previewing: "${pattern.name || "Shared"}"</div>
-    <div style="display: flex; gap: 8px;">
-      <button id="preview-save" style="background: var(--accent); color: white; flex: 1;">Save</button>
-      <button id="preview-discard" style="flex: 1;">Discard</button>
-    </div>
-  `);
-
-  const closePreview = () => {
-    _isPreviewActive = false;
-    _isPreviewPlaying = false;
-    patternScheduler.clear();
-    metronome.stopMetronome();
-    const sBtn = document.getElementById("startBtn");
-    if (sBtn) sBtn.textContent = "Start";
-    if (displayGroove) displayGroove.textContent = "Groove: —";
-
-    // Offload animation to service
-    notices.hideInteractiveNotice();
-
-    // Check seed after notice is cleared (notices.js handles the delay internally if needed)
-    const needsSeed = !localStorage.getItem("rgt_library_seeded");
-    if (needsSeed) notices.checkLibrarySeed();
-  };
-
-  document.getElementById("preview-discard").onclick = closePreview;
-
-  document.getElementById("preview-save").onclick = () => {
-    const pName = (pattern.name || "Shared").trim();
-    const bundle = { library: { [pName]: pattern }, names: pName };
-    const report = grooveStorage.getImportReport(bundle);
-
-    // streamlined UX: Save immediately if no collision
-    if (report.collisions.length === 0 && report.canFit) {
-      grooveStorage.commitImport(bundle.library, [pName]);
-
-      const textarea = document.getElementById("grooves");
-      if (textarea) {
-        const names = textarea.value.split("\n").map((n) => n.trim());
-        if (!names.includes(pName)) {
-          textarea.value += (textarea.value.length > 0 ? "\n" : "") + pName;
-          textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-      }
-      notices.showNotice(`✅ Saved "${pName}"`);
-      document.dispatchEvent(
-        new CustomEvent("metronome:ownerChanged", { detail: { owner: null } })
-      );
-      closePreview();
-    } else {
-      handleImportReport(bundle, report);
-    }
-  };
-}
-
-/**
  * Initializes all UI submodules (hotkeys, sliders, and interop).
  *
  * @returns {void}
@@ -999,5 +700,5 @@ export function handlePreviewMode(pattern) {
 export function initAllUI() {
   setupHotkeys();
   initSliders();
-  initInteropUI();
+  interop.initInteropUI();
 }

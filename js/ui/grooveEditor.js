@@ -8,7 +8,7 @@ import { getTimeSignature, getTicksPerBeat } from "../metronomeCore.js";
 import * as grooveStorage from "../grooveStorage.js";
 import { getActiveModeOwner, setActiveModeOwner } from "../ownership.js";
 import * as notices from "./notices.js";
-import { compressGroove, decompressGroove } from "../utils.js";
+import * as interop from "./interop.js";
 import { patternScheduler } from "../patternScheduler.js";
 import { isAdvancedMode } from "./advancedMode.js";
 import { generateMeasureLayout } from "../visuals.js";
@@ -83,7 +83,7 @@ export function initGrooveEditor() {
   // Clipboard Paste Handler
   const pasteBtn = document.getElementById("pasteGrooveBtn");
   if (pasteBtn) {
-    pasteBtn.addEventListener("click", () => pasteFromClipboard());
+    pasteBtn.addEventListener("click", () => interop.pasteFromClipboard());
   }
 
   // 3. Editor Actions
@@ -258,7 +258,7 @@ function _rebuildInteractiveList() {
     if (copyBtn) {
       copyBtn.onclick = (e) => {
         e.stopPropagation();
-        _copyGrooveLink(name);
+        interop.copyGrooveLink(name);
       };
     }
 
@@ -690,71 +690,4 @@ function _calculateResample(oldSub, newSub) {
   });
 
   return { newData, hasConflicts };
-}
-
-/**
- * Serializes a pattern and copies a shareable URL to the clipboard.
- * @private
- * @param {string} name - Name of the saved pattern
- */
-function _copyGrooveLink(name) {
-  const pattern = grooveStorage.getGroovePattern(name);
-  if (!pattern) return;
-
-  // Add name to object so recipient's UI identifies it correctly
-  const shareObj = { ...pattern, name: name.trim() };
-  const hash = compressGroove(shareObj);
-  const url = `${window.location.origin}${window.location.pathname}#share=${hash}`;
-
-  navigator.clipboard
-    .writeText(url)
-    .then(() => {
-      import("./sliders.js").then((m) =>
-        m.notices.showNotice(`📋 Link copied for "${name}"`)
-      );
-    })
-    .catch((err) => {
-      debugLog("state", "❌ Clipboard write failed", err);
-      import("./sliders.js").then((m) =>
-        m.notices.showNotice("❌ Failed to copy link.")
-      );
-    });
-}
-
-/**
- * Reads a link or raw hash from the clipboard and triggers the preview engine.
- * Supports: Full URL, #share fragment, or Raw Data Hash.
- *
- * @returns {void}
- */
-export async function pasteFromClipboard() {
-  try {
-    const rawText = await navigator.clipboard.readText();
-    const text = rawText.trim();
-
-    // 1. Standard Case: Identify the #share fragment
-    const hashMatch = text.match(/#share=([A-Za-z0-9\-_+$]+)/);
-    let finalHash = hashMatch ? hashMatch[1] : null;
-
-    // 2. Fallback: If no #share= prefix, check if the string itself is a valid hash
-    if (!finalHash && /^[A-Za-z0-9\-_+$]+$/.test(text)) {
-      // "Dry Run" decompression to verify it's actual RGT data
-      const isValid = decompressGroove(text);
-      if (isValid) finalHash = text;
-    }
-
-    if (finalHash) {
-      // Update hash to trigger the hashchange listener in main.js
-      window.location.hash = `share=${encodeURIComponent(finalHash)}`;
-    } else {
-      import("../ui/sliders.js").then((m) =>
-        m.notices.showNotice("⚠️ No valid groove data found in clipboard.")
-      );
-    }
-  } catch (err) {
-    debugLog("state", "❌ Clipboard read failed", err);
-    import("../ui/sliders.js").then((m) =>
-      m.notices.showNotice("❌ Clipboard access denied.")
-    );
-  }
 }

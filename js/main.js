@@ -7,6 +7,7 @@ import * as ownership from "./ownership.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as uiController from "./uiController.js";
+import * as interop from "./ui/interop.js";
 import { initDarkMode } from "./ui/theme.js";
 import * as controls from "./ui/controls.js";
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
@@ -146,7 +147,7 @@ if (document.readyState === "loading") {
     initGrooveEditor();
 
     // 1. Check for shared grooves via URL hash FIRST
-    const hasSharedGroove = uiController.checkDeepLinks();
+    const hasSharedGroove = interop.checkDeepLinks();
 
     // 2. Only check for library seeding if NO shared groove is being previewed
     if (!hasSharedGroove) notices.checkLibrarySeed();
@@ -189,7 +190,7 @@ if (document.readyState === "loading") {
   initGrooveEditor();
 
   // 1. Check for shared grooves via URL hash FIRST
-  const hasSharedGroove = uiController.checkDeepLinks();
+  const hasSharedGroove = interop.checkDeepLinks();
 
   // 2. Only check for library seeding if NO shared groove is being previewed
   if (!hasSharedGroove) notices.checkLibrarySeed();
@@ -341,7 +342,7 @@ window.addEventListener("keydown", unlockAudio);
  * Allows "Live" link ingestion without requiring a page refresh.
  */
 window.addEventListener("hashchange", () => {
-  uiController.checkDeepLinks();
+  interop.checkDeepLinks();
 });
 
 // === Developer Console Bridge ===
@@ -362,6 +363,7 @@ if (typeof window !== "undefined") {
     // Utilities & Storage
     storage: grooveStorage,
     notices: notices,
+    interop: interop,
     utils: utils,
   });
 
