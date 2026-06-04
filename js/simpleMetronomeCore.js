@@ -25,7 +25,7 @@ let isPaused = false;
 let pauseAudioOffset = 0;
 
 let bpm = 120;
-// NEW: timeSignature object replaces beatsPerBar
+// timeSignature object replaces beatsPerBar
 let timeSignature = { beats: 4, value: 4 };
 let ticksPerBeat = 1;
 

@@ -15,11 +15,6 @@ import * as advancedMode from "./advancedMode.js";
 let grooveSliderInstance = null;
 let simpleSliderInstance = null;
 
-/** @type {number|null} Internal timer for notice fade-out sequence */
-let _noticeAutoTimer = null;
-/** @type {number|null} Internal timer for final notice removal */
-let _noticeHideTimer = null;
-
 /**
  * Validates and sanitizes numeric input against defined limits.
  *
