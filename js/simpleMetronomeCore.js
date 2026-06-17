@@ -1,20 +1,10 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 // js/simpleMetronomeCore.js
 // Lightweight isolated metronome core for the simple metronome panel.
 // API-compatible with the existing metronomeCore functions used by the app.
 import { debugLog, DebugTimer } from "./debug.js";
-import {
-  BPM_HARD_LIMITS,
-  BPM_DEFAULTS,
-  SCHEDULER_CONFIG,
-  COUNT_IN_CONFIG,
-} from "./constants.js";
-import {
-  playTick as playProfileTick,
-  ensureAudio,
-  setNextNoteTime,
-} from "./audioProfiles.js";
+import * as constants from "./constants.js";
+import * as audioProfiles from "./audioProfiles.js";
 
 let audioCtx = null;
 let nextNoteTime = 0;
@@ -29,9 +19,9 @@ let bpm = 120;
 let timeSignature = { beats: 4, value: 4 };
 let ticksPerBeat = 1;
 
-const scheduleAheadTime = SCHEDULER_CONFIG.SCHEDULE_AHEAD_TIME;
-const schedulerIntervalMs = SCHEDULER_CONFIG.SIMPLE_SCHEDULER_INTERVAL_MS;
-const adjustmentPauseMs = SCHEDULER_CONFIG.ADJUSTMENT_PAUSE_MS;
+const scheduleAheadTime = constants.AUDIO.LOOKAHEAD_S;
+const schedulerIntervalMs = constants.AUDIO.TIMER_INTERVAL_MS;
+const adjustmentPauseMs = constants.AUDIO.ADJUSTMENT_PAUSE_MS;
 
 let onBeatVisual = () => {};
 let endOfCycleRequested = false;
@@ -49,9 +39,9 @@ export function registerVisualCallback(cb) {
 
 function playTick(isAccent) {
   // Always ensure the shared audio context exists
-  audioCtx = ensureAudio();
-  setNextNoteTime(nextNoteTime);
-  playProfileTick(isAccent);
+  audioCtx = audioProfiles.ensureAudio();
+  audioProfiles.setNextNoteTime(nextNoteTime);
+  audioProfiles.playTick(isAccent);
 }
 
 function scheduleNote() {
@@ -153,11 +143,11 @@ export function startMetronome(newBpm = 120) {
     debugLog("audio", "⚠️ simpleMetronomeCore: already playing");
     return;
   }
-  audioCtx = ensureAudio();
+  audioCtx = audioProfiles.ensureAudio();
   // Enforce hard limits (allow any integer within range)
   bpm = Math.max(
-    BPM_HARD_LIMITS.MIN,
-    Math.min(BPM_HARD_LIMITS.MAX, Number(newBpm) || bpm)
+    constants.LIMITS.BPM.MIN,
+    Math.min(constants.LIMITS.BPM.MAX, Number(newBpm) || bpm)
   );
   tickIndex = 0;
 
@@ -222,33 +212,33 @@ export function resumeMetronome() {
  * @returns {Promise<void>} Resolves when count-in completes
  */
 export function performCountIn(nextBpm = 120, tempoSynced = true) {
-  const steps = COUNT_IN_CONFIG.STEPS;
+  const steps = constants.AUDIO.COUNT_IN.STEPS;
   const intervalMs = tempoSynced
     ? 60000 / Math.max(1, nextBpm)
-    : COUNT_IN_CONFIG.FIXED_INTERVAL_MS;
+    : constants.AUDIO.COUNT_IN.FIXED_INTERVAL_MS;
   return new Promise((resolve) => {
-    ensureAudio();
-    const now = audioCtx.currentTime + COUNT_IN_CONFIG.HEADROOM_SECONDS;
+    audioProfiles.ensureAudio();
+    const now = audioCtx.currentTime + constants.AUDIO.COUNT_IN.HEADROOM_S;
     for (let i = 0; i < steps; i++) {
       const t = now + (i * intervalMs) / 1000;
       const osc = audioCtx.createOscillator();
       const envelope = audioCtx.createGain();
       if (i === 0) {
-        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
-        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
+        osc.frequency.value = constants.AUDIO.COUNT_IN.FREQS[i];
+        envelope.gain.value = constants.AUDIO.COUNT_IN.GAINS[i];
         osc.type = "sine";
       } else if (i === 1) {
-        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
-        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
+        osc.frequency.value = constants.AUDIO.COUNT_IN.FREQS[i];
+        envelope.gain.value = constants.AUDIO.COUNT_IN.GAINS[i];
         osc.type = "sine";
       } else {
-        osc.frequency.value = COUNT_IN_CONFIG.FREQUENCIES[i];
-        envelope.gain.value = COUNT_IN_CONFIG.GAINS[i];
+        osc.frequency.value = constants.AUDIO.COUNT_IN.FREQS[i];
+        envelope.gain.value = constants.AUDIO.COUNT_IN.GAINS[i];
       }
       osc.connect(envelope);
       envelope.connect(audioCtx.destination);
       osc.start(t);
-      osc.stop(t + COUNT_IN_CONFIG.STEP_DURATIONS[i]);
+      osc.stop(t + constants.AUDIO.COUNT_IN.STEP_DURATIONS[i]);
     }
     setTimeout(() => resolve(), Math.ceil(intervalMs * steps) + 30);
   });

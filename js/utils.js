@@ -8,11 +8,47 @@
  */
 
 import { debugLog } from "./debug.js";
-import {
-  BPM_HARD_LIMITS,
-  TAP_TEMPO_QUANTIZATION,
-  getUserQuantizationPreference,
-} from "./constants.js";
+import * as constants from "./constants.js";
+
+/**
+ * Snaps a value to the nearest anchor-relative grid point.
+ * Moved from advancedMode.js for logic-purity.
+ */
+export function snapToGrid(value, step, anchor, min, max) {
+  let snapped = Math.round((value - anchor) / step) * step + anchor;
+  if (snapped < min) snapped = anchor + Math.ceil((min - anchor) / step) * step;
+  if (snapped > max)
+    snapped = anchor + Math.floor((max - anchor) / step) * step;
+  return snapped;
+}
+
+/**
+ * Validates a BPM change and enforces margin constraints.
+ * Consolidates logic from hotkeys.js and sliders.js.
+ */
+export function calculateNextBpm(
+  current,
+  delta,
+  step,
+  limits,
+  other = null,
+  isMinField = true
+) {
+  const next = Math.max(
+    limits.min,
+    Math.min(limits.max, current + delta * step)
+  );
+  if (next === current) return next;
+
+  // Margin Check
+  if (other !== null) {
+    const margin = step;
+    if (isMinField && next >= other - margin + 1) return null;
+    if (!isMinField && next <= other + margin - 1) return null;
+  }
+
+  return next;
+}
 
 /**
  * Returns a random integer between min and max (inclusive).
@@ -43,10 +79,11 @@ export function quantizeToStep(value, step = 5) {
  * @returns {number} Clamped step value
  */
 export function sanitizeQuantizationStep(value) {
+  const limits = constants.LIMITS.STEP;
   return sanitizePositiveInteger(value, {
-    min: 1,
-    max: 150,
-    defaultValue: 5,
+    min: limits.MIN,
+    max: limits.MAX,
+    defaultValue: limits.DEFAULT,
   });
 }
 
@@ -267,26 +304,25 @@ export function calculateTapTempo() {
   if (!calculateTapTempo._lastTap) calculateTapTempo._lastTap = 0;
 
   const taps = calculateTapTempo._taps;
-  const TAP_TIMEOUT = 1500;
-  const MAX_WINDOW = 3; // fewer = faster response
+  const config = constants.UX.TAP_TEMPO;
 
   // reset after idle
   if (
     calculateTapTempo._lastTap &&
-    now - calculateTapTempo._lastTap > TAP_TIMEOUT
+    now - calculateTapTempo._lastTap > config.TIMEOUT_MS
   )
     taps.length = 0;
 
   calculateTapTempo._lastTap = now;
   taps.push(now);
   if (taps.length < 2) return null;
-  if (taps.length > MAX_WINDOW) taps.shift();
+  if (taps.length > config.MAX_WINDOW) taps.shift();
 
   const intervals = [];
   for (let i = 1; i < taps.length; i++) intervals.push(taps[i] - taps[i - 1]);
 
   // fast decay weighting
-  const decay = 0.18;
+  const decay = config.DECAY_WEIGHT;
   let w = 1,
     totalW = 0,
     weightedSum = 0;
@@ -304,9 +340,13 @@ export function calculateTapTempo() {
 
   let bpm = 60000 / avg;
 
-  // Tap tempo always uses fixed step=5 (rhythm-based)
-  bpm = Math.round(bpm / TAP_TEMPO_QUANTIZATION) * TAP_TEMPO_QUANTIZATION;
-  bpm = Math.max(BPM_HARD_LIMITS.MIN, Math.min(BPM_HARD_LIMITS.MAX, bpm));
+  // Final Snap using the Tap Tempo Policy
+  const tapStep = constants.UX.TAP_TEMPO.QUANTIZATION_STEP;
+  bpm = Math.round(bpm / tapStep) * tapStep;
+
+  // Final Clamp using the System Limits
+  const bpmLimits = constants.LIMITS.BPM;
+  bpm = Math.max(bpmLimits.MIN, Math.min(bpmLimits.MAX, bpm));
 
   return bpm;
 }
@@ -364,21 +404,23 @@ export function sanitizePositiveInteger(
  * // { bpmMin: 35, bpmMax: 245, step: 5 }
  */
 export function sanitizeBpmRange(bpmMin, bpmMax, quantizationStep) {
-  // Use provided step, fallback to user preference, fallback to constant
-  const step = quantizationStep || getUserQuantizationPreference();
+  // Use provided step, fallback to current app state, fallback to factory default
+  const step =
+    quantizationStep || QUANTIZATION.groove || constants.LIMITS.STEP.DEFAULT;
 
   bpmMin = parseInt(bpmMin);
   bpmMax = parseInt(bpmMax);
 
-  if (isNaN(bpmMin)) bpmMin = BPM_HARD_LIMITS.MIN;
-  if (isNaN(bpmMax)) bpmMax = BPM_HARD_LIMITS.MAX;
+  if (isNaN(bpmMin)) bpmMin = constants.LIMITS.BPM.MIN;
+  if (isNaN(bpmMax)) bpmMax = constants.LIMITS.BPM.MAX;
   if (bpmMin > bpmMax) [bpmMin, bpmMax] = [bpmMax, bpmMin];
 
   // Quantize to step
   bpmMin = Math.ceil(bpmMin / step) * step;
   bpmMax = Math.floor(bpmMax / step) * step;
 
-  if (bpmMin > bpmMax) bpmMin = Math.max(BPM_HARD_LIMITS.MIN, bpmMax - step);
+  if (bpmMin > bpmMax)
+    bpmMin = Math.max(constants.LIMITS.BPM.MIN, bpmMax - step);
 
   if (bpmMax - bpmMin < step) {
     bpmMax = bpmMin + step;
@@ -389,8 +431,8 @@ export function sanitizeBpmRange(bpmMin, bpmMax, quantizationStep) {
   }
 
   // Enforce hard limits
-  bpmMin = Math.max(BPM_HARD_LIMITS.MIN, bpmMin);
-  bpmMax = Math.min(BPM_HARD_LIMITS.MAX, bpmMax);
+  bpmMin = Math.max(constants.LIMITS.BPM.MIN, bpmMin);
+  bpmMax = Math.min(constants.LIMITS.BPM.MAX, bpmMax);
 
   return { bpmMin, bpmMax, step };
 }

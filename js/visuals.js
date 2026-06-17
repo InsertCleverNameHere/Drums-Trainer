@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-/* eslint-disable no-undef */
+
 // js/visuals.js
 // Phrase-based metronome visualizer with intelligent panning
 //
@@ -14,7 +14,7 @@
 // - Extreme BPMs (300+ with 16ths): ~6 MB per 3 minutes (acceptable)
 // - No resize bugs due to transform-based positioning
 
-import { VISUAL_TIMING } from "./constants.js";
+import * as constants from "./constants.js";
 import * as metronome from "./metronomeCore.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import { patternScheduler } from "./patternScheduler.js";
@@ -373,7 +373,7 @@ function flashActiveDot(
           "flash-tertiary"
         );
       });
-  }, VISUAL_TIMING.FLASH_DURATION_MS);
+  }, constants.UX.TIMING.FLASH_MS);
 }
 
 /**

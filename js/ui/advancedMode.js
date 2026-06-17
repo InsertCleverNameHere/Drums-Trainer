@@ -16,10 +16,6 @@
  */
 
 import { debugLog, DEBUG } from "../debug.js";
-import {
-  BPM_STEP_LIMITS,
-  getUserQuantizationPreference,
-} from "../constants.js";
 import * as utils from "../utils.js";
 
 // ── Internal state ───────────────────────────────────────────────

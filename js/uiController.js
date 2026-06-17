@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * @fileoverview Main UI controller - orchestrates UI modules and handles footer/updates.
  * Imports and initializes all UI submodules (theme, hotkeys, sliders, controls, panels).
@@ -7,45 +6,17 @@
  */
 
 import * as audioProfiles from "./audioProfiles.js";
-import { VISUAL_TIMING } from "./constants.js";
-import * as metronome from "./metronomeCore.js";
+import * as constants from "./constants.js";
 import * as sessionEngine from "./sessionEngine.js";
-import * as simpleMetronome from "./simpleMetronome.js";
 import * as utils from "./utils.js";
-import * as grooveStorage from "./grooveStorage.js";
 import * as notices from "./ui/notices.js";
 import * as interop from "./ui/interop.js";
-import { patternScheduler } from "./patternScheduler.js";
 import { getActiveModeOwner } from "./ownership.js";
 import { debugLog } from "./debug.js";
 
 // Import UI submodules
-import { initDarkMode } from "./ui/theme.js";
 import { setupHotkeys } from "./ui/hotkeys.js";
-import { initSliders, updateBpmInputSteps } from "./ui/sliders.js";
-import {
-  initSoundProfileUI,
-  initPanningModeUI,
-  initTimeSignatureUI,
-} from "./ui/controls.js";
-import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
-import {
-  initAdvancedMode,
-  restoreDefaults,
-  isAdvancedMode,
-  getQuantizationStep,
-} from "./ui/advancedMode.js";
-
-// Re-export for external use
-export { initDarkMode, updateBpmInputSteps };
-export { initSoundProfileUI, initPanningModeUI, initTimeSignatureUI };
-export { initModeTabs, initSimplePanelControls };
-export {
-  initAdvancedMode,
-  restoreDefaults,
-  isAdvancedMode,
-  getQuantizationStep,
-};
+import { initSliders } from "./ui/sliders.js";
 
 /**
  * Initializes ownership guards to prevent mode conflicts.
@@ -178,7 +149,7 @@ export function initUI(deps) {
     clearTimeout(settingsDialog._hideTimer);
     settingsDialog._hideTimer = setTimeout(() => {
       settingsDialog.classList.remove("visible");
-    }, 10000); // 10 seconds
+    }, constants.UX.TIMING.DIALOG_AUTOHIDE_MS);
   }
 
   function cancelSettingsHideTimer() {
@@ -288,7 +259,7 @@ export function initUI(deps) {
             duration: 0.6,
             stagger: 0.05,
             ease: "power2.out",
-            delay: 0.1, // Wait for the drawer to begin opening
+            delay: constants.UX.TIMING.STAGGER_S, // Wait for the drawer to begin opening
           }
         );
       } else {
@@ -520,8 +491,8 @@ export function updateFooterMessage(
     setTimeout(() => {
       footerEl.classList.add("footer-hidden");
       footerEl.style.visibility = "hidden";
-    }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
-  }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
+    }, constants.UX.TIMING.FOOTER_FADE_OUT_MS);
+  }, constants.UX.TIMING.FOOTER_DISPLAY_MS);
 
   if (!suppressMessage) {
     localStorage.setItem(key, shownCount + 1);
@@ -550,7 +521,7 @@ export function initUpdateUI() {
     setTimeout(() => {
       footerEl.classList.add("footer-hidden");
       footerEl.style.visibility = "hidden";
-    }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
+    }, constants.UX.TIMING.FOOTER_FADE_OUT_MS);
   });
 
   // Check updates button
@@ -573,8 +544,8 @@ export function initUpdateUI() {
         setTimeout(() => {
           footerEl.classList.add("footer-hidden");
           footerEl.style.visibility = "hidden";
-        }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
-      }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
+        }, constants.UX.TIMING.FOOTER_FADE_OUT_MS);
+      }, constants.UX.TIMING.FOOTER_DISPLAY_MS);
       return;
     }
 
@@ -622,8 +593,8 @@ export function initUpdateUI() {
                   setTimeout(() => {
                     footerEl.classList.add("footer-hidden");
                     footerEl.style.visibility = "hidden";
-                  }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
-                }, VISUAL_TIMING.FOOTER_CANCELED_DISPLAY_MS);
+                  }, constants.UX.TIMING.FOOTER_FADE_OUT_MS);
+                }, constants.UX.TIMING.FOOTER_CANCELED_MS);
               });
             }
           } else {
@@ -639,8 +610,8 @@ export function initUpdateUI() {
               setTimeout(() => {
                 footerEl.classList.add("footer-hidden");
                 footerEl.style.visibility = "hidden";
-              }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
-            }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
+              }, constants.UX.TIMING.FOOTER_FADE_OUT_MS);
+            }, constants.UX.TIMING.FOOTER_DISPLAY_MS);
           }
 
           if (spinnerShown) {
@@ -673,8 +644,8 @@ export function initUpdateUI() {
             setTimeout(() => {
               footerEl.classList.add("footer-hidden");
               footerEl.style.visibility = "hidden";
-            }, VISUAL_TIMING.FOOTER_FADE_OUT_MS);
-          }, VISUAL_TIMING.FOOTER_DISPLAY_MS);
+            }, constants.UX.TIMING.FOOTER_FADE_OUT_MS);
+          }, constants.UX.TIMING.FOOTER_DISPLAY_MS);
 
           if (spinnerShown) {
             setTimeout(() => {

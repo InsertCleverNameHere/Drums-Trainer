@@ -7,7 +7,7 @@
 
 import { debugLog } from "../debug.js";
 import { showNotice } from "./notices.js";
-import { INPUT_LIMITS, VISUAL_TIMING } from "../constants.js";
+import * as constants from "../constants.js";
 import * as utils from "../utils.js";
 import * as advancedMode from "./advancedMode.js";
 
@@ -27,9 +27,10 @@ let simpleSliderInstance = null;
  */
 function validateNumericInput(input) {
   const id = input.id;
-  if (!(id in INPUT_LIMITS)) return;
+  const inputPolicy = constants.LIMITS.INPUT;
+  if (!(id in inputPolicy)) return;
 
-  const limits = INPUT_LIMITS[id];
+  const limits = inputPolicy[id];
   let sanitized = utils.sanitizePositiveInteger(input.value, limits);
 
   // Custom validation for allowed denominator values
@@ -70,7 +71,7 @@ function validateNumericInput(input) {
  * attachInputValidation(); // Sets up validation for all inputs
  */
 function attachInputValidation() {
-  Object.keys(INPUT_LIMITS).forEach((id) => {
+  Object.keys(constants.LIMITS.INPUT).forEach((id) => {
     const input = document.getElementById(id);
     if (!input) return;
 
@@ -95,7 +96,7 @@ function attachInputValidation() {
     // Sanitize pasted content
     input.addEventListener("paste", (e) => {
       const text = (e.clipboardData || window.clipboardData).getData("text");
-      const limits = INPUT_LIMITS[id];
+      const limits = constants.LIMITS.INPUT[id];
       const cleaned = utils.sanitizePositiveInteger(text, limits);
 
       if (cleaned === limits.defaultValue && !/^[1-9]\\d*$/.test(text)) {
@@ -103,7 +104,7 @@ function attachInputValidation() {
         input.classList.add("invalid-flash");
         setTimeout(
           () => input.classList.remove("invalid-flash"),
-          VISUAL_TIMING.INVALID_INPUT_FLASH_MS
+          constants.UX.TIMING.INVALID_INPUT_FLASH_MS
         );
       } else {
         e.preventDefault();
@@ -163,7 +164,7 @@ function attachInputValidation() {
         const otherVal = Number(otherEl.value);
         const margin = advancedMode.isAdvancedMode()
           ? advancedMode.getQuantizationStep()
-          : 5;
+          : constants.LIMITS.STEP.DEFAULT;
 
         const violated =
           editedEl === minInput
@@ -176,13 +177,13 @@ function attachInputValidation() {
           // branch and by _correctMarginIfViolated), so it is guaranteed to be
           // margin-safe. Reverting only editedEl would leave the pair in an
           // unsafe state if otherEl has drifted from its own LVV.
+          const inputPolicy = constants.LIMITS.INPUT;
           minInput.value =
             minInput.dataset.lastValidValue ||
-            String(INPUT_LIMITS.bpmMin.defaultValue);
+            String(inputPolicy.bpmMin.defaultValue);
           maxInput.value =
             maxInput.dataset.lastValidValue ||
-            String(INPUT_LIMITS.bpmMax.defaultValue);
-          showNotice(`BPM range must be at least ${margin} apart`);
+            String(inputPolicy.bpmMax.defaultValue);
         } else {
           // Both values are margin-safe — this is the only place that advances
           // lastValidValue for these two fields.
@@ -225,12 +226,15 @@ function createMetronomeSlider(elementId, config) {
   // Destroy existing instance
   if (sliderEl.noUiSlider) sliderEl.noUiSlider.destroy();
 
+  const bpmLimits = constants.LIMITS.BPM;
+  const defaultStep = constants.LIMITS.STEP.DEFAULT;
+
   noUiSlider.create(sliderEl, {
     start: config.start,
     connect: config.connect,
-    range: { min: 30, max: 300 },
-    step: config.step ?? 5,
-    margin: config.margin ?? 5, // Safety margin (ignored if single handle)
+    range: { min: bpmLimits.MIN, max: bpmLimits.MAX },
+    step: config.step ?? defaultStep,
+    margin: config.margin ?? defaultStep,
     animate: true,
     animationDuration: 300,
     tooltips: false,
@@ -375,7 +379,10 @@ export function initSliders() {
 
     if (minInput && maxInput) {
       const grooveSlider = createMetronomeSlider("groove-slider", {
-        start: [parseInt(minInput.value) || 30, parseInt(maxInput.value) || 60],
+        start: [
+          parseInt(minInput.value) || constants.DEFAULTS.GROOVE_RANGE.MIN,
+          parseInt(maxInput.value) || constants.DEFAULTS.GROOVE_RANGE.MAX,
+        ],
         connect: true,
         onUpdate: (values) => {
           if (!advancedMode.isAdvancedMode()) {
@@ -400,7 +407,7 @@ export function initSliders() {
 
     if (simpleInput) {
       const simpleSlider = createMetronomeSlider("simpleMetronomeSlider", {
-        start: [parseInt(simpleInput.value) || 120],
+        start: [parseInt(simpleInput.value) || constants.DEFAULTS.BPM],
         connect: "lower",
         onUpdate: (values) => {
           // In Advanced Mode the numeric input is source of truth;
@@ -442,7 +449,7 @@ export function updateBpmInputSteps() {
 
   const sliderStep = advancedMode.isAdvancedMode()
     ? advancedMode.getQuantizationStep()
-    : 5;
+    : constants.LIMITS.STEP.DEFAULT;
 
   if (grooveSliderInstance) {
     grooveSliderInstance.updateOptions(

@@ -4,7 +4,6 @@
  */
 
 import { debugLog } from "../debug.js";
-import { VISUAL_TIMING } from "../constants.js";
 import { ingestLibrary } from "../grooveStorage.js";
 
 /** @type {number|null} Internal timer for notice fade-out sequence */
