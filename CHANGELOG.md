@@ -1,5 +1,15 @@
 # Changelog
 
+## [v12.2.0] - 2026-06-17
+
+### 🧹 Chores
+
+- none: cleanup repo
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v12.2.0] - 2026-05-29
 
 ### ✨ Features
