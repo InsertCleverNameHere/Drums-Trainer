@@ -11,7 +11,7 @@ import * as notices from "./notices.js";
 import * as interop from "./interop.js";
 import { patternScheduler } from "../patternScheduler.js";
 import { isAdvancedMode } from "./advancedMode.js";
-import { generateMeasureLayout } from "../visuals.js";
+import { generateMeasureLayout } from "../utils.js";
 import { debugLog } from "../debug.js";
 
 // --- Internal State ---

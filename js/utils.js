@@ -723,3 +723,133 @@ export function decompressGroove(compressedStr) {
     return null;
   }
 }
+
+/**
+ * GEOMETRY ENGINE: Migrated from visuals.js
+ * Pure mathematical blueprints for rhythmic layouts.
+ */
+
+export function segmentIntoPhrases(totalTicks) {
+  const phrases = [];
+  let start = 0;
+  while (start < totalTicks) {
+    const remainingTicks = totalTicks - start;
+    const phraseLength = Math.min(4, remainingTicks);
+    phrases.push({
+      start,
+      end: start + phraseLength - 1,
+      length: phraseLength,
+    });
+    start += phraseLength;
+  }
+  return phrases;
+}
+
+export function comparePhrasePatterns(layout, phrase1, phrase2) {
+  const slice1 = layout.slice(phrase1.start, phrase1.end + 1);
+  const slice2 = layout.slice(phrase2.start, phrase2.end + 1);
+  const countMatch = slice1.length === slice2.length;
+  const hierarchyMatch =
+    countMatch && slice1.every((dot, i) => dot.size === slice2[i].size);
+  const labelMatch =
+    hierarchyMatch && slice1.every((dot, i) => dot.label === slice2[i].label);
+  return { countMatch, hierarchyMatch, labelMatch };
+}
+
+export function generateMeasureLayout(
+  timeSignature,
+  ticksPerBeat,
+  measures = 1
+) {
+  const layout = [];
+  const { beats } = timeSignature;
+  const totalTicks = beats * ticksPerBeat * measures;
+  const ticksPerMeasure = beats * ticksPerBeat;
+
+  const phonationPatterns = {
+    1: [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+    ],
+    2: [
+      "1",
+      "&",
+      "2",
+      "&",
+      "3",
+      "&",
+      "4",
+      "&",
+      "5",
+      "&",
+      "6",
+      "&",
+      "7",
+      "&",
+      "8",
+      "&",
+    ],
+    4: [
+      "1",
+      "e",
+      "&",
+      "a",
+      "2",
+      "e",
+      "&",
+      "a",
+      "3",
+      "e",
+      "&",
+      "a",
+      "4",
+      "e",
+      "&",
+      "a",
+    ],
+  };
+
+  for (let i = 0; i < totalTicks; i++) {
+    const tickInBeat = i % ticksPerBeat;
+    const currentBeat = Math.floor((i % ticksPerMeasure) / ticksPerBeat);
+    let size = "tertiary",
+      colorClass = "tertiary";
+
+    if (tickInBeat === 0) {
+      size = colorClass = "primary";
+    } else if (
+      (ticksPerBeat === 4 && tickInBeat === 2) ||
+      (ticksPerBeat === 2 && tickInBeat === 1)
+    ) {
+      size = colorClass = "secondary";
+    }
+
+    const pattern = phonationPatterns[ticksPerBeat] || phonationPatterns[1];
+    const labelIndex = ticksPerBeat === 1 ? currentBeat : i % ticksPerMeasure;
+    let label = pattern[labelIndex % pattern.length] || String(currentBeat + 1);
+    if (ticksPerBeat === 1 && currentBeat >= pattern.length)
+      label = String(currentBeat + 1);
+
+    layout.push({
+      size,
+      label,
+      colorClass,
+      isAccent: i % ticksPerMeasure === 0,
+    });
+  }
+  return layout;
+}
