@@ -1,192 +1,96 @@
-// js/constants.js
-// ===================================
-// Application Constants
-// ===================================
-
-// ===================================
-// BPM Configuration
-// ===================================
-
 /**
- * Hard limits for BPM (never user-configurable)
- * These represent physical/practical boundaries
+ * @fileoverview Single Source of Truth for RGT Specification.
  */
-export const BPM_HARD_LIMITS = {
-  MIN: 30, // Below this is too slow for practical use
-  MAX: 300, // Above this exceeds human timing precision
-};
 
-/**
- * Default BPM values for different contexts
- */
-export const BPM_DEFAULTS = {
-  SIMPLE_METRONOME: 120,
-  GROOVE_MIN: 30,
-  GROOVE_MAX: 60,
-};
-
-/**
- * BPM quantization step
- * NOTE: This will become user-configurable in future (stored in localStorage)
- * Current: 5 (multiples of 5 only)
- * Future: User can choose 1, 5, 10, etc.
- */
-export const BPM_QUANTIZATION = {
-  STEP: 5, // TODO: Replace with getUserQuantizationPreference() in future
-};
-
-/**
- * Tap tempo always uses fixed quantization (rhythm-based, not preference)
- */
-export const TAP_TEMPO_QUANTIZATION = 5;
-
-/**
- * User-configurable BPM step limits (Advanced Mode)
- * Used by advancedMode.js and sanitizeQuantizationStep() as a shared source of truth.
- */
-export const BPM_STEP_LIMITS = {
-  MIN: 1,
-  MAX: 150,
-  DEFAULT: 5,
-};
-
-// ===================================
-// Time Signature Limits
-// ===================================
-
-export const TIME_SIGNATURE_LIMITS = {
-  BEATS_MIN: 1,
-  BEATS_MAX: 16,
-  ALLOWED_DENOMINATORS: [2, 4, 8, 16],
-};
-
-// ===================================
-// Audio Scheduler Configuration
-// ===================================
-
-export const SCHEDULER_CONFIG = {
-  SCHEDULE_AHEAD_TIME: 0.1, // seconds to schedule ahead
-  SCHEDULER_INTERVAL_MS: 5, // how often to check schedule (ms)
-  SIMPLE_SCHEDULER_INTERVAL_MS: 25, // how often to check simple scheduler (ms)
-  ADJUSTMENT_PAUSE_MS: 1700, // pause after cycle end (ms)
-};
-
-// ===================================
-// Visual Timing
-// ===================================
-
-/**
- * Durations for UI animations and visual feedback
- */
-export const VISUAL_TIMING = {
-  FLASH_DURATION_MS: 120, // beat dot/text flash duration
-  INVALID_INPUT_FLASH_MS: 400, // red flash on invalid input
-  BPM_CHANGE_FLASH_MS: 150, // yellow flash on BPM adjust
-  HOTKEY_LOCK_MS: 120, // debounce for non-repeatable hotkeys
-  FOOTER_FADE_OUT_MS: 600, // footer opacity transition
-  FOOTER_DISPLAY_MS: 5000, // how long footer stays visible
-  FOOTER_CANCELED_DISPLAY_MS: 4000, // footer display after cancel
-};
-
-// ===================================
-// Count-in Configuration
-// ===================================
-
-/**
- * Count-in audio properties (performCountIn function)
- */
-export const COUNT_IN_CONFIG = {
-  STEPS: 3, // number of count-in beats (3-2-1)
-  FIXED_INTERVAL_MS: 1000, // fixed interval when NOT using Rhythmic Count-in (fixed 1s intervals)
-  HEADROOM_SECONDS: 0.02, // slight delay before first beep
-  STEP_DURATIONS: [0.06, 0.09, 0.06], // duration per step (oscillator stop time)
-  FREQUENCIES: [700, 1400, 1600], // frequencies for each step
-  GAINS: [0.22, 0.25, 0.3], // gain values for each step
-};
-
-// ===================================
-// UI Input Validation
-// ===================================
-
-/**
- * Defines limits for all numeric inputs
- * Uses BPM_HARD_LIMITS as source of truth
- */
-export const INPUT_LIMITS = {
-  bpmMin: {
-    min: BPM_HARD_LIMITS.MIN,
-    max: BPM_HARD_LIMITS.MAX,
-    defaultValue: BPM_DEFAULTS.GROOVE_MIN,
-  },
-  bpmMax: {
-    min: BPM_HARD_LIMITS.MIN,
-    max: BPM_HARD_LIMITS.MAX,
-    defaultValue: BPM_DEFAULTS.GROOVE_MAX,
-  },
-  simpleBpm: {
-    min: BPM_HARD_LIMITS.MIN,
-    max: BPM_HARD_LIMITS.MAX,
-    defaultValue: BPM_DEFAULTS.SIMPLE_METRONOME,
-  },
-  cycleDuration: {
-    min: 1,
-    max: 9999,
-    defaultValue: 60,
-  },
-  totalCycles: {
-    min: 1,
-    max: 9999,
-    defaultValue: 5,
-  },
-  totalTime: {
-    min: 1,
-    max: 9999,
-    defaultValue: 300,
-  },
-  grooveCustomNumerator: {
-    min: TIME_SIGNATURE_LIMITS.BEATS_MIN,
-    max: TIME_SIGNATURE_LIMITS.BEATS_MAX,
-    defaultValue: 4,
-  },
-  grooveCustomDenominator: {
-    min: 2,
-    max: 16,
-    defaultValue: 4,
-    allowed: TIME_SIGNATURE_LIMITS.ALLOWED_DENOMINATORS,
-  },
-  simpleCustomNumerator: {
-    min: TIME_SIGNATURE_LIMITS.BEATS_MIN,
-    max: TIME_SIGNATURE_LIMITS.BEATS_MAX,
-    defaultValue: 4,
-  },
-  simpleCustomDenominator: {
-    min: 2,
-    max: 16,
-    defaultValue: 4,
-    allowed: TIME_SIGNATURE_LIMITS.ALLOWED_DENOMINATORS,
+// --- 1. SYSTEM PHYSICS (Hard Boundaries) ---
+export const LIMITS = {
+  BPM: { MIN: 30, MAX: 300 },
+  TIME_SIG: { BEATS_MAX: 16, DENOMINATORS: [2, 4, 8, 16] },
+  STEP: { MIN: 1, MAX: 150, DEFAULT: 5 },
+  STORAGE: { MAX_GROOVES: 100 },
+  // Consolidated from the old INPUT_LIMITS
+  INPUT: {
+    bpmMin: { min: 30, max: 300, defaultValue: 30 },
+    bpmMax: { min: 30, max: 300, defaultValue: 60 },
+    simpleBpm: { min: 30, max: 300, defaultValue: 120 },
+    cycleDuration: { min: 1, max: 9999, defaultValue: 60 },
+    totalCycles: { min: 1, max: 9999, defaultValue: 5 },
+    totalTime: { min: 1, max: 9999, defaultValue: 300 },
+    grooveCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
+    grooveCustomDenominator: {
+      min: 2,
+      max: 16,
+      defaultValue: 4,
+      allowed: [2, 4, 8, 16],
+    },
+    simpleCustomNumerator: { min: 1, max: 16, defaultValue: 4 },
+    simpleCustomDenominator: {
+      min: 2,
+      max: 16,
+      defaultValue: 4,
+      allowed: [2, 4, 8, 16],
+    },
   },
 };
 
-// ===================================
-// Future: User Preferences (localStorage-backed)
-// ===================================
+// --- 2. AUDIO ENGINE POLICY (Temporal Logic) ---
+export const AUDIO = {
+  LOOKAHEAD_S: 0.1,
+  TIMER_INTERVAL_MS: 25,
+  ADJUSTMENT_PAUSE_MS: 1700,
+  COUNT_IN: {
+    STEPS: 3,
+    HEADROOM_S: 0.02,
+    FIXED_INTERVAL_MS: 1000,
+    STEP_DURATIONS: [0.06, 0.09, 0.06],
+    FREQS: [700, 1400, 1600],
+    GAINS: [0.22, 0.25, 0.3],
+  },
+};
 
-/**
- * Placeholder for future user preference system
- *
- * TODO: Implement in Phase 4+
- * - Read from localStorage on app load
- * - Provide UI to change quantization step
- * - Update slider step attribute dynamically
- * - Update input validation rules
- * - Preserve tap tempo's fixed step=5
- */
-export function getUserQuantizationPreference() {
-  try {
-    const stored = parseInt(localStorage.getItem("bpmQuantizationStep"), 10);
-    if (!isNaN(stored) && stored >= 1 && stored <= 150) return stored;
-  } catch {
-    // localStorage unavailable (SecurityError, private browsing restriction, etc.)
-  }
-  return BPM_QUANTIZATION.STEP;
-}
+// --- 3. UX & INTERFACE POLICY (Timing & Interaction) ---
+export const UX = {
+  TIMING: {
+    FLASH_MS: 120,
+    NOTICE_TOAST_MS: 2000,
+    DIALOG_AUTOHIDE_MS: 10000,
+    FOOTER_FADE_OUT_MS: 600,
+    FOOTER_DISPLAY_MS: 5000,
+    FOOTER_CANCELED_MS: 4000,
+    UPDATE_SPINNER_MS: 300,
+    INVALID_INPUT_FLASH_MS: 400,
+    STAGGER_S: 0.1,
+  },
+  DEBOUNCE: {
+    HOTKEY_MS: 120,
+  },
+  TAP_TEMPO: {
+    TIMEOUT_MS: 1500,
+    MAX_WINDOW: 3,
+    DECAY_WEIGHT: 0.18,
+    QUANTIZATION_STEP: 5,
+  },
+};
+
+// --- 4. FACTORY DEFAULTS (Initial State) ---
+export const DEFAULTS = {
+  BPM: 120,
+  GROOVE_RANGE: { MIN: 30, MAX: 60 },
+  SOUND_PROFILE: "digital",
+};
+
+// --- 5. PERSISTENCE MAP (Storage Keys) ---
+export const STORAGE_KEYS = {
+  THEME: "darkMode",
+  ADVANCED_MODE: "advancedMode",
+  BPM_STEP: "bpmQuantizationStep",
+  GROOVE_ANCHOR: "grooveAnchor",
+  DASHBOARD: "patternDashboardEnabled",
+  SOUND_PROFILE: "activeSoundProfile",
+  MUTE: "audioMuted",
+  LIBRARY_SEEDED: "rgt_library_seeded",
+  GROOVE_PATTERNS: "userGroovePatterns",
+  GROOVE_NAMES: "userGrooveNames",
+  EDITOR_STATE: "grooveEditorState",
+  COUNT_IN_SYNC: "tempoSyncedCountIn",
+};

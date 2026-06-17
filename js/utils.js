@@ -1,5 +1,5 @@
 // utils.js
-// Small helper functions used by the UI and others
+// Helper functions used by the UI and others
 
 // === Core metronome helpers ===
 /**
@@ -8,47 +8,12 @@
  */
 
 import { debugLog } from "./debug.js";
-import {
-  BPM_HARD_LIMITS,
-  TAP_TEMPO_QUANTIZATION,
-  getUserQuantizationPreference,
-} from "./constants.js";
+import * as constants from "./constants.js";
 
-/**
- * Returns a random integer between min and max (inclusive).
- *
- * @param {number} min - Minimum value
- * @param {number} max - Maximum value
- * @returns {number} Random integer
- */
-export function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-/**
- * Quantizes a value to the nearest step.
- *
- * @param {number} value - Value to quantize
- * @param {number} [step=5] - Quantization step
- * @returns {number} Quantized value
- */
-export function quantizeToStep(value, step = 5) {
-  return Math.round(value / step) * step;
-}
-
-/**
- * Sanitizes quantization step to valid range (1-100).
- *
- * @param {number} value - Step value to sanitize
- * @returns {number} Clamped step value
- */
-export function sanitizeQuantizationStep(value) {
-  return sanitizePositiveInteger(value, {
-    min: 1,
-    max: 150,
-    defaultValue: 5,
-  });
-}
+// =============================================================================
+// 1. RHYTHMIC MATH & QUANTIZATION
+// Logic handling BPM calculations, snapping, and tempo discovery.
+// =============================================================================
 
 // Quantization defaults (groove uses this; tap tempo stays hardcoded to 5)
 export const QUANTIZATION = {
@@ -56,30 +21,43 @@ export const QUANTIZATION = {
 };
 
 /**
- * Converts time value to seconds.
- *
- * @param {number} value - Time value
- * @param {string} unit - 'seconds', 'minutes', or 'hours'
- * @returns {number} Time in seconds
+ * Snaps a value to the nearest anchor-relative grid point.
+ * Moved from advancedMode.js for logic-purity.
  */
-export function convertToSeconds(value, unit) {
-  const n = parseInt(value);
-  if (isNaN(n) || n <= 0) return 0;
-  if (unit === "minutes") return n * 60;
-  if (unit === "hours") return n * 3600;
-  return n;
+export function snapToGrid(value, step, anchor, min, max) {
+  let snapped = Math.round((value - anchor) / step) * step + anchor;
+  if (snapped < min) snapped = anchor + Math.ceil((min - anchor) / step) * step;
+  if (snapped > max)
+    snapped = anchor + Math.floor((max - anchor) / step) * step;
+  return snapped;
 }
 
 /**
- * Clamps a value between min and max.
- *
- * @param {number} value - Value to clamp
- * @param {number} min - Minimum value
- * @param {number} max - Maximum value
- * @returns {number} Clamped value
+ * Validates a BPM change and enforces margin constraints.
+ * Consolidates logic from hotkeys.js and sliders.js.
  */
-export function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
+export function calculateNextBpm(
+  current,
+  delta,
+  step,
+  limits,
+  other = null,
+  isMinField = true
+) {
+  const next = Math.max(
+    limits.min,
+    Math.min(limits.max, current + delta * step)
+  );
+  if (next === current) return next;
+
+  // Margin Check
+  if (other !== null) {
+    const margin = step;
+    if (isMinField && next >= other - margin + 1) return null;
+    if (!isMinField && next <= other + margin - 1) return null;
+  }
+
+  return next;
 }
 
 /**
@@ -156,104 +134,6 @@ export function randomizeGroove(
 }
 
 /**
- * Picks a random element from an array.
- *
- * @param {Array} arr - Array to pick from
- * @returns {*} Random element or empty string if invalid
- */
-export function pickRandom(arr) {
-  if (!Array.isArray(arr) || arr.length === 0) return "";
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-/**
- * Extracts a random groove name from multiline text.
- *
- * @param {string} groovesText - Newline-separated groove names
- * @returns {string} Random groove name
- */
-export function getGrooveNameFromText(groovesText) {
-  if (!groovesText) return "No groove selected";
-
-  // Split and sanitize
-  const grooves = groovesText
-    .split("\n")
-    .map((g) => g.trim())
-    .filter(Boolean);
-
-  // Pick one at random
-  const grooveName = pickRandom(grooves);
-
-  return grooveName || "No groove selected";
-}
-
-/**
- * Formats seconds as human-readable time string.
- *
- * @param {number} seconds - Duration in seconds
- * @returns {string} Formatted time (e.g., '1h 23m 45s')
- * @example
- * formatTime(300); // '5m 0s'
- * formatTime(3665); // '1h 1m 5s'
- */
-export function formatTime(seconds) {
-  if (seconds < 60) return `${seconds}s`;
-
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  const parts = [];
-  if (hrs > 0) parts.push(`${hrs}h`);
-  if (mins > 0 || hrs > 0) parts.push(`${mins}m`);
-  parts.push(`${secs}s`);
-
-  return parts.join(" ");
-}
-
-// === Meta app helpers ===
-
-/**
- * Generates a unique color based on version string.
- *
- * @param {string} version - Version string (e.g., 'v1.2.3')
- * @returns {string} Hex color code
- */
-export function generateColorFromVersion(version) {
-  const palette = [
-    "#e6194b",
-    "#3cb44b",
-    "#ffe119",
-    "#4363d8",
-    "#f58231",
-    "#911eb4",
-    "#46f0f0",
-    "#f032e6",
-    "#bcf60c",
-    "#fabebe",
-    "#008080",
-    "#e6beff",
-    "#9a6324",
-    "#fffac8",
-    "#800000",
-    "#aaffc3",
-    "#808000",
-    "#ffd8b1",
-    "#000075",
-    "#808080",
-  ];
-
-  // Simple hash to index into palette
-  let hash = 0;
-  for (let i = 0; i < version.length; i++) {
-    hash = version.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  const index = Math.abs(hash) % palette.length;
-  return palette[index];
-}
-
-/**
  * Calculates BPM from tap timing (maintains internal state).
  * Resets after 1.5s idle.
  *
@@ -267,26 +147,25 @@ export function calculateTapTempo() {
   if (!calculateTapTempo._lastTap) calculateTapTempo._lastTap = 0;
 
   const taps = calculateTapTempo._taps;
-  const TAP_TIMEOUT = 1500;
-  const MAX_WINDOW = 3; // fewer = faster response
+  const config = constants.UX.TAP_TEMPO;
 
   // reset after idle
   if (
     calculateTapTempo._lastTap &&
-    now - calculateTapTempo._lastTap > TAP_TIMEOUT
+    now - calculateTapTempo._lastTap > config.TIMEOUT_MS
   )
     taps.length = 0;
 
   calculateTapTempo._lastTap = now;
   taps.push(now);
   if (taps.length < 2) return null;
-  if (taps.length > MAX_WINDOW) taps.shift();
+  if (taps.length > config.MAX_WINDOW) taps.shift();
 
   const intervals = [];
   for (let i = 1; i < taps.length; i++) intervals.push(taps[i] - taps[i - 1]);
 
   // fast decay weighting
-  const decay = 0.18;
+  const decay = config.DECAY_WEIGHT;
   let w = 1,
     totalW = 0,
     weightedSum = 0;
@@ -304,52 +183,15 @@ export function calculateTapTempo() {
 
   let bpm = 60000 / avg;
 
-  // Tap tempo always uses fixed step=5 (rhythm-based)
-  bpm = Math.round(bpm / TAP_TEMPO_QUANTIZATION) * TAP_TEMPO_QUANTIZATION;
-  bpm = Math.max(BPM_HARD_LIMITS.MIN, Math.min(BPM_HARD_LIMITS.MAX, bpm));
+  // Final Snap using the Tap Tempo Policy
+  const tapStep = constants.UX.TAP_TEMPO.QUANTIZATION_STEP;
+  bpm = Math.round(bpm / tapStep) * tapStep;
+
+  // Final Clamp using the System Limits
+  const bpmLimits = constants.LIMITS.BPM;
+  bpm = Math.max(bpmLimits.MIN, Math.min(bpmLimits.MAX, bpm));
 
   return bpm;
-}
-
-// =============================================================
-// Input Sanitization Helpers
-// =============================================================
-
-/**
- * Sanitizes value to positive integer.
- *
- * @param {string|number} value - Value to sanitize
- * @param {Object} options - Options object
- * @param {number} [options.min=1] - Minimum value
- * @param {number} [options.max=Infinity] - Maximum value
- * @param {number} [options.defaultValue=min] - Fallback value
- * @returns {number} Sanitized positive integer
- */
-export function sanitizePositiveInteger(
-  value,
-  { min = 1, max = Infinity, defaultValue = min } = {}
-) {
-  // 1. Handle empty inputs: Return default
-  if (value === null || value === undefined || value === "") {
-    return defaultValue;
-  }
-
-  // 2. Convert to number
-  const num = Number(value);
-
-  // 3. Reject non-numbers (NaN): Return default
-  if (Number.isNaN(num)) {
-    return defaultValue;
-  }
-
-  // 4. Round to integer
-  const intVal = Math.round(num);
-
-  // 5. Clamp to range (The "Option A" logic)
-  if (intVal < min) return min;
-  if (intVal > max) return max;
-
-  return intVal;
 }
 
 /**
@@ -364,21 +206,23 @@ export function sanitizePositiveInteger(
  * // { bpmMin: 35, bpmMax: 245, step: 5 }
  */
 export function sanitizeBpmRange(bpmMin, bpmMax, quantizationStep) {
-  // Use provided step, fallback to user preference, fallback to constant
-  const step = quantizationStep || getUserQuantizationPreference();
+  // Use provided step, fallback to current app state, fallback to factory default
+  const step =
+    quantizationStep || QUANTIZATION.groove || constants.LIMITS.STEP.DEFAULT;
 
   bpmMin = parseInt(bpmMin);
   bpmMax = parseInt(bpmMax);
 
-  if (isNaN(bpmMin)) bpmMin = BPM_HARD_LIMITS.MIN;
-  if (isNaN(bpmMax)) bpmMax = BPM_HARD_LIMITS.MAX;
+  if (isNaN(bpmMin)) bpmMin = constants.LIMITS.BPM.MIN;
+  if (isNaN(bpmMax)) bpmMax = constants.LIMITS.BPM.MAX;
   if (bpmMin > bpmMax) [bpmMin, bpmMax] = [bpmMax, bpmMin];
 
   // Quantize to step
   bpmMin = Math.ceil(bpmMin / step) * step;
   bpmMax = Math.floor(bpmMax / step) * step;
 
-  if (bpmMin > bpmMax) bpmMin = Math.max(BPM_HARD_LIMITS.MIN, bpmMax - step);
+  if (bpmMin > bpmMax)
+    bpmMin = Math.max(constants.LIMITS.BPM.MIN, bpmMax - step);
 
   if (bpmMax - bpmMin < step) {
     bpmMax = bpmMin + step;
@@ -389,11 +233,212 @@ export function sanitizeBpmRange(bpmMin, bpmMax, quantizationStep) {
   }
 
   // Enforce hard limits
-  bpmMin = Math.max(BPM_HARD_LIMITS.MIN, bpmMin);
-  bpmMax = Math.min(BPM_HARD_LIMITS.MAX, bpmMax);
+  bpmMin = Math.max(constants.LIMITS.BPM.MIN, bpmMin);
+  bpmMax = Math.min(constants.LIMITS.BPM.MAX, bpmMax);
 
   return { bpmMin, bpmMax, step };
 }
+
+/**
+ * Sanitizes quantization step to valid range (1-100).
+ *
+ * @param {number} value - Step value to sanitize
+ * @returns {number} Clamped step value
+ */
+export function sanitizeQuantizationStep(value) {
+  const limits = constants.LIMITS.STEP;
+  return sanitizePositiveInteger(value, {
+    min: limits.MIN,
+    max: limits.MAX,
+    defaultValue: limits.DEFAULT,
+  });
+}
+
+// =============================================================================
+// 2. GEOMETRY ENGINE
+// Blueprint math for visual measure layouts and phrase segmentation.
+// =============================================================================
+
+export function generateMeasureLayout(
+  timeSignature,
+  ticksPerBeat,
+  measures = 1
+) {
+  const layout = [];
+  const { beats } = timeSignature;
+  const totalTicks = beats * ticksPerBeat * measures;
+  const ticksPerMeasure = beats * ticksPerBeat;
+
+  const phonationPatterns = {
+    1: [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+    ],
+    2: [
+      "1",
+      "&",
+      "2",
+      "&",
+      "3",
+      "&",
+      "4",
+      "&",
+      "5",
+      "&",
+      "6",
+      "&",
+      "7",
+      "&",
+      "8",
+      "&",
+    ],
+    4: [
+      "1",
+      "e",
+      "&",
+      "a",
+      "2",
+      "e",
+      "&",
+      "a",
+      "3",
+      "e",
+      "&",
+      "a",
+      "4",
+      "e",
+      "&",
+      "a",
+    ],
+  };
+
+  for (let i = 0; i < totalTicks; i++) {
+    const tickInBeat = i % ticksPerBeat;
+    const currentBeat = Math.floor((i % ticksPerMeasure) / ticksPerBeat);
+    let size = "tertiary",
+      colorClass = "tertiary";
+
+    if (tickInBeat === 0) {
+      size = colorClass = "primary";
+    } else if (
+      (ticksPerBeat === 4 && tickInBeat === 2) ||
+      (ticksPerBeat === 2 && tickInBeat === 1)
+    ) {
+      size = colorClass = "secondary";
+    }
+
+    const pattern = phonationPatterns[ticksPerBeat] || phonationPatterns[1];
+    const labelIndex = ticksPerBeat === 1 ? currentBeat : i % ticksPerMeasure;
+    let label = pattern[labelIndex % pattern.length] || String(currentBeat + 1);
+    if (ticksPerBeat === 1 && currentBeat >= pattern.length)
+      label = String(currentBeat + 1);
+
+    layout.push({
+      size,
+      label,
+      colorClass,
+      isAccent: i % ticksPerMeasure === 0,
+    });
+  }
+  return layout;
+}
+
+export function segmentIntoPhrases(totalTicks) {
+  const phrases = [];
+  let start = 0;
+  while (start < totalTicks) {
+    const remainingTicks = totalTicks - start;
+    const phraseLength = Math.min(4, remainingTicks);
+    phrases.push({
+      start,
+      end: start + phraseLength - 1,
+      length: phraseLength,
+    });
+    start += phraseLength;
+  }
+  return phrases;
+}
+
+export function comparePhrasePatterns(layout, phrase1, phrase2) {
+  const slice1 = layout.slice(phrase1.start, phrase1.end + 1);
+  const slice2 = layout.slice(phrase2.start, phrase2.end + 1);
+  const countMatch = slice1.length === slice2.length;
+  const hierarchyMatch =
+    countMatch && slice1.every((dot, i) => dot.size === slice2[i].size);
+  const labelMatch =
+    hierarchyMatch && slice1.every((dot, i) => dot.label === slice2[i].label);
+  return { countMatch, hierarchyMatch, labelMatch };
+}
+
+// =============================================================================
+// 3. SERIALIZATION
+// Data translation for external sharing and clipboard exchange.
+// =============================================================================
+
+/**
+ * Compresses a pattern object into a URL-safe Base64 string.
+ * @param {Object} patternObj
+ * @returns {string|null}
+ */
+export function compressGroove(patternObj) {
+  try {
+    const json = JSON.stringify(patternObj);
+    // LZ-String handles safety internally.
+    return LZString.compressToEncodedURIComponent(json);
+  } catch (e) {
+    debugLog("state", "❌ Compression failed", e);
+    return null;
+  }
+}
+
+/**
+ * Decompresses a URL-safe string back into a pattern object.
+ * @param {string} compressedStr
+ * @returns {Object|null}
+ */
+export function decompressGroove(compressedStr) {
+  if (!compressedStr) return null;
+
+  try {
+    // Pass the raw string directly.
+    const json = LZString.decompressFromEncodedURIComponent(compressedStr);
+
+    if (!json) return null;
+
+    const obj = JSON.parse(json);
+
+    // Logic Guard: Ensure valid structure and pattern sovereignty metadata
+    if (!obj || typeof obj !== "object" || !obj.patterns) return null;
+
+    return obj;
+  } catch (e) {
+    debugLog(
+      "state",
+      "❌ Decompression failed: Invalid or corrupted string",
+      e
+    );
+    return null;
+  }
+}
+
+// =============================================================================
+// 4. SYSTEM & VERSIONING
+// Meta-app logic for version parsing and branding colors.
+// =============================================================================
 
 /**
  * Enhanced color palette with 30 vibrant colors optimized for light/dark mode.
@@ -637,47 +682,188 @@ export function migrateStoredVersion(storedVersion) {
 }
 
 /**
- * Compresses a pattern object into a URL-safe Base64 string.
- * @param {Object} patternObj
- * @returns {string|null}
+ * Generates a unique color based on version string.
+ *
+ * @param {string} version - Version string (e.g., 'v1.2.3')
+ * @returns {string} Hex color code
  */
-export function compressGroove(patternObj) {
-  try {
-    const json = JSON.stringify(patternObj);
-    // LZ-String handles safety internally.
-    return LZString.compressToEncodedURIComponent(json);
-  } catch (e) {
-    debugLog("state", "❌ Compression failed", e);
-    return null;
+export function generateColorFromVersion(version) {
+  const palette = [
+    "#e6194b",
+    "#3cb44b",
+    "#ffe119",
+    "#4363d8",
+    "#f58231",
+    "#911eb4",
+    "#46f0f0",
+    "#f032e6",
+    "#bcf60c",
+    "#fabebe",
+    "#008080",
+    "#e6beff",
+    "#9a6324",
+    "#fffac8",
+    "#800000",
+    "#aaffc3",
+    "#808000",
+    "#ffd8b1",
+    "#000075",
+    "#808080",
+  ];
+
+  // Simple hash to index into palette
+  let hash = 0;
+  for (let i = 0; i < version.length; i++) {
+    hash = version.charCodeAt(i) + ((hash << 5) - hash);
   }
+
+  const index = Math.abs(hash) % palette.length;
+  return palette[index];
+}
+
+// =============================================================================
+// 5. PRIMITIVE HELPERS & SANITIZATION
+// Basic math, array operations, and string formatting.
+// =============================================================================
+
+/**
+ * Returns a random integer between min and max (inclusive).
+ *
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @returns {number} Random integer
+ */
+export function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**
- * Decompresses a URL-safe string back into a pattern object.
- * @param {string} compressedStr
- * @returns {Object|null}
+ * Clamps a value between min and max.
+ *
+ * @param {number} value - Value to clamp
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @returns {number} Clamped value
  */
-export function decompressGroove(compressedStr) {
-  if (!compressedStr) return null;
+export function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
 
-  try {
-    // Pass the raw string directly.
-    const json = LZString.decompressFromEncodedURIComponent(compressedStr);
+/**
+ * Quantizes a value to the nearest step.
+ *
+ * @param {number} value - Value to quantize
+ * @param {number} [step=5] - Quantization step
+ * @returns {number} Quantized value
+ */
+export function quantizeToStep(value, step = 5) {
+  return Math.round(value / step) * step;
+}
 
-    if (!json) return null;
+/**
+ * Converts time value to seconds.
+ *
+ * @param {number} value - Time value
+ * @param {string} unit - 'seconds', 'minutes', or 'hours'
+ * @returns {number} Time in seconds
+ */
+export function convertToSeconds(value, unit) {
+  const n = parseInt(value);
+  if (isNaN(n) || n <= 0) return 0;
+  if (unit === "minutes") return n * 60;
+  if (unit === "hours") return n * 3600;
+  return n;
+}
 
-    const obj = JSON.parse(json);
+/**
+ * Picks a random element from an array.
+ *
+ * @param {Array} arr - Array to pick from
+ * @returns {*} Random element or empty string if invalid
+ */
+export function pickRandom(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return "";
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
-    // Logic Guard: Ensure valid structure and pattern sovereignty metadata
-    if (!obj || typeof obj !== "object" || !obj.patterns) return null;
+/**
+ * Extracts a random groove name from multiline text.
+ *
+ * @param {string} groovesText - Newline-separated groove names
+ * @returns {string} Random groove name
+ */
+export function getGrooveNameFromText(groovesText) {
+  if (!groovesText) return "No groove selected";
 
-    return obj;
-  } catch (e) {
-    debugLog(
-      "state",
-      "❌ Decompression failed: Invalid or corrupted string",
-      e
-    );
-    return null;
+  // Split and sanitize
+  const grooves = groovesText
+    .split("\n")
+    .map((g) => g.trim())
+    .filter(Boolean);
+
+  // Pick one at random
+  const grooveName = pickRandom(grooves);
+
+  return grooveName || "No groove selected";
+}
+
+/**
+ * Formats seconds as human-readable time string.
+ *
+ * @param {number} seconds - Duration in seconds
+ * @returns {string} Formatted time (e.g., '1h 23m 45s')
+ * @example
+ * formatTime(300); // '5m 0s'
+ * formatTime(3665); // '1h 1m 5s'
+ */
+export function formatTime(seconds) {
+  if (seconds < 60) return `${seconds}s`;
+
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs}h`);
+  if (mins > 0 || hrs > 0) parts.push(`${mins}m`);
+  parts.push(`${secs}s`);
+
+  return parts.join(" ");
+}
+
+/**
+ * Sanitizes value to positive integer.
+ *
+ * @param {string|number} value - Value to sanitize
+ * @param {Object} options - Options object
+ * @param {number} [options.min=1] - Minimum value
+ * @param {number} [options.max=Infinity] - Maximum value
+ * @param {number} [options.defaultValue=min] - Fallback value
+ * @returns {number} Sanitized positive integer
+ */
+export function sanitizePositiveInteger(
+  value,
+  { min = 1, max = Infinity, defaultValue = min } = {}
+) {
+  // 1. Handle empty inputs: Return default
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
   }
+
+  // 2. Convert to number
+  const num = Number(value);
+
+  // 3. Reject non-numbers (NaN): Return default
+  if (Number.isNaN(num)) {
+    return defaultValue;
+  }
+
+  // 4. Round to integer
+  const intVal = Math.round(num);
+
+  // 5. Clamp to range (The "Option A" logic)
+  if (intVal < min) return min;
+  if (intVal > max) return max;
+
+  return intVal;
 }

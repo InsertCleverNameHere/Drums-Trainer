@@ -7,6 +7,7 @@
 
 import { debugLog } from "../debug.js";
 import * as sessionEngine from "../sessionEngine.js";
+import { getActiveModeOwner } from "../ownership.js";
 import * as simpleMetronome from "../simpleMetronome.js";
 import * as utils from "../utils.js";
 
@@ -87,10 +88,7 @@ function _animateSwap(toShow, toHide, onComplete) {
  * @returns {void}
  */
 function setActiveMode(mode, tabGroove, tabMet, panelGroove, panelMet) {
-  const owner =
-    typeof sessionEngine.getActiveModeOwner === "function"
-      ? sessionEngine.getActiveModeOwner()
-      : null;
+  const owner = getActiveModeOwner();
 
   // Enforce explicit ownership first
   if (owner === "groove") {
@@ -306,10 +304,7 @@ export function initSimplePanelControls() {
   // Start/Stop button
   startBtn.addEventListener("click", async (ev) => {
     ev.preventDefault();
-    const owner =
-      typeof sessionEngine.getActiveModeOwner === "function"
-        ? sessionEngine.getActiveModeOwner()
-        : null;
+    const owner = getActiveModeOwner();
 
     if (owner && owner !== "simple") {
       debugLog(

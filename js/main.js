@@ -3,9 +3,11 @@
 import * as metronome from "./metronomeCore.js";
 import { createVisualCallback, primeVisuals } from "./visuals.js";
 import * as utils from "./utils.js";
+import * as ownership from "./ownership.js";
 import * as sessionEngine from "./sessionEngine.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import * as uiController from "./uiController.js";
+import * as interop from "./ui/interop.js";
 import { initDarkMode } from "./ui/theme.js";
 import * as controls from "./ui/controls.js";
 import { initModeTabs, initSimplePanelControls } from "./ui/panels.js";
@@ -15,6 +17,7 @@ import { initWakeLock } from "./ui/wakeLock.js";
 import { initAdvancedMode } from "./ui/advancedMode.js";
 import { patternScheduler } from "./patternScheduler.js";
 import { initGrooveEditor, updatePlayhead } from "./ui/grooveEditor.js";
+import * as notices from "./ui/notices.js";
 import * as grooveStorage from "./grooveStorage.js";
 import { loadDrumSamples } from "./sampleLoader.js";
 import { ensureAudio } from "./audioProfiles.js";
@@ -144,10 +147,10 @@ if (document.readyState === "loading") {
     initGrooveEditor();
 
     // 1. Check for shared grooves via URL hash FIRST
-    const hasSharedGroove = uiController.checkDeepLinks();
+    const hasSharedGroove = interop.checkDeepLinks();
 
     // 2. Only check for library seeding if NO shared groove is being previewed
-    if (!hasSharedGroove) grooveStorage.checkLibrarySeed();
+    if (!hasSharedGroove) notices.checkLibrarySeed();
 
     uiController.initMuteControl(); // Sync mute state
     loadDrumSamples(); // Load audio samples before initializing related UI
@@ -187,10 +190,10 @@ if (document.readyState === "loading") {
   initGrooveEditor();
 
   // 1. Check for shared grooves via URL hash FIRST
-  const hasSharedGroove = uiController.checkDeepLinks();
+  const hasSharedGroove = interop.checkDeepLinks();
 
   // 2. Only check for library seeding if NO shared groove is being previewed
-  if (!hasSharedGroove) grooveStorage.checkLibrarySeed();
+  if (!hasSharedGroove) notices.checkLibrarySeed();
 
   uiController.initMuteControl(); // Sync mute state
   loadDrumSamples(); // Load audio samples before initializing related UI
@@ -339,7 +342,7 @@ window.addEventListener("keydown", unlockAudio);
  * Allows "Live" link ingestion without requiring a page refresh.
  */
 window.addEventListener("hashchange", () => {
-  uiController.checkDeepLinks();
+  interop.checkDeepLinks();
 });
 
 // === Developer Console Bridge ===
@@ -349,6 +352,7 @@ if (typeof window !== "undefined") {
     // Logic Cores
     metronome: metronome,
     session: sessionEngine,
+    ownership: ownership,
     scheduler: patternScheduler,
     simple: simpleMetronome,
 
@@ -358,6 +362,8 @@ if (typeof window !== "undefined") {
 
     // Utilities & Storage
     storage: grooveStorage,
+    notices: notices,
+    interop: interop,
     utils: utils,
   });
 

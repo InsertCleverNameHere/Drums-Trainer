@@ -6,11 +6,12 @@
  */
 
 import { debugLog } from "../debug.js";
-import { VISUAL_TIMING, INPUT_LIMITS } from "../constants.js";
+import * as constants from "../constants.js";
 import * as sessionEngine from "../sessionEngine.js";
 import * as simpleMetronome from "../simpleMetronome.js";
-import { showNotice } from "./sliders.js";
+import { showNotice } from "./notices.js";
 import * as advancedMode from "./advancedMode.js";
+import { getActiveModeOwner } from "../ownership.js";
 
 // Hotkey state
 let _hotkeyLock = false;
@@ -24,9 +25,9 @@ let _hotkeyLock = false;
  */
 function validateNumericInput(input) {
   const id = input.id;
-  if (!(id in INPUT_LIMITS)) return;
+  if (!(id in constants.LIMITS.INPUT)) return;
 
-  const limits = INPUT_LIMITS[id];
+  const limits = constants.LIMITS.INPUT[id];
   const value = parseInt(input.value, 10);
 
   if (isNaN(value)) {
@@ -125,7 +126,7 @@ function adjustSimpleBpm(delta) {
   const step = advancedMode.isAdvancedMode()
     ? advancedMode.getQuantizationStep()
     : 5;
-  const limits = INPUT_LIMITS[el.id];
+  const limits = constants.LIMITS.INPUT[el.id];
 
   // In Advanced Mode clamp to the anchor-relative grid floor/ceiling so arrow
   // keys cannot overshoot into values that would be silently un-snapped on blur.
@@ -158,11 +159,7 @@ function adjustSimpleBpm(delta) {
  * @returns {'groove'|'simple'} Target mode
  */
 function decideTarget() {
-  const owner =
-    typeof sessionEngine.getActiveModeOwner === "function"
-      ? sessionEngine.getActiveModeOwner()
-      : null;
-
+  const owner = getActiveModeOwner();
   // Owner wins
   if (owner === "groove") return "groove";
   if (owner === "simple") return "simple";
@@ -222,7 +219,7 @@ export function setupHotkeys() {
     if (!allowRepeat) {
       if (_hotkeyLock) return;
       _hotkeyLock = true;
-      setTimeout(() => (_hotkeyLock = false), VISUAL_TIMING.HOTKEY_LOCK_MS);
+      setTimeout(() => (_hotkeyLock = false), constants.UX.DEBOUNCE.HOTKEY_MS);
     }
 
     // Prevent default for navigation keys
@@ -238,10 +235,7 @@ export function setupHotkeys() {
     )
       event.preventDefault();
 
-    const owner =
-      typeof sessionEngine.getActiveModeOwner === "function"
-        ? sessionEngine.getActiveModeOwner()
-        : null;
+    const owner = getActiveModeOwner();
 
     const target = decideTarget();
     const grooveStartBtn = document.getElementById("startBtn");
@@ -333,7 +327,7 @@ export function setupHotkeys() {
       case "ArrowUp":
       case "ArrowDown": {
         // ✅ GUARD: Block BPM changes during playback
-        const owner = sessionEngine.getActiveModeOwner();
+        const owner = getActiveModeOwner();
         if (owner) {
           debugLog("hotkeys", `⚠️ BPM adjustment blocked - ${owner} is active`);
           showNotice("⚠️ Cannot adjust BPM during playback");

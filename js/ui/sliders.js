@@ -6,85 +6,14 @@
  */
 
 import { debugLog } from "../debug.js";
-import { INPUT_LIMITS, VISUAL_TIMING } from "../constants.js";
+import { showNotice } from "./notices.js";
+import * as constants from "../constants.js";
 import * as utils from "../utils.js";
 import * as advancedMode from "./advancedMode.js";
 
 // Slider instances
 let grooveSliderInstance = null;
 let simpleSliderInstance = null;
-
-/** @type {number|null} Internal timer for notice fade-out sequence */
-let _noticeAutoTimer = null;
-/** @type {number|null} Internal timer for final notice removal */
-let _noticeHideTimer = null;
-
-/**
- * Force-kills any active notice timers and clears visual state.
- * Essential for preventing background "toast" timers from closing
- * interactive dialogs.
- *
- * @returns {void}
- */
-export function clearNotice() {
-  const notice = document.querySelector(".ui-notice");
-  if (!notice) return;
-
-  if (_noticeAutoTimer) clearTimeout(_noticeAutoTimer);
-  if (_noticeHideTimer) clearTimeout(_noticeHideTimer);
-  _noticeAutoTimer = null;
-  _noticeHideTimer = null;
-
-  gsap.killTweensOf(notice);
-  notice.classList.remove(
-    "show",
-    "fade-in",
-    "fade-out",
-    "hidden",
-    "interactive",
-    "auto"
-  );
-}
-
-/**
- * Shows floating UI notice message.
- *
- * @param {string} message - Notice text
- * @param {number} [duration=2000] - Display duration in ms
- * @returns {void}
- *
- * @example
- * showNotice('⚠️ BPM range must be at least 5 apart');
- */
-export function showNotice(message, duration = 2000) {
-  let notice = document.querySelector(".ui-notice");
-  if (!notice) {
-    notice = document.createElement("div");
-    notice.className = "ui-notice";
-    document.body.appendChild(notice);
-  }
-
-  // Clear any existing notice or pending timers to prevent collisions
-  clearNotice();
-
-  notice.textContent = message;
-  notice.classList.add("show", "fade-in", "auto");
-
-  // Assign timers to tracked variables to allow cancellation
-  _noticeAutoTimer = setTimeout(() => {
-    // Logic Guard: If the notice is now interactive (e.g. Welcome prompt),
-    // do not auto-hide it.
-    if (notice.classList.contains("interactive")) return;
-
-    notice.classList.remove("fade-in");
-    notice.classList.add("fade-out");
-    _noticeHideTimer = setTimeout(() => {
-      if (notice.classList.contains("interactive")) return;
-      notice.classList.remove("show", "auto");
-      notice.classList.add("hidden");
-    }, 500);
-  }, duration);
-}
 
 /**
  * Validates and sanitizes numeric input against defined limits.
@@ -98,9 +27,10 @@ export function showNotice(message, duration = 2000) {
  */
 function validateNumericInput(input) {
   const id = input.id;
-  if (!(id in INPUT_LIMITS)) return;
+  const inputPolicy = constants.LIMITS.INPUT;
+  if (!(id in inputPolicy)) return;
 
-  const limits = INPUT_LIMITS[id];
+  const limits = inputPolicy[id];
   let sanitized = utils.sanitizePositiveInteger(input.value, limits);
 
   // Custom validation for allowed denominator values
@@ -141,7 +71,7 @@ function validateNumericInput(input) {
  * attachInputValidation(); // Sets up validation for all inputs
  */
 function attachInputValidation() {
-  Object.keys(INPUT_LIMITS).forEach((id) => {
+  Object.keys(constants.LIMITS.INPUT).forEach((id) => {
     const input = document.getElementById(id);
     if (!input) return;
 
@@ -166,7 +96,7 @@ function attachInputValidation() {
     // Sanitize pasted content
     input.addEventListener("paste", (e) => {
       const text = (e.clipboardData || window.clipboardData).getData("text");
-      const limits = INPUT_LIMITS[id];
+      const limits = constants.LIMITS.INPUT[id];
       const cleaned = utils.sanitizePositiveInteger(text, limits);
 
       if (cleaned === limits.defaultValue && !/^[1-9]\\d*$/.test(text)) {
@@ -174,7 +104,7 @@ function attachInputValidation() {
         input.classList.add("invalid-flash");
         setTimeout(
           () => input.classList.remove("invalid-flash"),
-          VISUAL_TIMING.INVALID_INPUT_FLASH_MS
+          constants.UX.TIMING.INVALID_INPUT_FLASH_MS
         );
       } else {
         e.preventDefault();
@@ -234,7 +164,7 @@ function attachInputValidation() {
         const otherVal = Number(otherEl.value);
         const margin = advancedMode.isAdvancedMode()
           ? advancedMode.getQuantizationStep()
-          : 5;
+          : constants.LIMITS.STEP.DEFAULT;
 
         const violated =
           editedEl === minInput
@@ -247,13 +177,13 @@ function attachInputValidation() {
           // branch and by _correctMarginIfViolated), so it is guaranteed to be
           // margin-safe. Reverting only editedEl would leave the pair in an
           // unsafe state if otherEl has drifted from its own LVV.
+          const inputPolicy = constants.LIMITS.INPUT;
           minInput.value =
             minInput.dataset.lastValidValue ||
-            String(INPUT_LIMITS.bpmMin.defaultValue);
+            String(inputPolicy.bpmMin.defaultValue);
           maxInput.value =
             maxInput.dataset.lastValidValue ||
-            String(INPUT_LIMITS.bpmMax.defaultValue);
-          showNotice(`BPM range must be at least ${margin} apart`);
+            String(inputPolicy.bpmMax.defaultValue);
         } else {
           // Both values are margin-safe — this is the only place that advances
           // lastValidValue for these two fields.
@@ -296,12 +226,15 @@ function createMetronomeSlider(elementId, config) {
   // Destroy existing instance
   if (sliderEl.noUiSlider) sliderEl.noUiSlider.destroy();
 
+  const bpmLimits = constants.LIMITS.BPM;
+  const defaultStep = constants.LIMITS.STEP.DEFAULT;
+
   noUiSlider.create(sliderEl, {
     start: config.start,
     connect: config.connect,
-    range: { min: 30, max: 300 },
-    step: config.step ?? 5,
-    margin: config.margin ?? 5, // Safety margin (ignored if single handle)
+    range: { min: bpmLimits.MIN, max: bpmLimits.MAX },
+    step: config.step ?? defaultStep,
+    margin: config.margin ?? defaultStep,
     animate: true,
     animationDuration: 300,
     tooltips: false,
@@ -446,7 +379,10 @@ export function initSliders() {
 
     if (minInput && maxInput) {
       const grooveSlider = createMetronomeSlider("groove-slider", {
-        start: [parseInt(minInput.value) || 30, parseInt(maxInput.value) || 60],
+        start: [
+          parseInt(minInput.value) || constants.DEFAULTS.GROOVE_RANGE.MIN,
+          parseInt(maxInput.value) || constants.DEFAULTS.GROOVE_RANGE.MAX,
+        ],
         connect: true,
         onUpdate: (values) => {
           if (!advancedMode.isAdvancedMode()) {
@@ -471,7 +407,7 @@ export function initSliders() {
 
     if (simpleInput) {
       const simpleSlider = createMetronomeSlider("simpleMetronomeSlider", {
-        start: [parseInt(simpleInput.value) || 120],
+        start: [parseInt(simpleInput.value) || constants.DEFAULTS.BPM],
         connect: "lower",
         onUpdate: (values) => {
           // In Advanced Mode the numeric input is source of truth;
@@ -513,7 +449,7 @@ export function updateBpmInputSteps() {
 
   const sliderStep = advancedMode.isAdvancedMode()
     ? advancedMode.getQuantizationStep()
-    : 5;
+    : constants.LIMITS.STEP.DEFAULT;
 
   if (grooveSliderInstance) {
     grooveSliderInstance.updateOptions(

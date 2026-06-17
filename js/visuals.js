@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-/* eslint-disable no-undef */
+
 // js/visuals.js
 // Phrase-based metronome visualizer with intelligent panning
 //
@@ -14,7 +14,8 @@
 // - Extreme BPMs (300+ with 16ths): ~6 MB per 3 minutes (acceptable)
 // - No resize bugs due to transform-based positioning
 
-import { VISUAL_TIMING } from "./constants.js";
+import * as utils from "./utils.js";
+import * as constants from "./constants.js";
 import * as metronome from "./metronomeCore.js";
 import * as simpleMetronome from "./simpleMetronome.js";
 import { patternScheduler } from "./patternScheduler.js";
@@ -25,69 +26,50 @@ import { debugLog } from "./debug.js";
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
 
 /**
- * Segments a measure into phrases of up to 4 ticks each.
- * Returns array of phrase objects with start/end indices.
+ * Internal Factory: Builds the DOM structure for a single beat/tick.
+ * Consolidates duplicate logic from renderNewPhrase and primeVisuals.
  *
- * @param {number} totalTicks - Total number of ticks in the measure
- * @returns {Array<{start: number, end: number, length: number}>}
- *
- * Examples:
- *   4 ticks  → [{start:0, end:3, length:4}]
- *   16 ticks → [{start:0, end:3, length:4}, {start:4, end:7, length:4}, ...]
- *   7 ticks  → [{start:0, end:3, length:4}, {start:4, end:6, length:3}]
+ * @private
+ * @param {Object} dotInfo - Geometric data from generateMeasureLayout
+ * @param {boolean} isPatternMode - Whether pattern dashboard is active
+ * @param {string|null} trackID - Instrument ID (hihat, kick, etc.)
+ * @param {number} stepIndex - Absolute tick index for sample data lookup
+ * @param {boolean} showPhonation - Whether to render the label text
  */
-function segmentIntoPhrases(totalTicks) {
-  const phrases = [];
-  let start = 0;
+function _createBeatElement(
+  dotInfo,
+  isPatternMode,
+  trackID,
+  stepIndex,
+  showPhonation
+) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "beat-wrapper";
 
-  while (start < totalTicks) {
-    const remainingTicks = totalTicks - start;
-    const phraseLength = Math.min(4, remainingTicks);
+  const dot = document.createElement("div");
+  if (isPatternMode) {
+    dot.className = "pattern-dot";
+    // Look up if this specific tick in the pattern is a "hit"
+    if (patternScheduler.getStepData(trackID, stepIndex)) {
+      dot.classList.add("active");
+    }
+  } else {
+    dot.className = `beat-dot ${dotInfo.size}`;
+    if (dotInfo.isAccent) dot.classList.add("accent");
+  }
+  wrapper.appendChild(dot);
 
-    phrases.push({
-      start,
-      end: start + phraseLength - 1,
-      length: phraseLength,
-    });
-
-    start += phraseLength;
+  if (showPhonation) {
+    const text = document.createElement("div");
+    // Standard phonation uses visuals class; Dashboard uses pattern-label class
+    text.className = isPatternMode
+      ? "phonation-text pattern-label"
+      : "phonation-text";
+    text.textContent = dotInfo.label;
+    wrapper.appendChild(text);
   }
 
-  return phrases;
-}
-
-/**
- * Compares two phrase slices from measureLayout to detect differences.
- * Used by intelligent panning mode to decide: no update, label update, or full pan.
- *
- * @param {Array} layout - Complete measure layout from generateMeasureLayout
- * @param {Object} phrase1 - First phrase {start, end, length}
- * @param {Object} phrase2 - Second phrase {start, end, length}
- * @returns {{countMatch: boolean, hierarchyMatch: boolean, labelMatch: boolean}}
- *
- * Examples:
- *   4/4 16ths, phrase 0 vs 1: {countMatch: true, hierarchyMatch: true, labelMatch: false}
- *   7/8, phrase 0 vs 1: {countMatch: false, hierarchyMatch: false, labelMatch: false}
- */
-function comparePhrasePatterns(layout, phrase1, phrase2) {
-  // Extract slices from the full measure layout
-  const slice1 = layout.slice(phrase1.start, phrase1.end + 1);
-  const slice2 = layout.slice(phrase2.start, phrase2.end + 1);
-
-  // Count match: Do both phrases have the same number of dots?
-  const countMatch = slice1.length === slice2.length;
-
-  // Hierarchy match: Do dots have the same size pattern?
-  // (Only valid if counts match)
-  const hierarchyMatch =
-    countMatch && slice1.every((dot, i) => dot.size === slice2[i].size);
-
-  // Label match: Do dots have the same phonation labels?
-  // (Only valid if hierarchy matches)
-  const labelMatch =
-    hierarchyMatch && slice1.every((dot, i) => dot.label === slice2[i].label);
-
-  return { countMatch, hierarchyMatch, labelMatch };
+  return wrapper;
 }
 
 /**
@@ -174,32 +156,15 @@ function renderNewPhrase(
     }
 
     phraseSlice.forEach((dotInfo, i) => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "beat-wrapper";
-
-      const dot = document.createElement("div");
-      if (isPatternMode) {
-        dot.className = "pattern-dot";
-        const stepIndex = phrase.start + i;
-        if (patternScheduler.getStepData(trackID, stepIndex)) {
-          dot.classList.add("active");
-        }
-      } else {
-        dot.className = `beat-dot ${dotInfo.size}`;
-        if (dotInfo.isAccent) dot.classList.add("accent");
-      }
-
-      wrapper.appendChild(dot);
-
-      if (!isPatternMode || trackID === (showPed ? "HHPed" : "snare")) {
-        const text = document.createElement("div");
-        text.className = isPatternMode
-          ? "phonation-text pattern-label"
-          : "phonation-text";
-        text.textContent = dotInfo.label;
-        wrapper.appendChild(text);
-      }
-
+      const showPhonation =
+        !isPatternMode || trackID === (showPed ? "HHPed" : "snare");
+      const wrapper = _createBeatElement(
+        dotInfo,
+        isPatternMode,
+        trackID,
+        phrase.start + i,
+        showPhonation
+      );
       dotParent.appendChild(wrapper);
       dotElements.push(wrapper);
     });
@@ -373,120 +338,7 @@ function flashActiveDot(
           "flash-tertiary"
         );
       });
-  }, VISUAL_TIMING.FLASH_DURATION_MS);
-}
-
-/**
- * The Layout Engine.
- * Takes the current time signature and subdivision and returns an array
- * of "virtual dot" objects representing the entire measure.
- */
-export function generateMeasureLayout(
-  timeSignature,
-  ticksPerBeat,
-  measures = 1
-) {
-  const layout = [];
-  const { beats } = timeSignature;
-  const totalTicksInMeasure = beats * ticksPerBeat * measures;
-  const ticksPerMeasure = beats * ticksPerBeat;
-
-  const phonationPatterns = {
-    1: [
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-      "11",
-      "12",
-      "13",
-      "14",
-      "15",
-      "16",
-    ],
-    2: [
-      "1",
-      "&",
-      "2",
-      "&",
-      "3",
-      "&",
-      "4",
-      "&",
-      "5",
-      "&",
-      "6",
-      "&",
-      "7",
-      "&",
-      "8",
-      "&",
-    ],
-    4: [
-      "1",
-      "e",
-      "&",
-      "a",
-      "2",
-      "e",
-      "&",
-      "a",
-      "3",
-      "e",
-      "&",
-      "a",
-      "4",
-      "e",
-      "&",
-      "a",
-    ],
-  };
-
-  for (let i = 0; i < totalTicksInMeasure; i++) {
-    const tickInBeat = i % ticksPerBeat;
-    const currentBeat = Math.floor((i % ticksPerMeasure) / ticksPerBeat);
-
-    let size = "tertiary";
-    let colorClass = "tertiary";
-
-    // Determine size and color based on rhythmic hierarchy
-    if (tickInBeat === 0) {
-      // This is a main beat (1, 2, 3...)
-      size = "primary";
-      colorClass = "primary";
-    } else if (ticksPerBeat === 4 && tickInBeat === 2) {
-      // This is an "&" on a 16th grid
-      size = "secondary";
-      colorClass = "secondary";
-    } else if (ticksPerBeat === 2 && tickInBeat === 1) {
-      // This is an "&" on an 8th grid
-      size = "secondary";
-      colorClass = "secondary";
-    }
-
-    // Determine phonation label
-    const pattern = phonationPatterns[ticksPerBeat] || phonationPatterns[1];
-    const labelIndex = ticksPerBeat === 1 ? currentBeat : i % ticksPerMeasure; // Correctly index within the measure for patterns
-
-    let label = pattern[labelIndex % pattern.length] || String(currentBeat + 1);
-    if (ticksPerBeat === 1 && currentBeat >= pattern.length) {
-      label = String(currentBeat + 1);
-    }
-
-    layout.push({
-      size,
-      label,
-      colorClass,
-      isAccent: i % ticksPerMeasure === 0, // Accent the first beat of each measure
-    });
-  }
-  return layout;
+  }, constants.UX.TIMING.FLASH_MS);
 }
 
 /**
@@ -590,12 +442,12 @@ export function createVisualCallback(panelId = "groove") {
         signatureKey !== lastRenderedSignature ||
         ticksPerBeat !== lastRenderedTicksPerBeat
       ) {
-        measureLayout = generateMeasureLayout(
+        measureLayout = utils.generateMeasureLayout(
           timeSignature,
           ticksPerBeat,
           currentMeasures
         );
-        phrases = segmentIntoPhrases(totalTicksInMeasure);
+        phrases = utils.segmentIntoPhrases(totalTicksInMeasure);
         currentPhraseIndex = -1;
 
         // CRITICAL: Kill ALL GSAP animations before clearing DOM
@@ -625,7 +477,7 @@ export function createVisualCallback(panelId = "groove") {
         );
       }
 
-      // === NEW: DETERMINE CURRENT PHRASE ===
+      // 1. Resolve Current State (Calculated once at the top)
       const newPhraseIndex = phrases.findIndex(
         (p) => currentTickInMeasure >= p.start && currentTickInMeasure <= p.end
       );
@@ -640,183 +492,45 @@ export function createVisualCallback(panelId = "groove") {
 
       const currentPhrase = phrases[newPhraseIndex];
       const tickInPhrase = currentTickInMeasure - currentPhrase.start;
-
-      // NEW: Detect measure boundaries for forced mode single-phrase edge case
       const isMeasureBoundary = currentTickInMeasure === 0;
       const shouldForceRender =
         !intelligentPanning && isMeasureBoundary && phrases.length === 1;
 
-      // === PHRASE BOUNDARY DETECTION & RENDERING ===
-      // This is the core decision engine that determines when and how to update visuals.
-      // Logic flow:
-      // 1. Detect if we've crossed a phrase boundary OR forced render is needed
-      // 2. Compare patterns (intelligent mode only)
-      // 3. Choose rendering strategy: no update / label update / full pan
-      // 4. Execute render and update internal state
-      if (newPhraseIndex !== currentPhraseIndex || shouldForceRender) {
-        const prevPhraseIndex = currentPhraseIndex;
-        currentPhraseIndex = newPhraseIndex;
+      // 2. Get Strategy from Arbiter
+      const strategy = _getPhraseStrategy({
+        isRealPhraseBoundary: newPhraseIndex !== currentPhraseIndex,
+        shouldForceRender,
+        intelligentPanning,
+        isPatternActive,
+        measureLayout,
+        prevPhrase:
+          phrases[
+            currentPhraseIndex === -1 ? phrases.length - 1 : currentPhraseIndex
+          ],
+        currentPhrase,
+        isFirstPhrase: currentPhraseIndex === -1,
+      });
 
-        // Only do pattern comparison if this is a real phrase change, not a forced render
-        const isRealPhraseBoundary = newPhraseIndex !== prevPhraseIndex;
-
-        debugLog(
-          "visuals",
-          `[${panelId}] \n🎯 === ${
-            shouldForceRender ? "MEASURE" : "PHRASE"
-          } BOUNDARY DETECTED ===`
+      // 3. Execute Decision
+      if (strategy === "FULL_PAN") {
+        dotElements = renderNewPhrase(
+          container,
+          measureLayout,
+          currentPhrase,
+          core,
+          dotElements,
+          panelId
         );
-
-        if (isRealPhraseBoundary) {
-          // This is an actual phrase boundary - normal logic applies
-          const actualPrevIndex =
-            prevPhraseIndex === -1 ? phrases.length - 1 : prevPhraseIndex;
-          const prevPhrase = phrases[actualPrevIndex];
-
-          if (prevPhraseIndex === -1) {
-            debugLog(
-              "visuals",
-              `[${panelId}]   Previous phrase: -1 (first tick, comparing to phrase ${actualPrevIndex}: ticks ${prevPhrase.start}-${prevPhrase.end})`
-            );
-          } else {
-            debugLog(
-              "visuals",
-              `[${panelId}]   Previous phrase: ${prevPhraseIndex} (ticks ${prevPhrase.start}-${prevPhrase.end})`
-            );
-          }
-
-          debugLog(
-            "visuals",
-            `[${panelId}]   New phrase: ${newPhraseIndex} (ticks ${currentPhrase.start}-${currentPhrase.end})`
-          );
-          debugLog(
-            "visuals",
-            `[${panelId}]   Tick in new phrase: ${tickInPhrase}`
-          );
-
-          // === DECISION LOGIC ===
-          if (intelligentPanning && !isPatternActive) {
-            const comparison = comparePhrasePatterns(
-              measureLayout,
-              prevPhrase,
-              currentPhrase
-            );
-
-            debugLog(
-              "visuals",
-              `[${panelId}]   Pattern comparison:`,
-              comparison
-            );
-
-            if (comparison.labelMatch) {
-              if (prevPhraseIndex === -1) {
-                // First phrase ever - must render even if it matches the "previous" (last) phrase
-                debugLog(
-                  "visuals",
-                  `[${panelId}]   ➡️ Decision: INITIAL RENDER (first phrase)`
-                );
-                dotElements = renderNewPhrase(
-                  container,
-                  measureLayout,
-                  currentPhrase,
-                  core,
-                  dotElements,
-                  panelId
-                );
-              } else {
-                debugLog(
-                  "visuals",
-                  `[${panelId}]   ➡️ Decision: NO UPDATE (complete match)`
-                );
-                // Keep existing phrase visible
-              }
-            } else if (comparison.hierarchyMatch) {
-              debugLog(
-                "visuals",
-                `[${panelId}]   ➡️ Decision: LABEL UPDATE ONLY (hierarchy match)`
-              );
-
-              // Guard: ensure we have cached elements before attempting label update
-              if (dotElements.length === 0) {
-                debugLog(
-                  "visuals",
-                  `[${panelId}]   ⚠️ No cached elements yet - performing initial render instead`
-                );
-                dotElements = renderNewPhrase(
-                  container,
-                  measureLayout,
-                  currentPhrase,
-                  core,
-                  dotElements,
-                  panelId
-                );
-              } else {
-                updatePhraseLabels(
-                  container,
-                  measureLayout,
-                  currentPhrase,
-                  dotElements,
-                  panelId
-                );
-              }
-            } else {
-              debugLog(
-                "visuals",
-                `[${panelId}]   ➡️ Decision: FULL PAN (structure differs)`
-              );
-              dotElements = renderNewPhrase(
-                container,
-                measureLayout,
-                currentPhrase,
-                core,
-                dotElements,
-                panelId
-              );
-            }
-          } else {
-            // Forced mode with real phrase boundary
-            debugLog(
-              "visuals",
-              `[${panelId}]   ➡️ Decision: FULL PAN (forced mode - phrase boundary)`
-            );
-            dotElements = renderNewPhrase(
-              container,
-              measureLayout,
-              currentPhrase,
-              core,
-              dotElements,
-              panelId
-            );
-          }
-        } else if (shouldForceRender) {
-          // This is NOT a phrase boundary, but a measure boundary in single-phrase forced mode
-          debugLog(
-            "visuals",
-            `[${panelId}]   Measure boundary in single-phrase measure (phrase stays at ${newPhraseIndex})`
-          );
-          debugLog(
-            "visuals",
-            `[${panelId}]   Current phrase: ticks ${currentPhrase.start}-${currentPhrase.end}`
-          );
-          debugLog(
-            "visuals",
-            `[${panelId}]   ➡️ Decision: FULL PAN (forced mode - measure boundary)`
-          );
-          dotElements = renderNewPhrase(
-            container,
-            measureLayout,
-            currentPhrase,
-            core,
-            dotElements,
-            panelId
-          );
-        }
-
-        debugLog(
-          "visuals",
-          `[${panelId}] ========================================\n`
+      } else if (strategy === "LABEL_UPDATE") {
+        updatePhraseLabels(
+          container,
+          measureLayout,
+          currentPhrase,
+          dotElements
         );
       }
+
+      currentPhraseIndex = newPhraseIndex;
 
       // === WITHIN-PHRASE: Ensure phrase is rendered and flash active dot ===
       // Skip fallback if pattern is active to prevent overwriting the 4-track grid
@@ -925,7 +639,7 @@ export function primeVisuals(panelId = "groove") {
   if (isPatternMode) panningContainer.style.flexDirection = "column";
   container.appendChild(panningContainer);
 
-  const measureLayout = generateMeasureLayout(
+  const measureLayout = utils.generateMeasureLayout(
     timeSignature,
     ticksPerBeat,
     measures
@@ -951,32 +665,63 @@ export function primeVisuals(panelId = "groove") {
     }
 
     measureLayout.forEach((dotInfo, i) => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "beat-wrapper";
-      const dot = document.createElement("div");
-
-      if (isPatternMode) {
-        dot.className = "pattern-dot";
-        if (patternScheduler.getStepData(trackID, i))
-          dot.classList.add("active");
-      } else {
-        dot.className = `beat-dot ${dotInfo.size}`;
-        if (dotInfo.isAccent) dot.classList.add("accent");
-      }
-
-      wrapper.appendChild(dot);
-      // Only show phonation text on the bottom track of the dashboard
-      if (!isPatternMode || trackID === (showPed ? "HHPed" : "snare")) {
-        const text = document.createElement("div");
-        text.className = isPatternMode
-          ? "phonation-text pattern-label"
-          : "phonation-text";
-        text.textContent = dotInfo.label;
-        wrapper.appendChild(text);
-      }
+      const showPhonation =
+        !isPatternMode || trackID === (showPed ? "HHPed" : "snare");
+      const wrapper = _createBeatElement(
+        dotInfo,
+        isPatternMode,
+        trackID,
+        i,
+        showPhonation
+      );
       dotParent.appendChild(wrapper);
     });
   });
+}
+
+/**
+ * Determines the rendering strategy based on the current state.
+ * @private
+ */
+function _getPhraseStrategy(p) {
+  const {
+    isRealPhraseBoundary,
+    shouldForceRender,
+    intelligentPanning,
+    isPatternActive,
+    measureLayout,
+    prevPhrase,
+    currentPhrase,
+    isFirstPhrase,
+  } = p;
+
+  // 1. Measure boundary in "Forced Panning" mode
+  if (shouldForceRender) return "FULL_PAN";
+
+  // 2. Stay in existing phrase if not at a boundary
+  if (!isRealPhraseBoundary) return "NONE";
+
+  // 3. Intelligent Panning Logic (Non-dashboard only)
+  if (intelligentPanning && !isPatternActive) {
+    const comparison = utils.comparePhrasePatterns(
+      measureLayout,
+      prevPhrase,
+      currentPhrase
+    );
+
+    // Identical phrase (Common in 4/4 8ths or 4ths)
+    if (comparison.labelMatch) {
+      return isFirstPhrase ? "FULL_PAN" : "NONE";
+    }
+
+    // Structure matches but labels differ (Common in 4/4 16ths)
+    if (comparison.hierarchyMatch) {
+      return "LABEL_UPDATE";
+    }
+  }
+
+  // 4. Default: Structure changed or Dashboard active
+  return "FULL_PAN";
 }
 
 export function updateCountdownBadge(badgeEl, options = {}) {
