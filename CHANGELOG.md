@@ -1,5 +1,20 @@
 # Changelog
 
+## [v12.3.0] - 2026-06-18
+
+### ✨ Features
+
+- minor: OS-Native Integration & Inbound Data Revamp
+
+### 🧹 Chores
+
+- chore: Bump version to v12.2.0
+- none: cleanup repo
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v12.2.0] - 2026-06-17
 
 ### 🧹 Chores
