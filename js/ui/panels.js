@@ -186,7 +186,15 @@ export function initModeTabs(sessionEngine, simpleMetronome) {
   });
 
   // Initial mode
-  setActiveMode("groove", tabGroove, tabMet, panelGroove, panelMet);
+  const params = new URLSearchParams(window.location.search);
+  const requestedMode = params.get("mode");
+
+  if (requestedMode === "metronome") {
+    setActiveMode("metronome", tabGroove, tabMet, panelGroove, panelMet);
+  } else {
+    // Default boot to groove, or explicit ?mode=groove
+    setActiveMode("groove", tabGroove, tabMet, panelGroove, panelMet);
+  }
 
   // Respond to owner changes
   document.addEventListener("metronome:ownerChanged", (e) => {

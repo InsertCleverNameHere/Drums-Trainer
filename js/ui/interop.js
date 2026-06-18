@@ -191,6 +191,26 @@ export function handleImportReport(bundle, report) {
  */
 export function checkDeepLinks() {
   const hash = window.location.hash;
+  const params = new URLSearchParams(window.location.search);
+
+  // --- Handle Incoming Share Target (Query Params) ---
+  const sharedUrl = params.get("share_url") || params.get("share_text");
+  if (sharedUrl) {
+    // Standardize: extract just the hash if a full URL was passed in
+    const hashMatch = sharedUrl.match(/#share=([A-Za-z0-9\-_+$]+)/);
+    const payload = hashMatch ? hashMatch[1] : sharedUrl;
+
+    // Clear the query params to prevent re-triggering
+    window.history.replaceState(null, null, window.location.pathname);
+
+    const pattern = utils.decompressGroove(decodeURIComponent(payload));
+    if (pattern) {
+      handlePreviewMode(pattern);
+      return true;
+    }
+  }
+
+  // --- Handle Manual Hash Links ---
   if (!hash.startsWith("#share=")) return false;
 
   const compressedData = decodeURIComponent(hash.replace("#share=", ""));
