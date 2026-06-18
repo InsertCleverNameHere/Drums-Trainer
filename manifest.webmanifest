@@ -1,23 +1,34 @@
 {
+  "id": "/",
   "name": "Random Groove Trainer & Metronome",
   "short_name": "Groove & Metronome",
+  "description": "A versatile app for practicing rhythms with a groove trainer and metronome mode.",
+  "categories": ["music", "utilities", "entertainment", "education"],
+  "lang": "en",
+  "dir": "auto",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "background_color": "#f5f5f5",
   "theme_color": "#4e4e4e",
-  "description": "A versatile app for practicing rhythms with a groove trainer and metronome mode.",
   "screenshots": [
     {
       "src": "./assets/desktop-screenshot.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "Groove Randomizer Mode"
     },
     {
       "src": "./assets/mobile-screenshot.png",
       "sizes": "540x720",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Simple Metronome Mode"
     }
   ],
   "icons": [
@@ -114,6 +125,35 @@
       "src": "./assets/icons/icon-1024x1024.png",
       "sizes": "1024x1024",
       "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Simple Metronome",
+      "short_name": "Metronome",
+      "url": "./index.html?mode=metronome",
+      "icons": [{ "src": "./assets/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Groove Randomizer",
+      "short_name": "Grooves",
+      "url": "./index.html?mode=groove",
+      "icons": [{ "src": "./assets/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "url": "share_url",
+      "text": "share_text"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+groove",
+      "url": "./index.html#share=%s"
     }
   ]
 }
