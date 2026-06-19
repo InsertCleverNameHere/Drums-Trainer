@@ -591,13 +591,18 @@ function _wireAdjustButtons() {
     _repeatInterval = null;
   };
 
+  let _lastTouchTime = 0;
+
   const handlePress = (e) => {
     const btn = e.target.closest(".bpm-adjust-btn");
     if (!btn || !_advanced) return;
 
-    // Prevent context menu on long-press for mobile
-    if (e.type === "touchstart" && e.cancelable) e.preventDefault();
+    // 1. Debounce synthetic mouse events
+    const now = Date.now();
+    if (e.type === "mousedown" && now - _lastTouchTime < 500) return;
+    if (e.type === "touchstart") _lastTouchTime = now;
 
+    // 2. Logic Execution
     const target = btn.dataset.target;
     const delta = parseInt(btn.dataset.delta, 10);
     const code = delta > 0 ? "ArrowUp" : "ArrowDown";
@@ -629,7 +634,7 @@ function _wireAdjustButtons() {
     if (e.button === 0) handlePress(e); // Only left-click
   });
 
-  document.addEventListener("touchstart", handlePress, { passive: false });
+  document.addEventListener("touchstart", handlePress, { passive: true });
 
   // Cleanup listeners on window to ensure we catch release even if mouse drifts
   window.addEventListener("mouseup", stopRepeat);
