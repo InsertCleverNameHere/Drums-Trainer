@@ -1,5 +1,15 @@
 # Changelog
 
+## [v12.3.1] - 2026-06-22
+
+### 🐛 Fixes
+
+- Patch: hotfix P key deadlock
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v12.3.0] - 2026-06-18
 
 ### ✨ Features
