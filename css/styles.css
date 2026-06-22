@@ -1860,6 +1860,9 @@ button#installBtn.utility-button {
   transition:
     background 0.4s ease,
     color 0.4s ease;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
