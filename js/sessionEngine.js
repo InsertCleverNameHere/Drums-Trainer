@@ -237,6 +237,9 @@ export function startSession() {
  * @returns {void}
  */
 export function pauseSession() {
+  // Do not allow pausing if session is not active
+  if (!flags.sessionActive) return;
+
   if (flags.isCountingIn || flags.isFinishingBar) {
     debugLog("state", "⚠️ Cannot pause during countdown or finishing bar");
     return;
