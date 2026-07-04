@@ -26,6 +26,32 @@ import { debugLog } from "./debug.js";
 const BEATS_PER_PAGE = 8; // How many main beats to show at once.
 
 /**
+ * Computes how many ticks of lookback are needed to satisfy lead time requirements.
+ * Pure arithmetic function: (N * perTickMs) + lookaheadMs >= minLeadMs
+ *
+ * @private
+ * @param {number} secondsPerTick - Current temporal width of one tick
+ * @param {number} lookaheadS - Audio scheduler lookahead in seconds
+ * @param {number} minLeadMs - Target minimum lead time in milliseconds
+ * @param {number} maxLookback - Hard ceiling for tick lookback
+ * @returns {number} Required ticks [0...maxLookback]
+ */
+function _ticksNeededForLeadTime(
+  secondsPerTick,
+  lookaheadS,
+  minLeadMs,
+  maxLookback
+) {
+  const perTickMs = secondsPerTick * 1000;
+  const lookaheadMs = lookaheadS * 1000;
+
+  // Minimal N such that lead time is satisfied
+  let n = Math.ceil((minLeadMs - lookaheadMs) / perTickMs);
+
+  return Math.max(0, Math.min(maxLookback, n));
+}
+
+/**
  * Internal Factory: Builds the DOM structure for a single beat/tick.
  * Consolidates duplicate logic from renderNewPhrase and primeVisuals.
  *
@@ -73,70 +99,33 @@ function _createBeatElement(
 }
 
 /**
- * Renders a new phrase into the viewport with GSAP pan animation.
+ * Pure construction: Builds a new .panning-container and its child dots/rows.
+ * Does NOT touch the live DOM.
  *
- * CRITICAL: Must kill ALL GSAP tweens before clearing DOM to prevent memory leaks.
- * The killTweensOf calls ensure GSAP releases references to DOM nodes that are
- * about to be destroyed, allowing proper garbage collection.
- *
- * @param {HTMLElement} container - The beat indicator container
- * @param {Array} measureLayout - Full measure layout
- * @param {Object} phrase - Current phrase {start, end, length}
- * @param {Object} core - Metronome core for BPM
- * @param {Array} dotElements - Reference to dotElements array (will be updated)
- * @returns {Array} Updated dotElements array
+ * @private
+ * @returns {{element: HTMLElement, dotElements: HTMLElement[]}}
  */
-function renderNewPhrase(
-  container,
-  measureLayout,
-  phrase,
-  core,
-  dotElements,
-  panelId
-) {
-  // CRITICAL: Kill ALL GSAP animations in container, not just panning container
-  const oldPanningContainer = container.querySelector(".panning-container");
-  if (oldPanningContainer) {
-    // Kill animations on container itself
-    gsap.killTweensOf(oldPanningContainer);
-
-    // Kill animations on ALL children (dots and text elements)
-    const allDots = oldPanningContainer.querySelectorAll(".beat-dot");
-    const allText = oldPanningContainer.querySelectorAll(".phonation-text");
-    allDots.forEach((dot) => gsap.killTweensOf(dot));
-    allText.forEach((text) => gsap.killTweensOf(text));
-  }
-
-  container.innerHTML = "";
+function _buildPhraseContainer(measureLayout, phrase, panelId) {
   const panningContainer = document.createElement("div");
-  panningContainer.className = "panning-container";
-  panningContainer.style.display = "flex";
-  // Determine if we're in pattern mode or standard mode (Respecting User Preference)
+  panningContainer.className = "panning-container pending-overlay";
+
   const isPatternMode =
     panelId === "groove" &&
     patternScheduler.isActive() &&
     advancedMode.isDashboardEnabled();
+
   if (isPatternMode) {
     panningContainer.style.flexDirection = "column";
   }
-  container.appendChild(panningContainer);
 
-  // Extract the slice of dots for this phrase
   const phraseSlice = measureLayout.slice(phrase.start, phrase.end + 1);
-
-  // Clear and rebuild dotElements cache
-  dotElements.length = 0; // Clear array without losing reference
-
+  const builtDots = [];
   const tracks = isPatternMode ? ["hihat", "kick", "snare", "HHPed"] : [null];
   const showPed = document.getElementById("toggleHHPed")?.checked ?? true;
-
-  // Clear and rebuild dotElements cache (now a 2D array if in pattern mode)
-  dotElements.length = 0;
 
   tracks.forEach((trackID) => {
     if (trackID === "HHPed" && !showPed) return;
 
-    // Define dotParent outside the conditional to fix ReferenceError
     let dotParent = panningContainer;
 
     if (isPatternMode) {
@@ -144,7 +133,6 @@ function renderNewPhrase(
       row.className = "pattern-row";
       if (trackID) row.dataset.track = trackID;
 
-      // Add Instrument Label
       const label = document.createElement("div");
       label.className = "pattern-row-label";
       const labelMap = { hihat: "HH", kick: "KI", snare: "SN", HHPed: "PD" };
@@ -166,21 +154,136 @@ function renderNewPhrase(
         showPhonation
       );
       dotParent.appendChild(wrapper);
-      dotElements.push(wrapper);
+      builtDots.push(wrapper);
     });
   });
 
-  // GSAP animation: slide in from right
-  const bpm = core.getBpm();
-  const duration = Math.max(0.08, Math.min(0.4, (60 / bpm) * 0.75));
+  return { element: panningContainer, dotElements: builtDots };
+}
 
+/**
+ * Attaches the built phrase to the DOM and triggers the entrance animation.
+ * Caps duration to the available lookback budget
+ *
+ * @private
+ */
+function _animateIncomingPhrase(
+  container,
+  built,
+  bpm,
+  lookbackUsed,
+  secondsPerTick
+) {
+  // 1. Subordinate the "Past": Find the currently active container and dim it
+  const activeContainer = container.querySelector(
+    ".panning-container:not(.pending-overlay)"
+  );
+  if (activeContainer) {
+    gsap.to(activeContainer, {
+      opacity: 0.35,
+      duration: 0.25,
+      ease: "power2.out",
+    });
+  }
+
+  container.appendChild(built.element);
+
+  const beatBasedDuration = Math.max(0.08, Math.min(0.4, (60 / bpm) * 0.75));
+  const lookaheadS = constants.AUDIO.LOOKAHEAD_S;
+  const reserveS =
+    constants.UX.VISUALS.PHRASE_PRERENDER.OUTGOING_FLASH_RESERVE_MS / 1000;
+
+  const availableBudgetS =
+    lookbackUsed * secondsPerTick + lookaheadS - reserveS;
+  const duration = Math.max(
+    0.05,
+    Math.min(beatBasedDuration, availableBudgetS)
+  );
+
+  // 2. Highlight the "Future": New phrase enters at 100% opacity
   gsap.fromTo(
-    panningContainer,
+    built.element,
     { x: 50, opacity: 0 },
     { x: 0, opacity: 1, duration, ease: "power1.out" }
   );
+}
+/**
+ * Swaps the current phrase with the pre-rendered one.
+ * Kills old animations and settles the new container into the flow.
+ *
+ * @private
+ * @param {HTMLElement} container - The main beat indicator container
+ * @param {Object} built - The result from _buildPhraseContainer {element, dotElements}
+ * @param {Array} dotElementsRef - The closure's dotElements array to be updated
+ */
+function _promotePendingToActive(container, built, dotElementsRef) {
+  // 1. Identify and cleanup the OLD container(s)
+  const oldContainers = container.querySelectorAll(
+    ".panning-container:not(.pending-overlay)"
+  );
 
-  return dotElements; // Return updated array (though it's passed by reference)
+  oldContainers.forEach((old) => {
+    gsap.killTweensOf(old);
+    const allChildren = old.querySelectorAll("*");
+    allChildren.forEach((child) => gsap.killTweensOf(child));
+    old.remove();
+  });
+
+  // 2. Promote the NEW container
+  built.element.classList.remove("pending-overlay");
+
+  // 3. Sync the dotElements reference so flashing hits the new targets
+  dotElementsRef.length = 0;
+  built.dotElements.forEach((el) => dotElementsRef.push(el));
+}
+
+/**
+ * Orchestrates an immediate phrase swap (fallback scenario).
+ * Used when the system cannot pre-render early or during initial load.
+ *
+ * @param {HTMLElement} container - The main beat indicator container
+ * @param {Array} measureLayout - Full measure layout data
+ * @param {Object} phrase - Current phrase segment {start, end, length}
+ * @param {Object} core - The metronome core for temporal math
+ * @param {Array} dotElements - Reference to closure dotElements (updated by reference)
+ * @param {string} panelId - 'groove' or 'simple'
+ * @returns {Array} Updated dotElements array
+ */
+function renderNewPhrase(
+  container,
+  measureLayout,
+  phrase,
+  core,
+  dotElements,
+  panelId
+) {
+  const bpm = core.getBpm();
+  const timeSignature = core.getTimeSignature();
+  const ticksPerBeat = core.getTicksPerBeat();
+  const secondsPerTick =
+    ((60 / bpm) * (4 / timeSignature.value)) / ticksPerBeat;
+
+  // 1. Build (Off-DOM)
+  const built = _buildPhraseContainer(measureLayout, phrase, panelId);
+
+  // 2. Cold Start Check
+  // If the container has no active (non-overlay) content, we perform an instant
+  // insertion to prevent the 50ms "rattle" jitter on the first beat.
+  const hasActiveContent = !!container.querySelector(
+    ".panning-container:not(.pending-overlay)"
+  );
+
+  if (!hasActiveContent) {
+    // Instant Insertion
+    container.appendChild(built.element);
+    _promotePendingToActive(container, built, dotElements);
+  } else {
+    // Mid-session Fallback: Animate overlay, then promote
+    _animateIncomingPhrase(container, built, bpm, 0, secondsPerTick);
+    _promotePendingToActive(container, built, dotElements);
+  }
+
+  return dotElements;
 }
 
 /**
@@ -362,6 +465,11 @@ export function createVisualCallback(panelId = "groove") {
   let intelligentPanning = true; // Current panning mode
   let dotElements = []; // Cache of DOM elements for current phrase (up to 4 wrappers)
 
+  // === PENDING (PRE-RENDERED) STATE ===
+  let pendingPhraseContainer = null; // the off-DOM-but-attached .panning-container being prepared early
+  let pendingPhraseIndex = -1; // which phrase index pendingPhraseContainer corresponds to
+  let pendingDotElements = []; // dotElements equivalent for the pending container
+
   // === PANNING MODE EVENT LISTENER ===
   // Listen for toggle changes and update our local state
   document.addEventListener("panningModeChanged", (e) => {
@@ -391,29 +499,29 @@ export function createVisualCallback(panelId = "groove") {
       const container = document.getElementById(containerId);
       if (!container) return;
 
-      // Get the correct metronome core
       const core = panelId === "groove" ? metronome : simpleMetronome.core;
-      // Safety check
-      if (!core || typeof core.getTimeSignature !== "function") {
-        return;
-      }
+      if (!core || typeof core.getTimeSignature !== "function") return;
 
+      // 1. TEMPORAL MATH
+      const bpm = core.getBpm();
       const timeSignature = core.getTimeSignature();
       const ticksPerBeat = core.getTicksPerBeat();
       const isPatternActive =
         panelId === "groove" && patternScheduler.isActive();
+      const secondsPerTick =
+        ((60 / bpm) * (4 / timeSignature.value)) / ticksPerBeat;
 
       let totalTicksInMeasure;
-      let currentMeasures = 1; // Declare here so it's accessible below
+      let currentMeasures = 1;
 
       if (isPatternActive) {
-        const pattern = getGroovePattern(
-          document
-            .getElementById("displayGroove")
-            .textContent.replace("Groove: ", "")
-            .replace("Preview: ", "")
-        );
-        currentMeasures = pattern?.measures || 1; // Update the shared variable
+        const displayEl = document.getElementById("displayGroove");
+        const grooveName = displayEl?.textContent
+          .replace("Groove: ", "")
+          .replace("Preview: ", "")
+          .trim();
+        const pattern = getGroovePattern(grooveName);
+        currentMeasures = pattern?.measures || 1;
         totalTicksInMeasure =
           timeSignature.beats * ticksPerBeat * currentMeasures;
       } else {
@@ -421,159 +529,191 @@ export function createVisualCallback(panelId = "groove") {
       }
 
       const signatureKey = `${timeSignature.beats}/${timeSignature.value}-${totalTicksInMeasure}`;
-
       if (totalTicksInMeasure === 0) return;
 
-      const currentTickInMeasure = tickIndex % totalTicksInMeasure;
-      // Only show the 4-row dashboard if active AND enabled in settings
+      // --- MODE SWITCH DETECTION ---
+      // Detect if we need to swap between Standard and Pattern (Dashboard) mode.
       const showDashboard =
         isPatternActive && advancedMode.isDashboardEnabled();
-
-      // Detect if we need to swap between Standard and Pattern mode
       const targetMode = showDashboard ? "pattern" : "standard";
+
       if (container.dataset.renderedMode !== targetMode) {
         container.dataset.renderedMode = targetMode;
         container.classList.toggle("pattern-mode", showDashboard);
-        lastRenderedSignature = ""; // Force a re-render
+        // Force a layout rebuild by clearing the signature key
+        lastRenderedSignature = "";
+        debugLog("visuals", `🔄 [${panelId}] Mode changed to: ${targetMode}`);
       }
 
-      // === Rebuild layout on signature or subdivision change ===
+      const currentTickInMeasure = tickIndex % totalTicksInMeasure;
+
+      // 2. LAYOUT RESET GUARD
       if (
         signatureKey !== lastRenderedSignature ||
         ticksPerBeat !== lastRenderedTicksPerBeat
       ) {
+        // --- Memory Safety: Kill all existing tweens before clearing DOM ---
+        const activeContainers =
+          container.querySelectorAll(".panning-container");
+        activeContainers.forEach((c) => {
+          gsap.killTweensOf(c);
+          c.querySelectorAll("*").forEach((child) => gsap.killTweensOf(child));
+        });
+
         measureLayout = utils.generateMeasureLayout(
           timeSignature,
           ticksPerBeat,
           currentMeasures
         );
         phrases = utils.segmentIntoPhrases(totalTicksInMeasure);
-        currentPhraseIndex = -1;
 
-        // CRITICAL: Kill ALL GSAP animations before clearing DOM
-        const oldPanningContainer =
-          container.querySelector(".panning-container");
-        if (oldPanningContainer) {
-          gsap.killTweensOf(oldPanningContainer);
-          const allElements = oldPanningContainer.querySelectorAll("*");
-          allElements.forEach((el) => gsap.killTweensOf(el));
-        }
-
-        // Clear container to remove old dot hierarchy
         container.innerHTML = "";
         dotElements.length = 0;
 
-        lastRenderedSignature = signatureKey;
-        lastRenderedTicksPerBeat = ticksPerBeat;
-
-        debugLog(
-          "visuals",
-          `🎼 [${panelId}] Layout rebuilt: ${signatureKey}, ${totalTicksInMeasure} ticks`
+        // --- IMMEDIATE RESTORATION (The Fix) ---
+        // Determine which phrase the current tick belongs to and render it immediately.
+        // This ensures the dots appear as soon as a setting is changed.
+        const initialPhraseIdx = phrases.findIndex(
+          (p) =>
+            currentTickInMeasure >= p.start && currentTickInMeasure <= p.end
         );
-        debugLog("visuals", `📊 [${panelId}] Phrases:`, phrases);
-        debugLog(
-          "visuals",
-          `🔄 [${panelId}] Visual reset: container cleared, forcing re-render`
-        );
-      }
 
-      // 1. Resolve Current State (Calculated once at the top)
-      const newPhraseIndex = phrases.findIndex(
-        (p) => currentTickInMeasure >= p.start && currentTickInMeasure <= p.end
-      );
-
-      if (newPhraseIndex === -1) {
-        debugLog(
-          "visuals",
-          `[${panelId}] ⚠️ Tick ${currentTickInMeasure} not in any phrase!`
-        );
-        return;
-      }
-
-      const currentPhrase = phrases[newPhraseIndex];
-      const tickInPhrase = currentTickInMeasure - currentPhrase.start;
-      const isMeasureBoundary = currentTickInMeasure === 0;
-      const shouldForceRender =
-        !intelligentPanning && isMeasureBoundary && phrases.length === 1;
-
-      // 2. Get Strategy from Arbiter
-      const strategy = _getPhraseStrategy({
-        isRealPhraseBoundary: newPhraseIndex !== currentPhraseIndex,
-        shouldForceRender,
-        intelligentPanning,
-        isPatternActive,
-        measureLayout,
-        prevPhrase:
-          phrases[
-            currentPhraseIndex === -1 ? phrases.length - 1 : currentPhraseIndex
-          ],
-        currentPhrase,
-        isFirstPhrase: currentPhraseIndex === -1,
-      });
-
-      // 3. Execute Decision
-      if (strategy === "FULL_PAN") {
-        dotElements = renderNewPhrase(
+        renderNewPhrase(
           container,
           measureLayout,
-          currentPhrase,
+          phrases[initialPhraseIdx],
           core,
           dotElements,
           panelId
         );
-      } else if (strategy === "LABEL_UPDATE") {
-        updatePhraseLabels(
-          container,
-          measureLayout,
-          currentPhrase,
-          dotElements
-        );
+
+        // Synchronize indices and discard stale pre-renders
+        currentPhraseIndex = initialPhraseIdx;
+        pendingPhraseContainer = null;
+        pendingPhraseIndex = -1;
+        pendingDotElements = [];
+
+        lastRenderedSignature = signatureKey;
+        lastRenderedTicksPerBeat = ticksPerBeat;
       }
+      const newPhraseIndex = phrases.findIndex(
+        (p) => currentTickInMeasure >= p.start && currentTickInMeasure <= p.end
+      );
+      const currentPhrase = phrases[newPhraseIndex];
+      const isBoundaryTick = newPhraseIndex !== currentPhraseIndex;
 
-      currentPhraseIndex = newPhraseIndex;
+      // 3. PRE-RENDER TRIGGER
+      const ticksUntilBoundary = currentPhrase.end - currentTickInMeasure;
+      const requiredLookback = _ticksNeededForLeadTime(
+        secondsPerTick,
+        constants.AUDIO.LOOKAHEAD_S,
+        constants.UX.VISUALS.PHRASE_PRERENDER.MIN_LEAD_MS,
+        constants.UX.VISUALS.PHRASE_PRERENDER.MAX_LOOKBACK_TICKS
+      );
 
-      // === WITHIN-PHRASE: Ensure phrase is rendered and flash active dot ===
-      // Skip fallback if pattern is active to prevent overwriting the 4-track grid
-      if (!isPatternActive) {
-        let panningContainer = container.querySelector(".panning-container");
-        if (!panningContainer || panningContainer.children.length === 0) {
-          // No phrase rendered yet - render current phrase without animation
-          container.innerHTML = "";
-          panningContainer = document.createElement("div");
-          panningContainer.className = "panning-container";
-          panningContainer.style.display = "flex";
-          container.appendChild(panningContainer);
+      // Trigger if we are exactly at the lookback tick and have nothing pending
+      if (
+        ticksUntilBoundary === requiredLookback &&
+        pendingPhraseContainer === null
+      ) {
+        const nextIdx = (newPhraseIndex + 1) % phrases.length;
+        const nextPhrase = phrases[nextIdx];
 
-          const phraseSlice = measureLayout.slice(
-            currentPhrase.start,
-            currentPhrase.end + 1
+        // Only pre-build if the NEXT phrase would result in a FULL_PAN
+        const nextStrategy = _getPhraseStrategy({
+          isRealPhraseBoundary: true,
+          shouldForceRender: !intelligentPanning && phrases.length === 1,
+          intelligentPanning,
+          isPatternActive,
+          measureLayout,
+          prevPhrase: currentPhrase,
+          currentPhrase: nextPhrase,
+          isFirstPhrase: false,
+        });
+
+        if (nextStrategy === "FULL_PAN") {
+          const built = _buildPhraseContainer(
+            measureLayout,
+            nextPhrase,
+            panelId
           );
-          dotElements.length = 0;
-
-          phraseSlice.forEach((dotInfo) => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "beat-wrapper";
-
-            const dot = document.createElement("div");
-            dot.className = `beat-dot ${dotInfo.size}`;
-            if (dotInfo.isAccent) dot.classList.add("accent");
-
-            const text = document.createElement("div");
-            text.className = "phonation-text";
-            text.textContent = dotInfo.label;
-
-            wrapper.appendChild(dot);
-            wrapper.appendChild(text);
-            panningContainer.appendChild(wrapper);
-            dotElements.push(wrapper);
-          });
-
-          // Center the container immediately (for NO UPDATE cases)
-          gsap.set(panningContainer, { x: 0 });
+          pendingPhraseContainer = built.element;
+          pendingDotElements = built.dotElements;
+          pendingPhraseIndex = nextIdx;
+          _animateIncomingPhrase(
+            container,
+            built,
+            bpm,
+            requiredLookback,
+            secondsPerTick
+          );
+          debugLog(
+            "visuals",
+            `🏗️ [${panelId}] Pre-rendered phrase ${nextIdx} early.`
+          );
         }
       }
 
-      // === FLASH ACTIVE DOT (using tickInPhrase) ===
+      // 4. BOUNDARY RESOLUTION
+      if (isBoundaryTick) {
+        // Use the pre-rendered phrase if it matches the current boundary
+        if (pendingPhraseContainer && pendingPhraseIndex === newPhraseIndex) {
+          _promotePendingToActive(
+            container,
+            {
+              element: pendingPhraseContainer,
+              dotElements: pendingDotElements,
+            },
+            dotElements
+          );
+          pendingPhraseContainer = null;
+          pendingPhraseIndex = -1;
+          pendingDotElements = [];
+          debugLog(
+            "visuals",
+            `✅ [${panelId}] Promoted pending phrase ${newPhraseIndex}`
+          );
+        } else {
+          // Fallback: The immediate orchestrator
+          const strategy = _getPhraseStrategy({
+            isRealPhraseBoundary: true,
+            shouldForceRender: !intelligentPanning && phrases.length === 1,
+            intelligentPanning,
+            isPatternActive,
+            measureLayout,
+            prevPhrase:
+              phrases[
+                currentPhraseIndex === -1
+                  ? phrases.length - 1
+                  : currentPhraseIndex
+              ],
+            currentPhrase,
+            isFirstPhrase: currentPhraseIndex === -1,
+          });
+
+          if (strategy === "FULL_PAN") {
+            renderNewPhrase(
+              container,
+              measureLayout,
+              currentPhrase,
+              core,
+              dotElements,
+              panelId
+            );
+          } else if (strategy === "LABEL_UPDATE") {
+            updatePhraseLabels(
+              container,
+              measureLayout,
+              currentPhrase,
+              dotElements
+            );
+          }
+        }
+        currentPhraseIndex = newPhraseIndex;
+      }
+
+      // 5. FLASH ACTIVE DOT
+      const tickInPhrase = currentTickInMeasure - currentPhrase.start;
       flashTimeout = flashActiveDot(
         container,
         tickInPhrase,
@@ -586,8 +726,6 @@ export function createVisualCallback(panelId = "groove") {
       );
     } catch (error) {
       console.error(`❌ Visual callback error [${panelId}]:`, error);
-      console.error("Stack trace:", error.stack);
-      // Don't rethrow - let metronome continue even if visuals break
     }
   };
 }

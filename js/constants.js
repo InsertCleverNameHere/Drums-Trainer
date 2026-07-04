@@ -61,6 +61,15 @@ export const UX = {
     INVALID_INPUT_FLASH_MS: 400,
     STAGGER_S: 0.1,
   },
+  // Visual system phrase pre-rendering behavior.
+  // NOTE: These values may require tuning based on manual testing across devices.
+  VISUALS: {
+    PHRASE_PRERENDER: {
+      MIN_LEAD_MS: 220, // Minimum time the new phrase should be settled before audio sounds
+      OUTGOING_FLASH_RESERVE_MS: 150, // Time protected to ensure the previous tick's flash is visible
+      MAX_LOOKBACK_TICKS: 4, // Hard ceiling on how many ticks early we begin preparation
+    },
+  },
   DEBOUNCE: {
     HOTKEY_MS: 120,
   },
