@@ -1315,13 +1315,17 @@ button#installBtn.utility-button:active {
 /* --- Container Alignment --- */
 #beat-indicator-container,
 #beat-indicator-container-simple {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative; /* Positioning anchor */
   min-height: 180px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 14px;
   overflow: hidden;
   width: 100%;
-  padding: 40px 0 30px;
+  padding: 0; /* Standardize: padding handled by flex-centering */
   background: var(--bg-secondary);
   border-radius: 12px;
   box-shadow: inset 0 1px 3px var(--shadow);
@@ -1333,6 +1337,14 @@ button#installBtn.utility-button:active {
   align-items: center;
   gap: 14px;
   width: 100%;
+  height: 100%; /* Mirror parent dimensions */
+}
+
+.panning-container.pending-overlay {
+  position: absolute;
+  inset: 0; /* Spans top, right, bottom, left 0 */
+  z-index: 5;
+  pointer-events: none;
 }
 
 /* Dashboard Container */
@@ -1340,7 +1352,7 @@ button#installBtn.utility-button:active {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 20px 0;
   height: auto;
   min-height: 480px;
 }
