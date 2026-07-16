@@ -4,6 +4,20 @@
 
 ### 🧹 Chores
 
+- none: hopefully finally fix ci
+- chore: Bump version to v13.1.1
+- none: Update JDK version from 17 to 21 in release workflow
+- chore: Bump version to v13.1.1
+- none: Make Gradlew executable in release workflow
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
+## [v13.1.1] - 2026-07-16
+
+### 🧹 Chores
+
 - none: Update JDK version from 17 to 21 in release workflow
 - chore: Bump version to v13.1.1
 - none: Make Gradlew executable in release workflow
