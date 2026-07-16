@@ -371,3 +371,32 @@ if (typeof window !== "undefined") {
     "🛠️ RGT Bridge active. Access via window.RGT (e.g., RGT.debug.audio = true)"
   );
 }
+
+// --- Capacitor Native Bridge ---
+if (window.Capacitor && window.Capacitor.Plugins.App) {
+  const { App } = window.Capacitor.Plugins;
+
+  // 1. Handle "Warm Start" (App already open in background)
+  App.addListener("appUrlOpen", (data) => {
+    debugLog("state", `🔗 Native Deep Link received: ${data.url}`);
+    processNativeUrl(data.url);
+  });
+
+  // 2. Handle "Cold Start" (App was closed)
+  App.getLaunchUrl().then((data) => {
+    if (data && data.url) {
+      debugLog("state", `🚀 App launched with URL: ${data.url}`);
+      processNativeUrl(data.url);
+    }
+  });
+
+  function processNativeUrl(url) {
+    if (url.includes("web+groove://")) {
+      const payload = url.replace(/^web\+groove:\/\//, "");
+      // Update hash to trigger interop.js -> checkDeepLinks()
+      window.location.hash = `share=${encodeURIComponent(payload)}`;
+    }
+    // Note: mode-based URLs (?mode=...) are handled automatically
+    // by the browser reloading the URL in the Java layer.
+  }
+}

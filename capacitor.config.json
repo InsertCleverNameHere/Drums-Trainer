@@ -1,0 +1,10 @@
+{
+  "appId": "com.insertclevernamehere.drumstrainer",
+  "appName": "Random Groove Trainer & Metronome",
+  "webDir": "www",
+  "server": {
+    "url": "https://insertclevernamehere.github.io/Drums-Trainer/",
+    "allowNavigation": ["insertclevernamehere.github.io"],
+    "cleartext": false
+  }
+}

@@ -22,13 +22,12 @@ dist/
 .DS_Store
 Thumbs.db
 
-# IDE files (optional, if you use other editors)
-.idea/
-*.swp
-*.swo
-*~
 
-# Logs (optional)
-*.log
-npm-debug.log*
-docs/PHASE_5_1_TECHNICAL_PLAN.md
+# Capacitor/Android
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/*.keystore
+android/app/*.jks
+www/*
+!www/.gitkeep
