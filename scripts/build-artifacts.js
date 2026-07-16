@@ -21,6 +21,7 @@ const userFiles = [
   "commits.json",
   "defaultGrooves.json",
   "favicon.ico",
+  ".well-known",
   "js",
   "css",
   "libs",
