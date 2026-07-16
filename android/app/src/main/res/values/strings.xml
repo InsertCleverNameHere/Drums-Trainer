@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Random Groove Trainer &amp; Metronome</string>
+    <string name="title_activity_main">Random Groove Trainer &amp; Metronome</string>
+    <string name="package_name">com.insertclevernamehere.drumstrainer</string>
+    <string name="custom_url_scheme">com.insertclevernamehere.drumstrainer</string>
+    <string name="shortcut_metronome_short">Metronome</string>
+    <string name="shortcut_metronome_long">Simple Metronome</string>
+    <string name="shortcut_groove_short">Randomizer</string>
+    <string name="shortcut_groove_long">Groove Randomizer</string>
+</resources>

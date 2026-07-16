@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="simple_metronome"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_metronome_short"
+        android:shortcutLongLabel="@string/shortcut_metronome_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.insertclevernamehere.drumstrainer"
+            android:targetClass="com.insertclevernamehere.drumstrainer.MainActivity"
+            android:data="https://insertclevernamehere.github.io/Drums-Trainer/index.html?mode=metronome" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="groove_randomizer"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_groove_short"
+        android:shortcutLongLabel="@string/shortcut_groove_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.insertclevernamehere.drumstrainer"
+            android:targetClass="com.insertclevernamehere.drumstrainer.MainActivity"
+            android:data="https://insertclevernamehere.github.io/Drums-Trainer/index.html?mode=groove" />
+    </shortcut>
+</shortcuts>

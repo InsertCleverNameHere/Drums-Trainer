@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.insertclevernamehere.drumstrainer",
+      "sha256_cert_fingerprints": [
+        "B6:24:4A:D7:4B:78:71:30:46:32:1A:77:BD:93:65:24:5D:A9:28:00:74:C5:0E:29:21"
+      ]
+    }
+  }
+]
