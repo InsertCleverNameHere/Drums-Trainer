@@ -164,9 +164,9 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Restore Keystore
-        working-directory: android
+        working-directory: android/app
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > rgt-release.keystore
-
+        
       - name: Build Signed APK
         working-directory: android
         run: |
