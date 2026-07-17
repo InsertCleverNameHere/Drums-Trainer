@@ -444,4 +444,3 @@ export function requestEndOfCycle(callback, measures = 1) {
     `⏳ End-of-cycle requested — will stop at next bar boundary`
   );
 }
-// keep the module lightweight
