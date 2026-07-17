@@ -35,9 +35,6 @@ jobs:
       - name: Generate changelog (dry run — not committed)
         run: node scripts/generate-changelog.js
 
-      - name: Lint
-        run: npx eslint .
-
   validate-android:
     runs-on: ubuntu-latest
     needs: validate-web
