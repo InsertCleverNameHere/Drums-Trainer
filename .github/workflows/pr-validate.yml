@@ -1,0 +1,74 @@
+name: PR Validation (Dry Run)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Parse commit message (dry run — no file writes committed)
+        run: node scripts/parse-commit.js
+
+      - name: Bump version (dry run — writes to disk, not committed)
+        run: node scripts/bump-version.js
+
+      - name: Build user and dev artifacts
+        run: node scripts/build-artifacts.js
+
+      - name: Generate changelog (dry run — not committed)
+        run: node scripts/generate-changelog.js
+
+      - name: Lint
+        run: npx eslint .
+
+  validate-android:
+    runs-on: ubuntu-latest
+    needs: validate-web
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create dummy web directory
+        run: mkdir -p www && touch www/index.html
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      - name: Build Unsigned Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
