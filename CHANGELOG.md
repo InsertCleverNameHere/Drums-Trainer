@@ -1,5 +1,19 @@
 # Changelog
 
+## [v13.2.1] - 2026-07-22
+
+### 🐛 Fixes
+
+- patch: restore changelog generation step and update to a new version to test release notes
+
+### 🧹 Chores
+
+- none: use github's release notes instead of changelog
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v13.2.0] - 2026-07-22
 
 ### ✨ Features
