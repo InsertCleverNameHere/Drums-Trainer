@@ -59,12 +59,6 @@ jobs:
         run: node scripts/bump-version.js
 
       # ===========================
-      # Generate Changelog
-      # ===========================
-      - name: Generate changelog
-        run: node scripts/generate-changelog.js
-
-      # ===========================
       # Read Version
       # ===========================
       - name: Read version
@@ -90,15 +84,6 @@ jobs:
             git commit -m "chore: Bump version to ${{ steps.read_version.outputs.version }}"
             git push
           fi
-
-      # ===========================
-      # Upload Changelog
-      # ===========================
-      - name: Upload changelog
-        uses: actions/upload-artifact@v4
-        with:
-          name: changelog
-          path: CHANGELOG.md
 
 
   # ============================================================
@@ -252,17 +237,17 @@ jobs:
       # Download Build Outputs
       # ===========================
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
 
       # ===========================
       # Create GitHub Release
       # ===========================
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare-release.outputs.version }}
           name: Release ${{ needs.prepare-release.outputs.version }}
-          body_path: changelog/CHANGELOG.md
+          generate_release_notes: true
           files: |
             web-assets/user.zip
             web-assets/dev.zip
