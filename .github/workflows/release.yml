@@ -58,6 +58,13 @@ jobs:
         id: version
         run: node scripts/bump-version.js
 
+
+      # ===========================
+      # Generate Changelog
+      # ===========================
+      - name: Generate changelog
+        run: node scripts/generate-changelog.js
+
       # ===========================
       # Read Version
       # ===========================
