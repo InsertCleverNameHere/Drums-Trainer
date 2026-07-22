@@ -1,5 +1,27 @@
 # Changelog
 
+## [v13.2.0] - 2026-07-22
+
+### ✨ Features
+
+- minor: Refactor GitHub Actions release workflow
+- minor: clean new release
+- minor: clean new release
+
+### 🧹 Chores
+
+- chore: Bump version to v13.1.0
+- chore: Bump version to v13.0.0
+- chore: Bump version to v13.0.1
+- none: update release workflow and add pr validation workflow
+- chore: Bump version to v13.0.1
+- none: update actions versions and correctly tag releases in workflow
+- chore: Bump version to v13.0.1
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v13.1.0] - 2026-07-18
 
 ### ✨ Features
