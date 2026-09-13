@@ -1,5 +1,15 @@
 # Changelog
 
+## [v13.2.2] - 2026-09-13
+
+### 🐛 Fixes
+
+- patch: fix install prompt bug in capacitor path by adding bridge and additional guard
+
+**[View Live App](https://insertclevernamehere.github.io/Drums-Trainer/)**
+
+---
+
 ## [v13.2.1] - 2026-07-22
 
 ### 🐛 Fixes
