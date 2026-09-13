@@ -292,10 +292,13 @@ const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
 // === PWA Install Prompt Handling ===
 const installBtn = document.getElementById("installBtn");
 let deferredPrompt = null;
+const isNativeShell =
+  !!window.Capacitor || window.matchMedia("(display-mode: standalone)").matches;
 
 window.addEventListener("beforeinstallprompt", (e) => {
   // Prevent the default mini-infobar
   e.preventDefault();
+  if (isNativeShell) return; // Already installed/native shell — don't offer install
   deferredPrompt = e;
 
   // Show the install button
